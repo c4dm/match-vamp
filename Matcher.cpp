@@ -61,6 +61,19 @@ Matcher::Matcher(float rate, Matcher *p)
 
 } // default constructor
 
+void
+Matcher::setHopSize(int sz)
+{
+    if (initialised) {
+        std::cerr << "Matcher::setHopSize: Can't set after use" << std::endl;
+        return;
+    }
+
+    hopSize = sz;
+    hopTime = float(hopSize) / sampleRate;
+    blockTime = blockSize * hopTime;
+}
+
 Matcher::~Matcher()
 {
     std::cerr << "Matcher(" << this << ")::~Matcher()" << std::endl;

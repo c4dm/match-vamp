@@ -181,8 +181,10 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
     if (!pm1) createMatchers();
     if (channels < getMinChannelCount() ||
 	channels > getMaxChannelCount()) return false;
-    if (stepSize != getPreferredStepSize() ||
+    if (stepSize > blockSize/2 ||
         blockSize != getPreferredBlockSize()) return false;
+    pm1->setHopSize(stepSize);
+    pm2->setHopSize(stepSize);
     m_begin = true;
     m_locked = false;
     return true;

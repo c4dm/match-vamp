@@ -249,6 +249,8 @@ public:
         return frameCount;
     }
 
+    void setHopSize(int);
+
 protected:
     template <typename T>
     void initVector(vector<T> &vec, int sz, T dflt = 0) {
