@@ -2,7 +2,7 @@
 CXXFLAGS	:= -fPIC -ffast-math -O3 -Wall
 
 match-vamp-plugin.so:	Finder.o Matcher.o MatchFeeder.o MatchVampPlugin.o Path.o
-	g++ -shared $^ -o $@ -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -lpthread
+	g++ -shared $^ -o $@ -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -lpthread -Wl,--version-script=vamp-plugin.map
 
 clean:	
 	rm *.o
