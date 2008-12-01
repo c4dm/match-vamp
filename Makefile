@@ -1,10 +1,8 @@
 
-CXXFLAGS	:= -I../vamp-plugin-sdk -O3 -Wall
-#CXXFLAGS	:= -I../vamp-plugin-sdk -g -Wall -march=pentium4 -msse -msse2 -ffast-math
-#CXXFLAGS	:= -I../vamp-plugin-sdk -O3 -Wall -march=pentium4 -msse -msse2 -fomit-frame-pointer -ffast-math
+CXXFLAGS	:= -fPIC -ffast-math -O3 -Wall
 
 match-vamp-plugin.so:	Finder.o Matcher.o MatchFeeder.o MatchVampPlugin.o Path.o
-	g++ -shared $^ -o $@ -L../vamp-plugin-sdk/vamp-sdk -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -lpthread
+	g++ -shared $^ -o $@ -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -lpthread
 
 clean:	
 	rm *.o
