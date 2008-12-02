@@ -27,8 +27,6 @@ MatchFeeder::MatchFeeder(Matcher *m1, Matcher *m2) :
 
 MatchFeeder::~MatchFeeder()
 {
-    std::cerr << "MatchFeeder(" << this << ")::~MatchFeeder()" << std::endl;
-
     delete[] imBuffer;
     delete[] reBuffer;
     while (!q1.empty()) {

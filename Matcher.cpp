@@ -121,8 +121,6 @@ Matcher::init()
 {
     if (initialised) return;
 
-    std::cerr << "Matcher::init() - initialising" << std::endl;
-
     initialised = true;
 
     makeFreqMap(fftSize, sampleRate);

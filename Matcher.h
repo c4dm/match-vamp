@@ -254,8 +254,6 @@ public:
 protected:
     template <typename T>
     void initVector(vector<T> &vec, int sz, T dflt = 0) {
-        std::cerr << "initVector: " << sz << " * " << sizeof(T) << " = "
-                  << sz * sizeof(T) << std::endl;
         vec.clear();
         while ((int)vec.size() < sz) vec.push_back(dflt);
     }
@@ -263,9 +261,6 @@ protected:
     template <typename T>
     void initMatrix(vector<vector<T> > &mat, int hsz, int vsz,
                     T dflt = 0, int fillTo = -1) {
-        std::cerr << "initMatrix: " << hsz << " * " << vsz << " * "
-                  << sizeof(T) << " = "
-                  << hsz * vsz * sizeof(T) << std::endl;
         mat.clear();
         if (fillTo < 0) fillTo = hsz;
         for (int i = 0; i < hsz; ++i) {
