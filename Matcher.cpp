@@ -19,6 +19,8 @@
 
 #include <iostream>
 
+#include <cstdlib>
+
 bool Matcher::silent = true;
 
 Matcher::Matcher(float rate, Matcher *p)
@@ -118,6 +120,8 @@ void
 Matcher::init()
 {
     if (initialised) return;
+
+    std::cerr << "Matcher::init() - initialising" << std::endl;
 
     initialised = true;
 
@@ -260,7 +264,7 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
         // distance[frameCount-blockSize] to its first len elements.
         // Same for bestPathCost.
 /*
-        std::cerr << "moving " << distYSizes[frameCount - blockSize] << " from " << frameCount - blockSize << " to "
+        std::cerr << "Matcher(" << this << "): moving " << distYSizes[frameCount - blockSize] << " from " << frameCount - blockSize << " to "
                   << frameCount << ", allocating " << len << " for "
                   << frameCount - blockSize << std::endl;
 */
