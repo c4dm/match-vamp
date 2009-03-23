@@ -42,6 +42,7 @@ MatchVampPlugin::m_serialisingMutexInitialised = false;
 
 MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
+    m_stepSize(0),
     m_serialise(false),
     m_begin(true),
     m_locked(false)
@@ -183,6 +184,7 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 	channels > getMaxChannelCount()) return false;
     if (stepSize > blockSize/2 ||
         blockSize != getPreferredBlockSize()) return false;
+    m_stepSize = stepSize;
     pm1->setHopSize(stepSize);
     pm2->setHopSize(stepSize);
     m_begin = true;
@@ -193,7 +195,18 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 void
 MatchVampPlugin::reset()
 {
-    //!!!???
+    delete feeder;
+    delete pm1;
+    delete pm2;
+    feeder = 0;
+    pm1 = 0;
+    pm2 = 0;
+
+    createMatchers();
+    pm1->setHopSize(m_stepSize);
+    pm2->setHopSize(m_stepSize);
+    m_begin = true;
+    m_locked = false;
 }
 
 MatchVampPlugin::OutputList
