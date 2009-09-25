@@ -23,6 +23,10 @@
 
 bool Matcher::silent = true;
 
+const double Matcher::decay = 0.99;
+const double Matcher::silenceThreshold = 0.0004;
+const int Matcher::MAX_RUN_COUNT = 3;
+
 Matcher::Matcher(float rate, Matcher *p)
 {
     std::cerr << "Matcher::Matcher(" << rate << ", " << p << ")" << std::endl;
@@ -51,7 +55,7 @@ Matcher::Matcher(float rate, Matcher *p)
     maxFrames = 0;	// stop at EOF
 
     hopSize = lrint(sampleRate * hopTime);
-    fftSize = lrint(pow(2, lrint(log(fftTime * sampleRate) / log(2))));
+    fftSize = lrint(pow(2.0, (int)lrint(log(fftTime * sampleRate) / log(2.0))));
     blockSize = lrint(blockTime / hopTime);
 
     distance = 0;
@@ -174,8 +178,8 @@ Matcher::makeStandardFrequencyMap(int fftSize, float sampleRate)
 {
     double binWidth = sampleRate / fftSize;
     int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
-    int crossoverMidi = lrint(log(crossoverBin*binWidth/440)/
-                              log(2) * 12 + 69);
+    int crossoverMidi = lrint(log(crossoverBin*binWidth/440.0)/
+                              log(2.0) * 12 + 69);
     // freq = 440 * Math.pow(2, (midi-69)/12.0) / binWidth;
     int i = 0;
     while (i <= crossoverBin) {
@@ -183,7 +187,7 @@ Matcher::makeStandardFrequencyMap(int fftSize, float sampleRate)
         ++i;
     }
     while (i <= fftSize/2) {
-        double midi = log(i*binWidth/440) / log(2) * 12 + 69;
+        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
         if (midi > 127)
             midi = 127;
         freqMap[i++] = crossoverBin + lrint(midi) - crossoverMidi;
@@ -207,7 +211,7 @@ Matcher::makeChromaFrequencyMap(int fftSize, float sampleRate)
     while (i <= crossoverBin)
         freqMap[i++] = 0;
     while (i <= fftSize/2) {
-        double midi = log(i*binWidth/440) / log(2) * 12 + 69;
+        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
         freqMap[i++] = (lrint(midi)) % 12 + 1;
     }
     freqMapSize = 13;

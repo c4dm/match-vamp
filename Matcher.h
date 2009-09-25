@@ -202,9 +202,9 @@ protected:
     /** Disable or enable debugging output */
     static bool silent;
 
-    static const double decay = 0.99;
-    static const double silenceThreshold = 0.0004;
-    static const int MAX_RUN_COUNT = 3;
+    static const double decay;
+    static const double silenceThreshold;
+    static const int MAX_RUN_COUNT;
 
     friend class Finder; //!!!
 
