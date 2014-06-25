@@ -1,0 +1,129 @@
+@prefix rdfs:     <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:      <http://www.w3.org/2001/XMLSchema#> .
+@prefix vamp:     <http://purl.org/ontology/vamp/> .
+@prefix plugbase: <http://vamp-plugins.org/rdf/plugins/match-vamp-plugin#> .
+@prefix owl:      <http://www.w3.org/2002/07/owl#> .
+@prefix dc:       <http://purl.org/dc/elements/1.1/> .
+@prefix af:       <http://purl.org/ontology/af/> .
+@prefix foaf:     <http://xmlns.com/foaf/0.1/> .
+@prefix cc:       <http://web.resource.org/cc/> .
+@prefix :         <#> .
+
+<>  a   vamp:PluginDescription ;
+    foaf:maker          <http://www.vamp-plugins.org/doap.rdf#template-generator> ;
+    foaf:primaryTopic   <http://vamp-plugins.org/rdf/plugins/match-vamp-plugin> .
+
+:maker
+    foaf:name "Simon Dixon and Chris Cannam" ;
+    foaf:logo <http://vamp-plugins.org/rdf/plugins/makers/qm.png> ;
+    foaf:page <http://c4dm.eecs.qmul.ac.uk/> .
+
+plugbase:library a  vamp:PluginLibrary ;
+    vamp:identifier "match-vamp-plugin"  ; 
+    dc:title "MATCH Vamp Plugin" ;
+    dc:description """Vamp implementation of the MATCH audio alignment algorithm from Simon Dixon. Sonic Visualiser can use this for automatic time alignment among multiple audio files.""" ;
+    vamp:available_plugin plugbase:match ; 
+    foaf:maker :maker ;
+    foaf:page <http://code.soundsoftware.ac.uk/projects/match-vamp> ;
+    .
+
+plugbase:match a   vamp:Plugin ;
+    dc:title              "Match Performance Aligner" ;
+    vamp:name             "Match Performance Aligner" ;
+    dc:description        """Calculate alignment between two performances in separate channel inputs""" ;
+    foaf:maker            :maker ;
+    dc:rights             """GPL""" ;
+#   cc:license            <Place plugin license URI here and uncomment> ; 
+    vamp:identifier       "match" ;
+    vamp:vamp_API_version vamp:api_version_2 ;
+    owl:versionInfo       "1" ;
+    vamp:input_domain     vamp:FrequencyDomain ;
+
+
+    vamp:parameter   plugbase:match_param_serialise ;
+
+    vamp:output      plugbase:match_output_path ;
+    vamp:output      plugbase:match_output_a_b ;
+    vamp:output      plugbase:match_output_b_a ;
+    vamp:output      plugbase:match_output_a_b_divergence ;
+    vamp:output      plugbase:match_output_a_b_temporatio ;
+    .
+plugbase:match_param_serialise a  vamp:QuantizedParameter ;
+    vamp:identifier     "serialise" ;
+    dc:title            "Serialise Plugin Invocations" ;
+    dc:format           "" ;
+    vamp:min_value       0 ;
+    vamp:max_value       1 ;
+    vamp:unit           "" ;
+    vamp:quantize_step   1  ;
+    vamp:default_value   0 ;
+    vamp:value_names     ();
+    .
+plugbase:match_output_path a  vamp:SparseOutput ;
+    vamp:identifier       "path" ;
+    dc:title              "Path" ;
+    dc:description        "Alignment path"  ;
+    vamp:fixed_bin_count  "true" ;
+    vamp:unit             "" ;
+    a                     vamp:QuantizedOutput ;
+    vamp:quantize_step    1  ;
+    vamp:bin_count        1 ;
+    vamp:sample_type      vamp:VariableSampleRate ;
+    vamp:sample_rate      50 ;
+#   vamp:computes_event_type   <Place event type URI here and uncomment> ;
+#   vamp:computes_feature      <Place feature attribute URI here and uncomment> ;
+#   vamp:computes_signal_type  <Place signal type URI here and uncomment> ;
+    .
+plugbase:match_output_a_b a  vamp:SparseOutput ;
+    vamp:identifier       "a_b" ;
+    dc:title              "A-B Timeline" ;
+    dc:description        "Timing in performance B corresponding to moments in performance A"  ;
+    vamp:fixed_bin_count  "true" ;
+    vamp:unit             "sec" ;
+    vamp:bin_count        1 ;
+    vamp:sample_type      vamp:VariableSampleRate ;
+    vamp:sample_rate      50 ;
+#   vamp:computes_event_type   <Place event type URI here and uncomment> ;
+#   vamp:computes_feature      <Place feature attribute URI here and uncomment> ;
+#   vamp:computes_signal_type  <Place signal type URI here and uncomment> ;
+    .
+plugbase:match_output_b_a a  vamp:SparseOutput ;
+    vamp:identifier       "b_a" ;
+    dc:title              "B-A Timeline" ;
+    dc:description        "Timing in performance A corresponding to moments in performance B"  ;
+    vamp:fixed_bin_count  "true" ;
+    vamp:unit             "sec" ;
+    vamp:bin_count        1 ;
+    vamp:sample_type      vamp:VariableSampleRate ;
+    vamp:sample_rate      50 ;
+#   vamp:computes_event_type   <Place event type URI here and uncomment> ;
+#   vamp:computes_feature      <Place feature attribute URI here and uncomment> ;
+#   vamp:computes_signal_type  <Place signal type URI here and uncomment> ;
+    .
+plugbase:match_output_a_b_divergence a  vamp:SparseOutput ;
+    vamp:identifier       "a_b_divergence" ;
+    dc:title              "A-B Divergence" ;
+    dc:description        "Difference between timings in performances A and B"  ;
+    vamp:fixed_bin_count  "true" ;
+    vamp:unit             "sec" ;
+    vamp:bin_count        1 ;
+    vamp:sample_type      vamp:VariableSampleRate ;
+    vamp:sample_rate      50 ;
+#   vamp:computes_event_type   <Place event type URI here and uncomment> ;
+#   vamp:computes_feature      <Place feature attribute URI here and uncomment> ;
+#   vamp:computes_signal_type  <Place signal type URI here and uncomment> ;
+    .
+plugbase:match_output_a_b_temporatio a  vamp:SparseOutput ;
+    vamp:identifier       "a_b_temporatio" ;
+    dc:title              "A-B Tempo Ratio" ;
+    dc:description        "Ratio of tempi between performances A and B"  ;
+    vamp:fixed_bin_count  "true" ;
+    vamp:unit             "" ;
+    vamp:bin_count        1 ;
+    vamp:sample_type      vamp:VariableSampleRate ;
+    vamp:sample_rate      50 ;
+#   vamp:computes_event_type   <Place event type URI here and uncomment> ;
+#   vamp:computes_feature      <Place feature attribute URI here and uncomment> ;
+#   vamp:computes_signal_type  <Place signal type URI here and uncomment> ;
+    .
+
