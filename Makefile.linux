@@ -1,6 +1,6 @@
 
-CXXFLAGS	:= -fPIC -ffast-math -O3 -Wall
-LDFLAGS		:= -shared -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -lpthread -Wl,--version-script=vamp-plugin.map
+CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall
+LDFLAGS		+= -shared -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -lpthread -Wl,--version-script=vamp-plugin.map
 
 include Makefile.inc
 

@@ -27,9 +27,13 @@ const double Matcher::decay = 0.99;
 const double Matcher::silenceThreshold = 0.0004;
 const int Matcher::MAX_RUN_COUNT = 3;
 
+//#define DEBUG_MATCHER 1
+
 Matcher::Matcher(float rate, Matcher *p)
 {
+#ifdef DEBUG_MATCHER
     std::cerr << "Matcher::Matcher(" << rate << ", " << p << ")" << std::endl;
+#endif
 
     sampleRate = rate;
     otherMatcher = p;	// the first matcher will need this to be set later
@@ -82,7 +86,9 @@ Matcher::setHopSize(int sz)
 
 Matcher::~Matcher()
 {
+#ifdef DEBUG_MATCHER
     std::cerr << "Matcher(" << this << ")::~Matcher()" << std::endl;
+#endif
 
     if (initialised) {
         

@@ -40,6 +40,11 @@ MatchVampPlugin::m_serialisingMutex;
 bool
 MatchVampPlugin::m_serialisingMutexInitialised = false;
 
+// We want to ensure our freq map / crossover bin in Matcher.cpp are
+// always valid with a fixed FFT length in seconds, so must reject low
+// sample rates
+static float sampleRateMin = 5000.f;
+
 MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
     m_stepSize(0),
@@ -47,6 +52,13 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_begin(true),
     m_locked(false)
 {
+    if (inputSampleRate < sampleRateMin) {
+        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
+                  << inputSampleRate << " < min supported rate "
+                  << sampleRateMin << ", plugin will refuse to initialise"
+                  << std::endl;
+    }
+
     if (!m_serialisingMutexInitialised) {
         m_serialisingMutexInitialised = true;
 #ifdef _WIN32
@@ -149,7 +161,7 @@ MatchVampPlugin::setParameter(std::string name, float value)
 {
     if (name == "serialise") {
         m_serialise = (value > 0.5);
-        std::cerr << "MatchVampPlugin::setParameter: set serialise to " << m_serialise << std::endl;
+//        std::cerr << "MatchVampPlugin::setParameter: set serialise to " << m_serialise << std::endl;
     }
 }
 
@@ -179,6 +191,12 @@ MatchVampPlugin::createMatchers() const
 bool
 MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 {
+    if (m_inputSampleRate < sampleRateMin) {
+        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
+                  << m_inputSampleRate << " < min supported rate "
+                  << sampleRateMin << std::endl;
+        return false;
+    }
     if (!pm1) createMatchers();
     if (channels < getMinChannelCount() ||
 	channels > getMaxChannelCount()) return false;
@@ -294,6 +312,7 @@ MatchVampPlugin::process(const float *const *inputBuffers,
             pthread_mutex_lock(&m_serialisingMutex);
 #endif
         }
+        m_startTime = timestamp;
         m_begin = false;
     }
     
@@ -359,7 +378,7 @@ MatchVampPlugin::getRemainingFeatures()
 
         Feature feature;
         feature.hasTimestamp = true;
-        feature.timestamp = xt;
+        feature.timestamp = m_startTime + xt;
         feature.values.clear();
         feature.values.push_back(yt.sec + double(yt.nsec)/1.0e9);
         returnFeatures[0].push_back(feature);
@@ -367,7 +386,7 @@ MatchVampPlugin::getRemainingFeatures()
         if (x != prevx) {
 
             feature.hasTimestamp = true;
-            feature.timestamp = xt;
+            feature.timestamp = m_startTime + xt;
             feature.values.clear();
             feature.values.push_back(yt.sec + yt.msec()/1000.0);
             returnFeatures[1].push_back(feature);
@@ -395,7 +414,7 @@ MatchVampPlugin::getRemainingFeatures()
 
         if (y != prevy) {
             feature.hasTimestamp = true;
-            feature.timestamp = yt;
+            feature.timestamp = m_startTime + yt;
             feature.values.clear();
             feature.values.push_back(xt.sec + xt.msec()/1000.0);
             returnFeatures[2].push_back(feature);

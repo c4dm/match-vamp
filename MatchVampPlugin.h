@@ -68,6 +68,7 @@ protected:
     mutable Matcher *pm1;
     mutable Matcher *pm2;
     mutable MatchFeeder *feeder;
+    Vamp::RealTime m_startTime;
     size_t m_stepSize;
     bool m_serialise;
     bool m_begin;
