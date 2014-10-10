@@ -4,8 +4,8 @@ PLUGIN		?= match-vamp-plugin$(PLUGIN_EXT)
 CXX		?= g++
 CC		?= gcc
 
-HEADERS		:= Finder.h Matcher.h MatchFeeder.h MatchVampPlugin.h Path.h
-SOURCES		:= Finder.cpp Matcher.cpp MatchFeeder.cpp MatchVampPlugin.cpp Path.cpp
+HEADERS		:= Finder.h Matcher.h MatchFeeder.h MatchFeatureFeeder.h MatchVampPlugin.h Path.h
+SOURCES		:= Finder.cpp Matcher.cpp MatchFeeder.cpp MatchFeatureFeeder.cpp MatchVampPlugin.cpp Path.cpp
 
 OBJECTS		:= $(SOURCES:.cpp=.o)
 

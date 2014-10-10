@@ -42,7 +42,7 @@ public:
 
     /**
      * Feed the two supplied channels of frequency-domain input data
-     * to feeders 1 and 2 respectively, as appropriate (depending on
+     * to matchers 1 and 2 respectively, as appropriate (depending on
      * their advance status) and return any new feature vectors
      * calculated by the two feeders.
      */

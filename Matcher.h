@@ -397,6 +397,7 @@ protected:
     void calcAdvance();
 
     friend class MatchFeeder;
+    friend class MatchFeatureFeeder;
     friend class Finder;
 
 }; // class Matcher
