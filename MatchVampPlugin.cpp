@@ -140,12 +140,73 @@ MatchVampPlugin::getParameterDescriptors() const
     ParameterList list;
 
     ParameterDescriptor desc;
+
     desc.identifier = "serialise";
     desc.name = "Serialise Plugin Invocations";
     desc.description = "Reduce potential memory load at the expense of multiprocessor performance by serialising multi-threaded plugin runs";
     desc.minValue = 0;
     desc.maxValue = 1;
     desc.defaultValue = 0;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    list.push_back(desc);
+
+    desc.identifier = "framenorm";
+    desc.name = "Frame Normalisation";
+    desc.description = "Type of normalisation to use for frequency-domain audio features";
+    desc.minValue = 0;
+    desc.maxValue = 2;
+    desc.defaultValue = (int)m_defaultParams.frameNorm;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    desc.valueNames.clear();
+    desc.valueNames.push_back("None");
+    desc.valueNames.push_back("Sum To 1");
+    desc.valueNames.push_back("Long-Term Average");
+    list.push_back(desc);
+    desc.valueNames.clear();
+
+    desc.identifier = "distnorm";
+    desc.name = "Distance Normalisation";
+    desc.description = "Type of normalisation to use for distance metric";
+    desc.minValue = 0;
+    desc.maxValue = 2;
+    desc.defaultValue = (int)m_defaultParams.distanceNorm;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    desc.valueNames.clear();
+    desc.valueNames.push_back("None");
+    desc.valueNames.push_back("Sum of Frames");
+    desc.valueNames.push_back("Log Sum of Frames");
+    list.push_back(desc);
+    desc.valueNames.clear();
+
+    desc.identifier = "usespecdiff";
+    desc.name = "Use Spectral Difference";
+    desc.description = "Whether to use half-wave rectified spectral difference instead of straight spectrum";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = m_defaultParams.useSpectralDifference ? 1 : 0;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    list.push_back(desc);
+
+    desc.identifier = "usechroma";
+    desc.name = "Use Chroma Frequency Map";
+    desc.description = "Whether to use a chroma frequency map instead of the default warped spectrogram";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = m_defaultParams.useChromaFrequencyMap ? 1 : 0;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    list.push_back(desc);
+
+    desc.identifier = "maxruncount";
+    desc.name = "Max Run Count";
+    desc.description = "Limit of number of frames that will be accepted from one source without a frame from the other source being accepted";
+    desc.minValue = 1;
+    desc.maxValue = 10;
+    desc.defaultValue = m_defaultParams.maxRunCount;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -158,7 +219,18 @@ MatchVampPlugin::getParameter(std::string name) const
 {
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
+    } else if (name == "framenorm") {
+        return (int)m_params.frameNorm;
+    } else if (name == "distnorm") {
+        return (int)m_params.distanceNorm;
+    } else if (name == "usespecdiff") {
+        return m_params.useSpectralDifference ? 1.0 : 0.0;
+    } else if (name == "usechroma") {
+        return m_params.useChromaFrequencyMap ? 1.0 : 0.0;
+    } else if (name == "maxruncount") {
+        return m_params.maxRunCount;
     }
+    
     return 0.0;
 }
 
@@ -167,7 +239,16 @@ MatchVampPlugin::setParameter(std::string name, float value)
 {
     if (name == "serialise") {
         m_serialise = (value > 0.5);
-//        std::cerr << "MatchVampPlugin::setParameter: set serialise to " << m_serialise << std::endl;
+    } else if (name == "framenorm") {
+        m_params.frameNorm = (Matcher::FrameNormalisation)(int(value + 0.1));
+    } else if (name == "distnorm") {
+        m_params.distanceNorm = (Matcher::DistanceNormalisation)(int(value + 0.1));
+    } else if (name == "usespecdiff") {
+        m_params.useSpectralDifference = (value > 0.5);
+    } else if (name == "usechroma") {
+        m_params.useChromaFrequencyMap = (value > 0.5);
+    } else if (name == "maxruncount") {
+        m_params.maxRunCount = int(value + 0.1);
     }
 }
 
