@@ -186,10 +186,22 @@ protected:
      *  bin. */
     vector<int> freqMap;
 
-    /** The number of entries in <code>freqMap</code>. Note that the
-     *  length of the array is greater, because its size is not known
-     *  at creation time. */
+    /** The number of entries in <code>freqMap</code>. */
     int freqMapSize;
+
+    /** The number of values in an externally-supplied feature vector,
+     *  used in preference to freqMap/freqMapSize if constructed with
+     *  the external feature version of the Matcher constructor. If
+     *  this is zero, the internal feature extractor will be used as
+     *  normal.
+     */
+    int externalFeatureSize;
+
+    /** The number of values in the feature vectors actually in
+     *  use. This will be externalFeatureSize if greater than zero, or
+     *  freqMapSize otherwise.
+     */
+    int featureSize;
 
     /** The most recent frame; used for calculating the frame to frame
      *  spectral difference. These are therefore frequency warped but
@@ -240,6 +252,21 @@ public:
      */
     Matcher(Parameters parameters, Matcher *p);
 
+    /** Constructor for Matcher using externally supplied features.
+     *  A Matcher made using this constructor will not carry out its
+     *  own feature extraction from frequency-domain audio data, but
+     *  instead will accept arbitrary feature frames calculated by
+     *  some external code.
+     *
+     *  @param p The Matcher representing the performance with which
+     *  this one is going to be matched.  Some information is shared
+     *  between the two matchers (currently one possesses the distance
+     *  matrix and optimal path matrix).
+     *  
+     *  @param featureSize Number of values in each feature vector.
+     */
+    Matcher(Parameters parameters, Matcher *p, int featureSize);
+
     ~Matcher();
 
     /** For debugging, outputs information about the Matcher to
@@ -264,7 +291,7 @@ public:
      * Return the feature vector size that will be used for the given
      * parameters.
      */
-    static int getFeatureSize(Parameters params);
+    static int getFeatureSizeFor(Parameters params);
 
 protected:
     template <typename T>
@@ -315,8 +342,25 @@ protected:
      *
      *  Return value is the frame (post-processed, with warping,
      *  rectification, and normalisation as appropriate).
+     *
+     *  The Matcher must have been constructed using the constructor
+     *  without an external featureSize parameter in order to use this
+     *  function. (Otherwise it will be expecting you to call
+     *  consumeFeatureVector.)
      */
     std::vector<double> consumeFrame(double *reBuffer, double *imBuffer);
+
+    /** Processes a feature vector frame (presumably calculated from
+     *  audio data by some external code). As consumeFrame, except
+     *  that it does not calculate a feature from audio data but
+     *  instead uses the supplied feature directly.
+     *
+     *  The Matcher must have been constructed using the constructor
+     *  that accepts an external featureSize parameter in order to
+     *  use this function. The supplied feature must be of the size
+     *  that was passed to the constructor.
+     */
+    void consumeFeatureVector(std::vector<double> feature);
 
     /** Calculates the Manhattan distance between two vectors, with an
      *  optional normalisation by the combined values in the

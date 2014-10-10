@@ -394,7 +394,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.description = "Spectral features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
-    desc.binCount = Matcher::getFeatureSize(m_params);
+    desc.binCount = Matcher::getFeatureSizeFor(m_params);
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
@@ -407,7 +407,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.description = "Spectral features extracted from performance B";
     desc.unit = "";
     desc.hasFixedBinCount = true;
-    desc.binCount = Matcher::getFeatureSize(m_params);
+    desc.binCount = Matcher::getFeatureSizeFor(m_params);
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;

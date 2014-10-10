@@ -37,6 +37,40 @@ Matcher::Matcher(Parameters parameters, Matcher *p) :
     ltAverage = 0;
     frameCount = 0;
     runCount = 0;
+    freqMapSize = 0;
+    externalFeatureSize = 0;
+    featureSize = 0;
+    blockSize = 0;
+    scale = 90;
+
+    blockSize = lrint(params.blockTime / params.hopTime);
+#ifdef DEBUG_MATCHER
+    cerr << "Matcher: blockSize = " << blockSize << endl;
+#endif
+
+    distance = 0;
+    bestPathCost = 0;
+    distYSizes = 0;
+    distXSize = 0;
+
+    initialised = false;
+}
+
+Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize) :
+    params(parameters),
+    externalFeatureSize(featureSize)
+{
+#ifdef DEBUG_MATCHER
+    cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ", " << featureSize << ")" << endl;
+#endif
+
+    otherMatcher = p;	// the first matcher will need this to be set later
+    firstPM = (!p);
+    ltAverage = 0;
+    frameCount = 0;
+    runCount = 0;
+    freqMapSize = 0;
+    featureSize = 0;
     blockSize = 0;
     scale = 90;
 
@@ -52,7 +86,7 @@ Matcher::Matcher(Parameters parameters, Matcher *p) :
 
     initialised = false;
 
-} // default constructor
+} 
 
 Matcher::~Matcher()
 {
@@ -85,13 +119,17 @@ Matcher::init()
 
     initialised = true;
 
-    freqMapSize = getFeatureSize(params);
+    if (externalFeatureSize == 0) {
+        freqMapSize = getFeatureSizeFor(params);
+        featureSize = freqMapSize;
+        makeFreqMap();
+    } else {
+        featureSize = externalFeatureSize;
+    }
 
-    makeFreqMap();
-
-    initVector<double>(prevFrame, freqMapSize);
-    initVector<double>(newFrame, freqMapSize);
-    initMatrix<double>(frames, blockSize, freqMapSize);
+    initVector<double>(prevFrame, featureSize);
+    initVector<double>(newFrame, featureSize);
+    initMatrix<double>(frames, blockSize, featureSize);
     initVector<double>(totalEnergies, blockSize);
 
     int distSize = (params.maxRunCount + 1) * blockSize;
@@ -124,6 +162,7 @@ void
 Matcher::makeFreqMap()
 {
     initVector<int>(freqMap, params.fftSize/2 + 1);
+
     if (params.useChromaFrequencyMap) {
 #ifdef DEBUG_MATCHER
         cerr << "makeFreqMap: calling makeChromaFrequencyMap" << endl;
@@ -138,7 +177,7 @@ Matcher::makeFreqMap()
 } // makeFreqMap()
 
 int
-Matcher::getFeatureSize(Parameters params)
+Matcher::getFeatureSizeFor(Parameters params)
 {
     if (params.useChromaFrequencyMap) {
         return 13;
@@ -205,13 +244,16 @@ Matcher::consumeFrame(double *reBuffer, double *imBuffer)
 
     calcAdvance();
 
-    if ((frameCount % 100) == 0) {
-        if (!silent) {
-            cerr << "Progress:" << frameCount << " " << ltAverage << endl;
-        }
-    }
-
     return processedFrame;
+}
+
+void
+Matcher::consumeFeatureVector(std::vector<double> feature)
+{
+    if (!initialised) init();
+    int frameIndex = frameCount % blockSize; 
+    frames[frameIndex] = feature;
+    calcAdvance();
 }
 
 vector<double> 
@@ -274,6 +316,12 @@ Matcher::processFrameFromFreqData(double *reBuffer, double *imBuffer)
     newFrame = tmp;
 
     frames[frameIndex] = processedFrame;
+
+    if ((frameCount % 100) == 0) {
+        if (!silent) {
+            cerr << "Progress:" << frameCount << " " << ltAverage << endl;
+        }
+    }
 
     return processedFrame;
 }
@@ -417,7 +465,7 @@ Matcher::calcDistance(const vector<double> &f1, const vector<double> &f2)
 {
     double d = 0;
     double sum = 0;
-    for (int i = 0; i < freqMapSize; i++) {
+    for (int i = 0; i < featureSize; i++) {
         d += fabs(f1[i] - f2[i]);
         sum += f1[i] + f2[i];
     }
