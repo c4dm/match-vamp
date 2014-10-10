@@ -196,10 +196,27 @@ Matcher::makeChromaFrequencyMap()
 } // makeChromaFrequencyMap()
 
 vector<double>
-Matcher::processFrame(double *reBuffer, double *imBuffer)
+Matcher::consumeFrame(double *reBuffer, double *imBuffer)
 {
     if (!initialised) init();
 
+    vector<double> processedFrame = 
+        processFrameFromFreqData(reBuffer, imBuffer);
+
+    calcAdvance();
+
+    if ((frameCount % 100) == 0) {
+        if (!silent) {
+            cerr << "Progress:" << frameCount << " " << ltAverage << endl;
+        }
+    }
+
+    return processedFrame;
+}
+
+vector<double> 
+Matcher::processFrameFromFreqData(double *reBuffer, double *imBuffer)
+{
     for (int i = 0; i < (int)newFrame.size(); ++i) {
         newFrame[i] = 0;
     }
@@ -212,6 +229,58 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
     }
     rms = sqrt(rms / (params.fftSize/2));
 
+    int frameIndex = frameCount % blockSize;
+
+    vector<double> processedFrame(freqMapSize, 0.0);
+
+    double totalEnergy = 0;
+    if (params.useSpectralDifference) {
+        for (int i = 0; i < freqMapSize; i++) {
+            totalEnergy += newFrame[i];
+            if (newFrame[i] > prevFrame[i]) {
+                processedFrame[i] = newFrame[i] - prevFrame[i];
+            } else {
+                processedFrame[i] = 0;
+            }
+        }
+    } else {
+        for (int i = 0; i < freqMapSize; i++) {
+            processedFrame[i] = newFrame[i];
+            totalEnergy += processedFrame[i];
+        }
+    }
+    totalEnergies[frameIndex] = totalEnergy;
+
+    double decay = frameCount >= 200 ? 0.99:
+        (frameCount < 100? 0: (frameCount - 100) / 100.0);
+
+    if (ltAverage == 0)
+        ltAverage = totalEnergy;
+    else
+        ltAverage = ltAverage * decay + totalEnergy * (1.0 - decay);
+
+    if (rms <= params.silenceThreshold)
+        for (int i = 0; i < freqMapSize; i++)
+            processedFrame[i] = 0;
+    else if (params.frameNorm == NormaliseFrameToSum1)
+        for (int i = 0; i < freqMapSize; i++)
+            processedFrame[i] /= totalEnergy;
+    else if (params.frameNorm == NormaliseFrameToLTAverage)
+        for (int i = 0; i < freqMapSize; i++)
+            processedFrame[i] /= ltAverage;
+
+    vector<double> tmp = prevFrame;
+    prevFrame = newFrame;
+    newFrame = tmp;
+
+    frames[frameIndex] = processedFrame;
+
+    return processedFrame;
+}
+
+void
+Matcher::calcAdvance()
+{
     int frameIndex = frameCount % blockSize;
 
     if (frameCount >= distXSize) {
@@ -263,44 +332,6 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
         distYSizes[frameCount] = distYSizes[frameCount - blockSize];
         distYSizes[frameCount - blockSize] = len;
     }
-
-    double totalEnergy = 0;
-    if (params.useSpectralDifference) {
-        for (int i = 0; i < freqMapSize; i++) {
-            totalEnergy += newFrame[i];
-            if (newFrame[i] > prevFrame[i]) {
-                frames[frameIndex][i] = newFrame[i] - prevFrame[i];
-            } else {
-                frames[frameIndex][i] = 0;
-            }
-        }
-    } else {
-        for (int i = 0; i < freqMapSize; i++) {
-            frames[frameIndex][i] = newFrame[i];
-            totalEnergy += frames[frameIndex][i];
-        }
-    }
-    totalEnergies[frameIndex] = totalEnergy;
-
-    double decay = frameCount >= 200 ? 0.99:
-        (frameCount < 100? 0: (frameCount - 100) / 100.0);
-
-    if (ltAverage == 0)
-        ltAverage = totalEnergy;
-    else
-        ltAverage = ltAverage * decay + totalEnergy * (1.0 - decay);
-
-    if (rms <= params.silenceThreshold)
-        for (int i = 0; i < freqMapSize; i++)
-            frames[frameIndex][i] = 0;
-    else if (params.frameNorm == NormaliseFrameToSum1)
-        for (int i = 0; i < freqMapSize; i++)
-            frames[frameIndex][i] /= totalEnergy;
-    else if (params.frameNorm == NormaliseFrameToLTAverage)
-        for (int i = 0; i < freqMapSize; i++)
-            frames[frameIndex][i] /= ltAverage;
-
-    vector<double> processedFrame = frames[frameIndex];
 
     int stop = otherMatcher->frameCount;
     int index = stop - blockSize;
@@ -368,10 +399,6 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
         otherMatcher->last[index]++;
     } // loop for row (resp. column)
 
-    vector<double> tmp = prevFrame;
-    prevFrame = newFrame;
-    newFrame = tmp;
-
     frameCount++;
     runCount++;
 
@@ -380,18 +407,10 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
     if (overflow && !silent)
         cerr << "WARNING: overflow in distance metric: "
              << "frame " << frameCount << ", val = " << mx << endl;
-
+    
     if (!silent)
         std::cerr << "Frame " << frameCount << ", d = " << (mx-mn) << std::endl;
-
-    if ((frameCount % 100) == 0) {
-        if (!silent) {
-            cerr << "Progress:" << frameCount << " " << ltAverage << endl;
-        }
-    }
-
-    return processedFrame;
-} // processFrame()
+}
 
 int
 Matcher::calcDistance(const vector<double> &f1, const vector<double> &f2)

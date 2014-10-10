@@ -149,7 +149,7 @@ MatchFeeder::feed1()
         imBuffer[i] = block[i*2+1];
     }
     delete[] block;
-    return pm1->processFrame(reBuffer, imBuffer);
+    return pm1->consumeFrame(reBuffer, imBuffer);
 }
 
 vector<double>
@@ -165,6 +165,6 @@ MatchFeeder::feed2()
         imBuffer[i] = block[i*2+1];
     }
     delete[] block;
-    return pm2->processFrame(reBuffer, imBuffer);
+    return pm2->consumeFrame(reBuffer, imBuffer);
 }
 

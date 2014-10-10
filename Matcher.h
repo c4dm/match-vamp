@@ -297,7 +297,7 @@ protected:
      *  mapping is one to one. Where the spacing is greater than 0.5
      *  semitones, the FFT energy is mapped into semitone-wide
      *  bins. No scaling is performed; that is the energy is summed
-     *  into the comparison bins. See also processFrame()
+     *  into the comparison bins. See also consumeFrame()
      */
     void makeStandardFrequencyMap();
 
@@ -316,7 +316,7 @@ protected:
      *  Return value is the frame (post-processed, with warping,
      *  rectification, and normalisation as appropriate).
      */
-    std::vector<double> processFrame(double *reBuffer, double *imBuffer);
+    std::vector<double> consumeFrame(double *reBuffer, double *imBuffer);
 
     /** Calculates the Manhattan distance between two vectors, with an
      *  optional normalisation by the combined values in the
@@ -348,6 +348,9 @@ protected:
      *  @param dMN the distance cost between the two frames
      */
     void setValue(int i, int j, int dir, int value, int dMN);
+
+    vector<double> processFrameFromFreqData(double *, double *);
+    void calcAdvance();
 
     friend class MatchFeeder;
     friend class Finder;
