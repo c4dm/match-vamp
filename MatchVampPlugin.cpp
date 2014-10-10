@@ -125,7 +125,7 @@ MatchVampPlugin::getMaker() const
 int
 MatchVampPlugin::getPluginVersion() const
 {
-    return 1;
+    return 2;
 }
 
 string
