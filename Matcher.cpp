@@ -98,8 +98,6 @@ Matcher::init()
 
     distXSize = blockSize * 2;
 
-    std::cerr << "Matcher::init: distXSize = " << distXSize << std::endl;
-
     distance = (unsigned char **)malloc(distXSize * sizeof(unsigned char *));
     bestPathCost = (int **)malloc(distXSize * sizeof(int *));
     distYSizes = (int *)malloc(distXSize * sizeof(int));
