@@ -18,10 +18,15 @@ clean:
 distclean:	clean
 		rm -f $(PLUGIN)
 
+depend:
+	makedepend -Y -fMakefile.inc $(SOURCES) $(HEADERS)
+
 # DO NOT DELETE
 
 Finder.o: Finder.h Matcher.h
-Matcher.o: Matcher.h Finder.h
+Matcher.o: Matcher.h
 MatchFeeder.o: MatchFeeder.h Matcher.h Finder.h
 MatchVampPlugin.o: MatchVampPlugin.h Matcher.h MatchFeeder.h Finder.h Path.h
 Path.o: Path.h
+Finder.o: Matcher.h
+MatchFeeder.o: Matcher.h Finder.h

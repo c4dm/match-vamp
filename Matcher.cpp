@@ -15,7 +15,6 @@
 */
 
 #include "Matcher.h"
-#include "Finder.h"
 
 #include <iostream>
 
@@ -23,44 +22,27 @@
 
 bool Matcher::silent = true;
 
-const double Matcher::decay = 0.99;
-const double Matcher::silenceThreshold = 0.0004;
-const int Matcher::MAX_RUN_COUNT = 3;
-
 //#define DEBUG_MATCHER 1
 
-Matcher::Matcher(float rate, Matcher *p)
+Matcher::Matcher(Parameters parameters, Matcher *p) :
+    params(parameters)
 {
 #ifdef DEBUG_MATCHER
-    std::cerr << "Matcher::Matcher(" << rate << ", " << p << ")" << std::endl;
+    cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ")" << endl;
 #endif
 
-    sampleRate = rate;
     otherMatcher = p;	// the first matcher will need this to be set later
     firstPM = (!p);
-    matchFileOffset = 0;
     ltAverage = 0;
     frameCount = 0;
     runCount = 0;
-    paused = false;
-    hopSize = 0;
-    fftSize = 0;
     blockSize = 0;
-    hopTime = 0.020;	// DEFAULT, overridden with -h  //!!!
-    fftTime = 0.04644;	// DEFAULT, overridden with -f
-    blockTime = 10.0;	// DEFAULT, overridden with -c
-    normalise1 = true;
-    normalise2 = false;
-    normalise3 = false;
-    normalise4 = true;
-    useSpectralDifference = true;
-    useChromaFrequencyMap = false;
     scale = 90;
-    maxFrames = 0;	// stop at EOF
 
-    hopSize = lrint(sampleRate * hopTime);
-    fftSize = lrint(pow(2.0, (int)lrint(log(fftTime * sampleRate) / log(2.0))));
-    blockSize = lrint(blockTime / hopTime);
+    blockSize = lrint(params.blockTime / params.hopTime);
+#ifdef DEBUG_MATCHER
+    cerr << "Matcher: blockSize = " << blockSize << endl;
+#endif
 
     distance = 0;
     bestPathCost = 0;
@@ -71,23 +53,10 @@ Matcher::Matcher(float rate, Matcher *p)
 
 } // default constructor
 
-void
-Matcher::setHopSize(int sz)
-{
-    if (initialised) {
-        std::cerr << "Matcher::setHopSize: Can't set after use" << std::endl;
-        return;
-    }
-
-    hopSize = sz;
-    hopTime = float(hopSize) / sampleRate;
-    blockTime = blockSize * hopTime;
-}
-
 Matcher::~Matcher()
 {
 #ifdef DEBUG_MATCHER
-    std::cerr << "Matcher(" << this << ")::~Matcher()" << std::endl;
+    cerr << "Matcher(" << this << ")::~Matcher()" << endl;
 #endif
 
     if (initialised) {
@@ -109,42 +78,24 @@ Matcher::~Matcher()
 }
 
 void
-Matcher::print()
-{
-    cerr << toString() << endl;
-} // print()
-
-string
-Matcher::toString()
-{
-    std::stringstream os;
-    os << "Matcher " << this << ": (" << sampleRate
-       << "kHz)"
-       << "\n\tHop size: " << hopSize 
-       << "\n\tFFT size: " << fftSize 
-       << "\n\tBlock size: " << blockSize;
-    return os.str();
-} // toString()
-
-void
 Matcher::init()
 {
     if (initialised) return;
 
     initialised = true;
 
-    makeFreqMap(fftSize, sampleRate);
+    makeFreqMap();
 
     initVector<double>(prevFrame, freqMapSize);
     initVector<double>(newFrame, freqMapSize);
     initMatrix<double>(frames, blockSize, freqMapSize);
     initVector<double>(totalEnergies, blockSize);
 
-    int distSize = (MAX_RUN_COUNT + 1) * blockSize;
+    int distSize = (params.maxRunCount + 1) * blockSize;
 
     distXSize = blockSize * 2;
 
-//    std::cerr << "Matcher::init: distXSize = " << distXSize << std::endl;
+    std::cerr << "Matcher::init: distXSize = " << distXSize << std::endl;
 
     distance = (unsigned char **)malloc(distXSize * sizeof(unsigned char *));
     bestPathCost = (int **)malloc(distXSize * sizeof(int *));
@@ -164,26 +115,31 @@ Matcher::init()
 
     frameCount = 0;
     runCount = 0;
-//    frameRMS = 0;
     ltAverage = 0;
 
-    if (!silent) print();
 } // init
 
 void
-Matcher::makeFreqMap(int fftSize, float sampleRate)
+Matcher::makeFreqMap()
 {
-    initVector<int>(freqMap, fftSize/2 + 1);
-    if (useChromaFrequencyMap)
-        makeChromaFrequencyMap(fftSize, sampleRate);
-    else
-        makeStandardFrequencyMap(fftSize, sampleRate);
+    initVector<int>(freqMap, params.fftSize/2 + 1);
+    if (params.useChromaFrequencyMap) {
+#ifdef DEBUG_MATCHER
+        cerr << "makeFreqMap: calling makeChromaFrequencyMap" << endl;
+#endif
+        makeChromaFrequencyMap();
+    } else {
+#ifdef DEBUG_MATCHER
+        cerr << "makeFreqMap: calling makeStandardFrequencyMap" << endl;
+#endif
+        makeStandardFrequencyMap();
+    }
 } // makeFreqMap()
 
 void
-Matcher::makeStandardFrequencyMap(int fftSize, float sampleRate)
+Matcher::makeStandardFrequencyMap()
 {
-    double binWidth = sampleRate / fftSize;
+    double binWidth = params.sampleRate / params.fftSize;
     int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
     int crossoverMidi = lrint(log(crossoverBin*binWidth/440.0)/
                               log(2.0) * 12 + 69);
@@ -193,7 +149,7 @@ Matcher::makeStandardFrequencyMap(int fftSize, float sampleRate)
         freqMap[i] = i;
         ++i;
     }
-    while (i <= fftSize/2) {
+    while (i <= params.fftSize/2) {
         double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
         if (midi > 127)
             midi = 127;
@@ -203,21 +159,21 @@ Matcher::makeStandardFrequencyMap(int fftSize, float sampleRate)
     if (!silent) {
         cerr << "Standard map size: " << freqMapSize 
              << ";  Crossover at: " << crossoverBin << endl;
-//!!!            for (i = 0; i < fftSize / 2; i++)
-//                cerr << "freqMap[" << i << "] = " << freqMap[i] << endl;
+            for (i = 0; i < params.fftSize / 2; i++)
+                cerr << "freqMap[" << i << "] = " << freqMap[i] << endl;
     }
 } // makeStandardFrequencyMap()
 
 void
-Matcher::makeChromaFrequencyMap(int fftSize, float sampleRate)
+Matcher::makeChromaFrequencyMap()
 {
-    double binWidth = sampleRate / fftSize;
+    double binWidth = params.sampleRate / params.fftSize;
     int crossoverBin = (int)(1 / (pow(2, 1/12.0) - 1));
     // freq = 440 * Math.pow(2, (midi-69)/12.0) / binWidth;
     int i = 0;
     while (i <= crossoverBin)
         freqMap[i++] = 0;
-    while (i <= fftSize/2) {
+    while (i <= params.fftSize/2) {
         double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
         freqMap[i++] = (lrint(midi)) % 12 + 1;
     }
@@ -225,7 +181,7 @@ Matcher::makeChromaFrequencyMap(int fftSize, float sampleRate)
     if (!silent) {
         cerr << "Chroma map size: " << freqMapSize 
              << ";  Crossover at: " << crossoverBin << endl;
-        for (i = 0; i < fftSize / 2; i++)
+        for (i = 0; i < params.fftSize / 2; i++)
             cerr << "freqMap[" << i << "] = " << freqMap[i] << endl;
     }
 } // makeChromaFrequencyMap()
@@ -239,13 +195,13 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
         newFrame[i] = 0;
     }
     double rms = 0;
-    for (int i = 0; i <= fftSize/2; i++) {
+    for (int i = 0; i <= params.fftSize/2; i++) {
         double mag = reBuffer[i] * reBuffer[i] +
                      imBuffer[i] * imBuffer[i];
         rms += mag;
         newFrame[freqMap[i]] += mag;
     }
-    rms = sqrt(rms / (fftSize/2));
+    rms = sqrt(rms / (params.fftSize/2));
 
     int frameIndex = frameCount % blockSize;
 
@@ -300,7 +256,7 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
     }
 
     double totalEnergy = 0;
-    if (useSpectralDifference) {
+    if (params.useSpectralDifference) {
         for (int i = 0; i < freqMapSize; i++) {
             totalEnergy += newFrame[i];
             if (newFrame[i] > prevFrame[i]) {
@@ -325,19 +281,13 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
     else
         ltAverage = ltAverage * decay + totalEnergy * (1.0 - decay);
 
-// System.err.println(Format.d(ltAverage,4) + " " +
-//					Format.d(totalEnergy) + " " +
-//					Format.d(frameRMS));
-
-//    std::cerr << "ltAverage: " << ltAverage << ", totalEnergy: " << totalEnergy << ", frameRMS: " << rms << std::endl;
-
-    if (rms <= 0.01)  //!!! silenceThreshold)
+    if (rms <= params.silenceThreshold)
         for (int i = 0; i < freqMapSize; i++)
             frames[frameIndex][i] = 0;
-    else if (normalise1)
+    else if (params.frameNorm == NormaliseFrameToSum1)
         for (int i = 0; i < freqMapSize; i++)
             frames[frameIndex][i] /= totalEnergy;
-    else if (normalise3)
+    else if (params.frameNorm == NormaliseFrameToLTAverage)
         for (int i = 0; i < freqMapSize; i++)
             frames[frameIndex][i] /= ltAverage;
 
@@ -446,9 +396,9 @@ Matcher::calcDistance(const vector<double> &f1, const vector<double> &f2)
     // System.err.print("   " + Format.d(d,3));
     if (sum == 0)
         return 0;
-    if (normalise2)
+    if (params.distanceNorm == NormaliseDistanceToSum)
         return (int)(scale * d / sum);	// 0 <= d/sum <= 2
-    if (!normalise4)
+    if (params.distanceNorm != NormaliseDistanceToLogSum)
         return (int)(scale * d);
 
     // note if this were to be restored, it would have to use

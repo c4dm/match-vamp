@@ -10,6 +10,6 @@ VAMP_PATH=. \
     ~/Music/cc-kids-abrsm-dataset/Kids/Allegro\ in\ G.mp3 \
     -w csv --csv-stdout 2>/dev/null | sed 's/^[^,]*,//' > /tmp/$$ || exit 1
 
-diff /tmp/$$ `dirname $0`/expected.csv && echo Passed
+diff -u /tmp/$$ `dirname $0`/expected.csv && echo Passed
 
 rm /tmp/$$

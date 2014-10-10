@@ -45,9 +45,13 @@ MatchVampPlugin::m_serialisingMutexInitialised = false;
 // sample rates
 static float sampleRateMin = 5000.f;
 
+static float defaultStepTime = 0.020;
+
 MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
     m_stepSize(0),
+    m_stepTime(defaultStepTime),
+    m_blockSize(0),
     m_serialise(false),
     m_begin(true),
     m_locked(false)
@@ -168,22 +172,21 @@ MatchVampPlugin::setParameter(std::string name, float value)
 size_t
 MatchVampPlugin::getPreferredStepSize() const
 {
-    if (!pm1) createMatchers();
-    return pm1->getHopSize();
+    return m_inputSampleRate * defaultStepTime;
 }
 
 size_t
 MatchVampPlugin::getPreferredBlockSize() const
 {
-    if (!pm1) createMatchers();
-    return pm1->getFFTSize();
+    return 2048;
 }
 
 void
 MatchVampPlugin::createMatchers() const
 {
-    pm1 = new Matcher(m_inputSampleRate, 0);
-    pm2 = new Matcher(m_inputSampleRate, pm1);
+    Matcher::Parameters params(m_inputSampleRate, m_stepTime, m_blockSize);
+    pm1 = new Matcher(params, 0);
+    pm2 = new Matcher(params, pm1);
     pm1->setOtherMatcher(pm2);
     feeder = new MatchFeeder(pm1, pm2);
 }
@@ -197,16 +200,21 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
                   << sampleRateMin << std::endl;
         return false;
     }
-    if (!pm1) createMatchers();
     if (channels < getMinChannelCount() ||
 	channels > getMaxChannelCount()) return false;
     if (stepSize > blockSize/2 ||
         blockSize != getPreferredBlockSize()) return false;
+
     m_stepSize = stepSize;
-    pm1->setHopSize(stepSize);
-    pm2->setHopSize(stepSize);
+    m_stepTime = float(stepSize) / m_inputSampleRate;
+    m_blockSize = blockSize;
+
+    cerr << "step size = " << m_stepSize << ", time = " << m_stepTime << endl;
+
+    createMatchers();
     m_begin = true;
     m_locked = false;
+
     return true;
 }
 
@@ -221,8 +229,6 @@ MatchVampPlugin::reset()
     pm2 = 0;
 
     createMatchers();
-    pm1->setHopSize(m_stepSize);
-    pm2->setHopSize(m_stepSize);
     m_begin = true;
     m_locked = false;
 }
@@ -232,7 +238,7 @@ MatchVampPlugin::getOutputDescriptors() const
 {
     OutputList list;
 
-    float outRate = 1.0 / 0.020; //!!! this is the default value of hopTime in Matcher
+    float outRate = 1.0 / m_stepTime;
 
     OutputDescriptor desc;
     desc.identifier = "path";
@@ -287,6 +293,18 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.identifier = "a_b_temporatio";
     desc.name = "A-B Tempo Ratio";
     desc.description = "Ratio of tempi between performances A and B";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = 1;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::VariableSampleRate;
+    desc.sampleRate = outRate;
+    list.push_back(desc);
+
+    desc.identifier = "a_features";
+    desc.name = "A Features";
+    desc.description = "Spectral features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = 1;
@@ -372,9 +390,9 @@ MatchVampPlugin::getRemainingFeatures()
         int y = pathy[i];
 
         Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
-            (x * pm1->getHopSize(), lrintf(m_inputSampleRate));
+            (x * m_stepSize, lrintf(m_inputSampleRate));
         Vamp::RealTime yt = Vamp::RealTime::frame2RealTime
-            (y * pm2->getHopSize(), lrintf(m_inputSampleRate));
+            (y * m_stepSize, lrintf(m_inputSampleRate));
 
         Feature feature;
         feature.hasTimestamp = true;

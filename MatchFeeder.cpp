@@ -21,7 +21,7 @@ using std::vector;
 MatchFeeder::MatchFeeder(Matcher *m1, Matcher *m2) :
     pm1(m1), pm2(m2)
 {
-    fftSize = m1->fftSize;
+    fftSize = m1->params.fftSize;
     finder = new Finder(m1, m2);
     reBuffer = new double[fftSize/2+1];
     imBuffer = new double[fftSize/2+1];
@@ -106,10 +106,10 @@ MatchFeeder::feedBlock()
 //        feed2();
 //!!!    } else if (pm2->atEnd)
 //        feed1();
-    else if (pm1->runCount >= Matcher::MAX_RUN_COUNT) {  // slope constraints
+    else if (pm1->runCount >= pm1->params.maxRunCount) {  // slope constraints
 //        std::cerr << "pm1 too slopey" << std::endl;
         f2 = feed2();
-    } else if (pm2->runCount >= Matcher::MAX_RUN_COUNT) {
+    } else if (pm2->runCount >= pm2->params.maxRunCount) {
 //        std::cerr << "pm2 too slopey" << std::endl;
         f1 = feed1();
     } else {

@@ -39,9 +39,103 @@ using std::endl;
  *  on the FFT data with the higher frequencies mapped onto a linear
  *  scale.
  */
-
 class Matcher
 {
+public:
+    enum FrameNormalisation {
+
+        /** Do not normalise audio frames */
+        NoFrameNormalisation,
+        
+        /** Normalise each frame of audio to have a sum of 1 */
+        NormaliseFrameToSum1,
+        
+        /** Normalise each frame of audio by the long-term average
+         *  of the summed energy */
+        NormaliseFrameToLTAverage,
+    };
+
+    enum DistanceNormalisation {
+            
+        /** Do not normalise distance metrics */
+        NoDistanceNormalisation,
+
+        /** Normalise distance metric for pairs of audio frames by
+         *  the sum of the two frames. */
+        NormaliseDistanceToSum,
+
+        /** Normalise distance metric for pairs of audio frames by
+         *  the log of the sum of the frames. */
+        NormaliseDistanceToLogSum,
+    };
+
+    struct Parameters {
+
+        Parameters(float rate_, double hopTime_, int fftSize_) :
+            sampleRate(rate_),
+            frameNorm(NormaliseFrameToSum1),
+            distanceNorm(NormaliseDistanceToLogSum),
+            useSpectralDifference(true),
+            useChromaFrequencyMap(false),
+            hopTime(hopTime_),
+            fftSize(fftSize_),
+            blockTime(10.0),
+            silenceThreshold(0.01),
+            decay(0.99),
+            maxRunCount(3)
+        {}
+
+        /** Sample rate of audio */
+        float sampleRate;
+
+        /** Type of audio frame normalisation */
+        FrameNormalisation frameNorm;
+
+        /** Type of distance metric normalisation */
+        DistanceNormalisation distanceNorm;
+
+        /** Flag indicating whether or not the half-wave rectified
+         *  spectral difference should be used in calculating the
+         *  distance metric for pairs of audio frames, instead of the
+         *  straight spectrum values. */
+        bool useSpectralDifference;
+
+        /** Flag indicating whether to use a chroma frequency map (12
+         *  bins) instead of the default warped spectrogram */
+        bool useChromaFrequencyMap;
+
+        /** Spacing of audio frames (determines the amount of overlap or
+         *  skip between frames). This value is expressed in
+         *  seconds. */
+        double hopTime;
+
+        /** Size of an FFT frame in samples. Note that the data passed
+         *  in to Matcher is already in the frequency domain, so this
+         *  expresses the size of the frame that the caller will be
+         *  providing.
+         */
+        int fftSize;
+
+        /** The width of the search band (error margin) around the current
+         *  match position, measured in seconds. Strictly speaking the
+         *  width is measured backwards from the current point, since the
+         *  algorithm has to work causally.
+         */
+        double blockTime;
+        
+        /** RMS level below which frame is considered silent */
+        double silenceThreshold;
+
+        /** Frame-to-frame decay factor in calculating long-term average */
+        double decay;
+
+        /** Maximum number of frames sequentially processed by this
+         *  matcher, without a frame of the other matcher being
+         *  processed.
+         */
+        int maxRunCount;
+    };
+
 protected:
     /** Points to the other performance with which this one is being
      *  compared.  The data for the distance metric and the dynamic
@@ -57,79 +151,20 @@ protected:
      *  DTW steps. */
     bool firstPM;
 
-    /** Sample rate of audio */
-    float sampleRate;
-
-    /** Onset time of the first note in the audio file, in order to
-     *  establish synchronisation between the match file and the audio
-     *  data. */
-    double matchFileOffset;
-
-    /** Flag indicating whether or not each frame of audio should be
-     *  normalised to have a sum of 1.  (Default = false). */
-    bool normalise1;
-	
-    /** Flag indicating whether or not the distance metric for pairs
-     *  of audio frames should be normalised by the sum of the two
-     *  frames.  (Default = false). */
-    bool normalise2;
-
-    /** Flag indicating whether or not each frame of audio should be
-     *  normalised by the long term average of the summed energy.
-     *  (Default = false; assumes normalise1 == false). */
-    bool normalise3;
-	
-    /** Flag indicating whether or not the distance metric for pairs
-     *  of audio frames should be normalised by the log of the sum of
-     *  the frames.  (Default = false; assumes normalise2 ==
-     *  false). */
-    bool normalise4;
-
-    /** Flag indicating whether or not the half-wave rectified
-     *  spectral difference should be used in calculating the distance
-     *  metric for pairs of audio frames, instead of the straight
-     *  spectrum values. (Default = true). */
-    bool useSpectralDifference;
-
-    bool useChromaFrequencyMap;
+    /** Configuration parameters */
+    Parameters params;
 
     /** Scaling factor for distance metric; must guarantee that the
      *  final value fits in the data type used, that is, unsigned
-     *  char. (Default = 16).
+     *  char.
      */
     double scale;
-
-    /** Spacing of audio frames (determines the amount of overlap or
-     *  skip between frames). This value is expressed in
-     *  seconds. (Default = 0.020s) */
-    double hopTime;
-
-    /** The size of an FFT frame in seconds. (Default = 0.04644s).
-     *  Note that the value is not taken to be precise; it is adjusted
-     *  so that <code>fftSize</code> is always power of 2. */
-    double fftTime;
-
-    /** The width of the search band (error margin) around the current
-     *  match position, measured in seconds. Strictly speaking the
-     *  width is measured backwards from the current point, since the
-     *  algorithm has to work causally.
-     */
-    double blockTime;
-
-    /** Spacing of audio frames in samples (see <code>hopTime</code>) */
-    int hopSize;
-
-    /** The size of an FFT frame in samples (see <code>fftTime</code>) */
-    int fftSize;
 
     /** Width of the search band in FFT frames (see <code>blockTime</code>) */
     int blockSize;
 
     /** The number of frames of audio data which have been read. */
     int frameCount;
-
-    /** RMS amplitude of the current frame. */
-//    double frameRMS;
 
     /** Long term average frame energy (in frequency domain
      *  representation). */
@@ -139,14 +174,6 @@ protected:
      *  without a frame of the other matcher being processed.
      */
     int runCount;
-
-    /** Interactive control of the matching process allows pausing
-     *  computation of the cost matrices in one direction.
-     */
-    bool paused;
-
-    /** The total number of frames of audio data to be read. */
-    int maxFrames;
 
     /** A mapping function for mapping FFT bins to final frequency
      *  bins.  The mapping is linear (1-1) until the resolution
@@ -198,21 +225,10 @@ protected:
     /** Width of distance and bestPathCost matrices and first and last vectors */
     int  distXSize;
 
-    /** Total number of audio frames, or -1 for live or compressed input. */
-    long fileLength;
-
     bool initialised;
-
-//!!!    bool atEnd; //!!!
 
     /** Disable or enable debugging output */
     static bool silent;
-
-    static const double decay;
-    static const double silenceThreshold;
-    static const int MAX_RUN_COUNT;
-
-    friend class Finder; //!!!
 
 public:
     /** Constructor for Matcher.
@@ -222,7 +238,7 @@ public:
      *  between the two matchers (currently one possesses the distance
      *  matrix and optimal path matrix).
      */
-    Matcher(float rate, Matcher *p);
+    Matcher(Parameters parameters, Matcher *p);
 
     ~Matcher();
 
@@ -243,19 +259,9 @@ public:
         otherMatcher = p;
     } // setOtherMatcher()
 
-    int getFFTSize() {
-        return fftSize;
-    }
-    
-    int getHopSize() {
-        return hopSize;
-    }
-
     int getFrameCount() { 
         return frameCount;
     }
-
-    void setHopSize(int);
 
 protected:
     template <typename T>
@@ -281,7 +287,7 @@ protected:
 
     void init();
 
-    void makeFreqMap(int fftSize, float sampleRate);
+    void makeFreqMap();
 
     /** Creates a map of FFT frequency bins to comparison bins.  Where
      *  the spacing of FFT bins is less than 0.5 semitones, the
@@ -290,9 +296,9 @@ protected:
      *  bins. No scaling is performed; that is the energy is summed
      *  into the comparison bins. See also processFrame()
      */
-    void makeStandardFrequencyMap(int fftSize, float sampleRate);
+    void makeStandardFrequencyMap();
 
-    void makeChromaFrequencyMap(int fftSize, float sampleRate);
+    void makeChromaFrequencyMap();
 
     /** Processes a frame of audio data by first computing the STFT
      *  with a Hamming window, then mapping the frequency bins into a
@@ -341,6 +347,7 @@ protected:
     void setValue(int i, int j, int dir, int value, int dMN);
 
     friend class MatchFeeder;
+    friend class Finder;
 
 }; // class Matcher
 
