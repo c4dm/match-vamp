@@ -54,7 +54,9 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_blockSize(2048),
     m_serialise(false),
     m_begin(true),
-    m_locked(false)
+    m_locked(false),
+    m_params(inputSampleRate, defaultStepTime, m_blockSize),
+    m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize)
 {
     if (inputSampleRate < sampleRateMin) {
         std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
@@ -182,11 +184,12 @@ MatchVampPlugin::getPreferredBlockSize() const
 }
 
 void
-MatchVampPlugin::createMatchers() const
+MatchVampPlugin::createMatchers()
 {
-    Matcher::Parameters params(m_inputSampleRate, m_stepTime, m_blockSize);
-    pm1 = new Matcher(params, 0);
-    pm2 = new Matcher(params, pm1);
+    m_params.hopTime = m_stepTime;
+    m_params.fftSize = m_blockSize;
+    pm1 = new Matcher(m_params, 0);
+    pm2 = new Matcher(m_params, pm1);
     pm1->setOtherMatcher(pm2);
     feeder = new MatchFeeder(pm1, pm2);
 }
@@ -208,8 +211,6 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
     m_stepSize = stepSize;
     m_stepTime = float(stepSize) / m_inputSampleRate;
     m_blockSize = blockSize;
-
-    cerr << "step size = " << m_stepSize << ", time = " << m_stepTime << endl;
 
     createMatchers();
     m_begin = true;
@@ -307,14 +308,12 @@ MatchVampPlugin::getOutputDescriptors() const
     m_abRatioOutNo = list.size();
     list.push_back(desc);
 
-    Matcher::Parameters params(m_inputSampleRate, m_stepTime, m_blockSize);
-
     desc.identifier = "a_features";
     desc.name = "A Features";
     desc.description = "Spectral features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
-    desc.binCount = Matcher::getFeatureSize(params);
+    desc.binCount = Matcher::getFeatureSize(m_params);
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
@@ -327,7 +326,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.description = "Spectral features extracted from performance B";
     desc.unit = "";
     desc.hasFixedBinCount = true;
-    desc.binCount = Matcher::getFeatureSize(params);
+    desc.binCount = Matcher::getFeatureSize(m_params);
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;

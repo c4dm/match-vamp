@@ -25,7 +25,8 @@
 #include <pthread.h>
 #endif
 
-class Matcher;
+#include "Matcher.h"
+
 class MatchFeeder;
 
 class MatchVampPlugin : public Vamp::Plugin
@@ -64,11 +65,11 @@ public:
     FeatureSet getRemainingFeatures();
 
 protected:
-    void createMatchers() const;
+    void createMatchers();
 
-    mutable Matcher *pm1;
-    mutable Matcher *pm2;
-    mutable MatchFeeder *feeder;
+    Matcher *pm1;
+    Matcher *pm2;
+    MatchFeeder *feeder;
 
     Vamp::RealTime m_startTime;
     int m_stepSize;
@@ -77,6 +78,9 @@ protected:
     bool m_serialise;
     bool m_begin;
     bool m_locked;
+
+    Matcher::Parameters m_params;
+    Matcher::Parameters m_defaultParams;
 
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
