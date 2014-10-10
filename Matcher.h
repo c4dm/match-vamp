@@ -165,16 +165,22 @@ protected:
     int freqMapSize;
 
     /** The most recent frame; used for calculating the frame to frame
-     *  spectral difference. */
+     *  spectral difference. These are therefore frequency warped but
+     *  not yet normalised. */
     vector<double> prevFrame;
     vector<double> newFrame;
 
     /** A block of previously seen frames are stored in this structure
      *  for calculation of the distance matrix as the new frames are
      *  read in.  One can think of the structure of the array as a
-     *  circular buffer of vectors. The last element of each vector
-     *  stores the total energy. */
+     *  circular buffer of vectors.  These are the frames with all
+     *  applicable processing applied (e.g. spectral difference,
+     *  normalisation), unlike prevFrame and newFrame. The total
+     *  energy of frames[i] is stored in totalEnergies[i]. */
     vector<vector<double> > frames;
+
+    /** The total energy of each frame in the frames block. */ 
+    vector<double> totalEnergies;
 
     /** The best path cost matrix. */
     int **bestPathCost;

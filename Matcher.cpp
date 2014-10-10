@@ -137,7 +137,8 @@ Matcher::init()
 
     initVector<double>(prevFrame, freqMapSize);
     initVector<double>(newFrame, freqMapSize);
-    initMatrix<double>(frames, blockSize, freqMapSize + 1);
+    initMatrix<double>(frames, blockSize, freqMapSize);
+    initVector<double>(totalEnergies, blockSize);
 
     int distSize = (MAX_RUN_COUNT + 1) * blockSize;
 
@@ -314,7 +315,7 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
             totalEnergy += frames[frameIndex][i];
         }
     }
-    frames[frameIndex][freqMapSize] = totalEnergy;
+    totalEnergies[frameIndex] = totalEnergy;
 
     double decay = frameCount >= 200 ? 0.99:
         (frameCount < 100? 0: (frameCount - 100) / 100.0);
@@ -449,7 +450,12 @@ Matcher::calcDistance(const vector<double> &f1, const vector<double> &f2)
         return (int)(scale * d / sum);	// 0 <= d/sum <= 2
     if (!normalise4)
         return (int)(scale * d);
+
+    // note if this were to be restored, it would have to use
+    // totalEnergies vector instead of f1[freqMapSize] which used to
+    // store the total energy:
     //	double weight = (5 + Math.log(f1[freqMapSize] + f2[freqMapSize]))/10.0;
+
     double weight = (8 + log(sum)) / 10.0;
     // if (weight < mins) {
     // 	mins = weight;
