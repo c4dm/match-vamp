@@ -49,9 +49,9 @@ static float defaultStepTime = 0.020;
 
 MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
-    m_stepSize(0),
+    m_stepSize(inputSampleRate * defaultStepTime + 0.001),
     m_stepTime(defaultStepTime),
-    m_blockSize(0),
+    m_blockSize(2048),
     m_serialise(false),
     m_begin(true),
     m_locked(false)
@@ -252,6 +252,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.quantizeStep = 1;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
+    m_pathOutNo = list.size();
     list.push_back(desc);
 
     desc.identifier = "a_b";
@@ -264,6 +265,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
+    m_abOutNo = list.size();
     list.push_back(desc);
 
     desc.identifier = "b_a";
@@ -276,6 +278,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
+    m_baOutNo = list.size();
     list.push_back(desc);
 
     desc.identifier = "a_b_divergence";
@@ -288,6 +291,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
+    m_abDivOutNo = list.size();
     list.push_back(desc);
 
     desc.identifier = "a_b_temporatio";
@@ -300,18 +304,35 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
+    m_abRatioOutNo = list.size();
     list.push_back(desc);
+
+    Matcher::Parameters params(m_inputSampleRate, m_stepTime, m_blockSize);
 
     desc.identifier = "a_features";
     desc.name = "A Features";
     desc.description = "Spectral features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
-    desc.binCount = 1;
+    desc.binCount = Matcher::getFeatureSize(params);
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::VariableSampleRate;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
+    m_aFeaturesOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "b_features";
+    desc.name = "B Features";
+    desc.description = "Spectral features extracted from performance B";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = Matcher::getFeatureSize(params);
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_bFeaturesOutNo = list.size();
     list.push_back(desc);
 
     return list;
@@ -336,12 +357,33 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     
 //    std::cerr << timestamp.toString();
 
-    feeder->feed(inputBuffers);
+    MatchFeeder::Features ff = feeder->feedAndGetFeatures(inputBuffers);
+
+    FeatureSet returnFeatures;
+
+    Feature f;
+    f.hasTimestamp = false;
+
+    for (int i = 0; i < (int)ff.f1.size(); ++i) {
+        f.values.clear();
+        for (int j = 0; j < (int)ff.f1[i].size(); ++j) {
+            f.values.push_back(ff.f1[i][j]);
+        }
+        returnFeatures[m_aFeaturesOutNo].push_back(f);
+    }
+
+    for (int i = 0; i < (int)ff.f2.size(); ++i) {
+        f.values.clear();
+        for (int j = 0; j < (int)ff.f2[i].size(); ++j) {
+            f.values.push_back(ff.f2[i][j]);
+        }
+        returnFeatures[m_bFeaturesOutNo].push_back(f);
+    }
 
 //    std::cerr << ".";
 //    std::cerr << std::endl;
 
-    return FeatureSet();
+    return returnFeatures;
 }
 
 MatchVampPlugin::FeatureSet
@@ -364,7 +406,7 @@ MatchVampPlugin::getRemainingFeatures()
 
 //        std::cerr << pathx.size() << ": (" << x << "," << y << ")" << std::endl;
 
-        switch (finder->getDistance() & ADVANCE_BOTH){
+        switch (finder->getDistance() & ADVANCE_BOTH) {
         case ADVANCE_THIS:  y--; break;
         case ADVANCE_OTHER: x--; break;
         case ADVANCE_BOTH:  x--; y--; break;
@@ -399,7 +441,7 @@ MatchVampPlugin::getRemainingFeatures()
         feature.timestamp = m_startTime + xt;
         feature.values.clear();
         feature.values.push_back(yt.sec + double(yt.nsec)/1.0e9);
-        returnFeatures[0].push_back(feature);
+        returnFeatures[m_pathOutNo].push_back(feature);
         
         if (x != prevx) {
 
@@ -407,12 +449,12 @@ MatchVampPlugin::getRemainingFeatures()
             feature.timestamp = m_startTime + xt;
             feature.values.clear();
             feature.values.push_back(yt.sec + yt.msec()/1000.0);
-            returnFeatures[1].push_back(feature);
+            returnFeatures[m_abOutNo].push_back(feature);
 
             Vamp::RealTime diff = yt - xt;
             feature.values.clear();
             feature.values.push_back(diff.sec + diff.msec()/1000.0);
-            returnFeatures[3].push_back(feature);
+            returnFeatures[m_abDivOutNo].push_back(feature);
 
             if (i > 0) {
                 int lookback = 100; //!!! arbitrary
@@ -424,7 +466,7 @@ MatchVampPlugin::getRemainingFeatures()
                     if (ratio < 8 && ratio > (1.0/8)) { //!!! just for now, since we aren't dealing properly with silence yet
                         feature.values.clear();
                         feature.values.push_back(ratio);
-                        returnFeatures[4].push_back(feature);
+                        returnFeatures[m_abRatioOutNo].push_back(feature);
                     }
                 }
             }
@@ -435,7 +477,7 @@ MatchVampPlugin::getRemainingFeatures()
             feature.timestamp = m_startTime + yt;
             feature.values.clear();
             feature.values.push_back(xt.sec + xt.msec()/1000.0);
-            returnFeatures[2].push_back(feature);
+            returnFeatures[m_baOutNo].push_back(feature);
         }
 
         prevx = x;

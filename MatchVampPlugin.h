@@ -65,9 +65,11 @@ public:
 
 protected:
     void createMatchers() const;
+
     mutable Matcher *pm1;
     mutable Matcher *pm2;
     mutable MatchFeeder *feeder;
+
     Vamp::RealTime m_startTime;
     int m_stepSize;
     float m_stepTime;
@@ -75,6 +77,14 @@ protected:
     bool m_serialise;
     bool m_begin;
     bool m_locked;
+
+    mutable int m_pathOutNo;
+    mutable int m_abOutNo;
+    mutable int m_baOutNo;
+    mutable int m_abDivOutNo;
+    mutable int m_abRatioOutNo;
+    mutable int m_aFeaturesOutNo;
+    mutable int m_bFeaturesOutNo;
 
 #ifdef _WIN32
     static HANDLE m_serialisingMutex;

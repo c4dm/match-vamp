@@ -247,9 +247,6 @@ public:
      */
     void print();
 
-    /** Gives some basic `header' information about the Matcher. */
-    string toString();
-
     /** Adds a link to the Matcher object representing the performance
      *  which is going to be matched to this one.
      *
@@ -262,6 +259,12 @@ public:
     int getFrameCount() { 
         return frameCount;
     }
+
+    /**
+     * Return the feature vector size that will be used for the given
+     * parameters.
+     */
+    static int getFeatureSize(Parameters params);
 
 protected:
     template <typename T>

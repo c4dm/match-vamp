@@ -19,6 +19,7 @@
 #include <iostream>
 
 #include <cstdlib>
+#include <cassert>
 
 bool Matcher::silent = true;
 
@@ -84,6 +85,8 @@ Matcher::init()
 
     initialised = true;
 
+    freqMapSize = getFeatureSize(params);
+
     makeFreqMap();
 
     initVector<double>(prevFrame, freqMapSize);
@@ -136,6 +139,16 @@ Matcher::makeFreqMap()
     }
 } // makeFreqMap()
 
+int
+Matcher::getFeatureSize(Parameters params)
+{
+    if (params.useChromaFrequencyMap) {
+        return 13;
+    } else {
+        return 84;
+    }
+}
+
 void
 Matcher::makeStandardFrequencyMap()
 {
@@ -151,11 +164,10 @@ Matcher::makeStandardFrequencyMap()
     }
     while (i <= params.fftSize/2) {
         double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
-        if (midi > 127)
-            midi = 127;
+        if (midi > 127) midi = 127;
         freqMap[i++] = crossoverBin + lrint(midi) - crossoverMidi;
     }
-    freqMapSize = freqMap[i-1] + 1;
+    assert(freqMapSize == freqMap[i-1] + 1);
     if (!silent) {
         cerr << "Standard map size: " << freqMapSize 
              << ";  Crossover at: " << crossoverBin << endl;
@@ -177,7 +189,6 @@ Matcher::makeChromaFrequencyMap()
         double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
         freqMap[i++] = (lrint(midi)) % 12 + 1;
     }
-    freqMapSize = 13;
     if (!silent) {
         cerr << "Chroma map size: " << freqMapSize 
              << ";  Crossover at: " << crossoverBin << endl;
