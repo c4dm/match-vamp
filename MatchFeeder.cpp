@@ -16,6 +16,8 @@
 
 #include "MatchFeeder.h"
 
+using std::vector;
+
 MatchFeeder::MatchFeeder(Matcher *m1, Matcher *m2) :
     pm1(m1), pm2(m2)
 {
@@ -49,6 +51,33 @@ MatchFeeder::feed(const float *const *input)
     // It loops, processing up to one block per matcher, until a queue
     // is empty.  Then it returns, to be called again with more data.
 
+    prepare(input);
+
+    while (!q1.empty() && !q2.empty()) {
+//        std::cerr << "MatchFeeder::feed: q1 " << q1.size() << " q2 " << q2.size() << std::endl;
+        (void)feedBlock();
+    }
+}
+
+MatchFeeder::Features
+MatchFeeder::feedAndGetFeatures(const float *const *input)
+{
+    prepare(input);
+
+    Features all;
+
+    while (!q1.empty() && !q2.empty()) {
+        Features ff = feedBlock();
+        all.f1.insert(all.f1.end(), ff.f1.begin(), ff.f1.end());
+        all.f2.insert(all.f2.end(), ff.f2.begin(), ff.f2.end());
+    }
+
+    return all;
+}
+
+void
+MatchFeeder::prepare(const float *const *input)
+{
     float *block = new float[fftSize+2];
     for (size_t i = 0; i < fftSize+2; ++i) {
         block[i] = input[0][i];
@@ -60,20 +89,18 @@ MatchFeeder::feed(const float *const *input)
         block[i] = input[1][i];
     }
     q2.push(block);
-
-    while (!q1.empty() && !q2.empty()) {
-//        std::cerr << "MatchFeeder::feed: q1 " << q1.size() << " q2 " << q2.size() << std::endl;
-        feedBlock();
-    }
 }
 
-void
+MatchFeeder::Features
 MatchFeeder::feedBlock()
 {
+    Features ff;
+    vector<double> f1, f2;
+
     if (pm1->frameCount < pm1->blockSize) {		// fill initial block
 //        std::cerr << "feeding initial block" << std::endl;
-        feed1();
-        feed2();
+        f1 = feed1();
+        f2 = feed2();
     }
 //!!!    } else if (pm1->atEnd) {
 //        feed2();
@@ -81,31 +108,35 @@ MatchFeeder::feedBlock()
 //        feed1();
     else if (pm1->runCount >= Matcher::MAX_RUN_COUNT) {  // slope constraints
 //        std::cerr << "pm1 too slopey" << std::endl;
-        feed2();
+        f2 = feed2();
     } else if (pm2->runCount >= Matcher::MAX_RUN_COUNT) {
 //        std::cerr << "pm2 too slopey" << std::endl;
-        feed1();
+        f1 = feed1();
     } else {
         switch (finder->getExpandDirection
                 (pm1->frameCount-1, pm2->frameCount-1)) {
         case ADVANCE_THIS:
 //            std::cerr << "finder says ADVANCE_THIS" << std::endl;
-            feed1();
+            f1 = feed1();
             break;
         case ADVANCE_OTHER:
 //            std::cerr << "finder says ADVANCE_OTHER" << std::endl;
-            feed2();
+            f2 = feed2();
             break;
         case ADVANCE_BOTH:
 //            std::cerr << "finder says ADVANCE_BOTH" << std::endl;
-            feed1();
-            feed2();
+            f1 = feed1();
+            f2 = feed2();
             break;
         }
     }
+
+    if (!f1.empty()) ff.f1.push_back(f1);
+    if (!f2.empty()) ff.f2.push_back(f2);
+    return ff;
 }
 
-void
+vector<double>
 MatchFeeder::feed1()
 {
 //    std::cerr << "feed1" << std::endl;
@@ -118,10 +149,10 @@ MatchFeeder::feed1()
         imBuffer[i] = block[i*2+1];
     }
     delete[] block;
-    pm1->processFrame(reBuffer, imBuffer);
+    return pm1->processFrame(reBuffer, imBuffer);
 }
 
-void
+vector<double>
 MatchFeeder::feed2()
 {
 //    std::cerr << "feed2" << std::endl;
@@ -134,6 +165,6 @@ MatchFeeder::feed2()
         imBuffer[i] = block[i*2+1];
     }
     delete[] block;
-    pm2->processFrame(reBuffer, imBuffer);
+    return pm2->processFrame(reBuffer, imBuffer);
 }
 

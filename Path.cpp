@@ -21,7 +21,7 @@ Path::smooth(std::vector<int> &x, std::vector<int> &y, int length)
 {
     if (length == 0)
         return 0;
-    while (val.size() < length) {
+    while ((int)val.size() < length) {
         val.push_back(0);
         len.push_back(0);
     }

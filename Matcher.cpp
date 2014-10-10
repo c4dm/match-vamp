@@ -230,7 +230,7 @@ Matcher::makeChromaFrequencyMap(int fftSize, float sampleRate)
     }
 } // makeChromaFrequencyMap()
 
-void
+vector<double>
 Matcher::processFrame(double *reBuffer, double *imBuffer)
 {
     if (!initialised) init();
@@ -341,6 +341,8 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
         for (int i = 0; i < freqMapSize; i++)
             frames[frameIndex][i] /= ltAverage;
 
+    vector<double> processedFrame = frames[frameIndex];
+
     int stop = otherMatcher->frameCount;
     int index = stop - blockSize;
     if (index < 0)
@@ -426,12 +428,10 @@ Matcher::processFrame(double *reBuffer, double *imBuffer)
     if ((frameCount % 100) == 0) {
         if (!silent) {
             cerr << "Progress:" << frameCount << " " << ltAverage << endl;
-//                Profile.report();
         }
     }
-//!!!        if (frameCount == maxFrames)
-//            closeStreams();
-//    }
+
+    return processedFrame;
 } // processFrame()
 
 int

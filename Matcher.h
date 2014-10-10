@@ -303,8 +303,11 @@ protected:
      *  otherMatcher and storing them in the distance matrix, and
      *  finally updating the optimal path matrix using the dynamic
      *  time warping algorithm.
+     *
+     *  Return value is the frame (post-processed, with warping,
+     *  rectification, and normalisation as appropriate).
      */
-    void processFrame(double *reBuffer, double *imBuffer);
+    std::vector<double> processFrame(double *reBuffer, double *imBuffer);
 
     /** Calculates the Manhattan distance between two vectors, with an
      *  optional normalisation by the combined values in the

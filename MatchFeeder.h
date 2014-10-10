@@ -20,6 +20,7 @@
 #include "Finder.h"
 
 #include <queue>
+#include <vector>
 
 class MatchFeeder
 {
@@ -27,14 +28,33 @@ public:
     MatchFeeder(Matcher *m1, Matcher *m2);
     ~MatchFeeder();
 
+    /**
+     * Feed the two supplied channels of frequency-domain input data
+     * to feeders 1 and 2 respectively, as appropriate (depending on
+     * their advance status).
+     */
     void feed(const float *const *input);
+
+    struct Features {
+        std::vector<std::vector<double> > f1;
+        std::vector<std::vector<double> > f2;
+    };
+
+    /**
+     * Feed the two supplied channels of frequency-domain input data
+     * to feeders 1 and 2 respectively, as appropriate (depending on
+     * their advance status) and return any new feature vectors
+     * calculated by the two feeders.
+     */
+    Features feedAndGetFeatures(const float *const *input);
 
     Finder *getFinder() { return finder; }
 
 protected:
-    void feedBlock();
-    void feed1();
-    void feed2();
+    void prepare(const float *const *input);
+    Features feedBlock();
+    std::vector<double> feed1();
+    std::vector<double> feed2();
 
     Finder *finder;
     Matcher *pm1;
