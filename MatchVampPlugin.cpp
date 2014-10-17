@@ -201,14 +201,25 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.quantizeStep = 1;
     list.push_back(desc);
 
-    desc.identifier = "maxruncount";
-    desc.name = "Max Run Count";
+    desc.identifier = "gradientlimit";
+    desc.name = "Gradient Limit";
     desc.description = "Limit of number of frames that will be accepted from one source without a frame from the other source being accepted";
     desc.minValue = 1;
     desc.maxValue = 10;
     desc.defaultValue = m_defaultParams.maxRunCount;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
+    list.push_back(desc);
+
+    desc.identifier = "zonewidth";
+    desc.name = "Search Zone Width";
+    desc.description = "Width of the search zone (error margin) either side of the ongoing match position, in seconds";
+    desc.minValue = 1;
+    desc.maxValue = 60;
+    desc.defaultValue = m_defaultParams.blockTime;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    desc.unit = "s";
     list.push_back(desc);
 
     return list;
@@ -227,8 +238,10 @@ MatchVampPlugin::getParameter(std::string name) const
         return m_params.useSpectralDifference ? 1.0 : 0.0;
     } else if (name == "usechroma") {
         return m_params.useChromaFrequencyMap ? 1.0 : 0.0;
-    } else if (name == "maxruncount") {
+    } else if (name == "gradientlimit") {
         return m_params.maxRunCount;
+    } else if (name == "zonewidth") {
+        return m_params.blockTime;
     }
     
     return 0.0;
@@ -247,8 +260,10 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_params.useSpectralDifference = (value > 0.5);
     } else if (name == "usechroma") {
         m_params.useChromaFrequencyMap = (value > 0.5);
-    } else if (name == "maxruncount") {
+    } else if (name == "gradientlimit") {
         m_params.maxRunCount = int(value + 0.1);
+    } else if (name == "zonewidth") {
+        m_params.blockTime = value;
     }
 }
 
