@@ -55,6 +55,7 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_serialise(false),
     m_begin(true),
     m_locked(false),
+    m_smooth(true),
     m_params(inputSampleRate, defaultStepTime, m_blockSize),
     m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize)
 {
@@ -222,6 +223,17 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.unit = "s";
     list.push_back(desc);
 
+    desc.identifier = "smooth";
+    desc.name = "Smooth Path";
+    desc.description = "Smooth the path by replacing steps with diagonals";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = 1;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    desc.unit = "";
+    list.push_back(desc);
+
     return list;
 }
 
@@ -242,6 +254,8 @@ MatchVampPlugin::getParameter(std::string name) const
         return m_params.maxRunCount;
     } else if (name == "zonewidth") {
         return m_params.blockTime;
+    } else if (name == "smooth") {
+        return m_smooth ? 1.0 : 0.0;
     }
     
     return 0.0;
@@ -264,6 +278,8 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_params.maxRunCount = int(value + 0.1);
     } else if (name == "zonewidth") {
         m_params.blockTime = value;
+    } else if (name == "smooth") {
+        m_smooth = (value > 0.5);
     }
 }
 
@@ -487,7 +503,7 @@ MatchVampPlugin::getRemainingFeatures()
     Finder *finder = feeder->getFinder();
     std::vector<int> pathx;
     std::vector<int> pathy;
-    int len = finder->retrievePath(true, pathx, pathy);
+    int len = finder->retrievePath(m_smooth, pathx, pathy);
     
     FeatureSet returnFeatures;
 

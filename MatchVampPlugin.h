@@ -78,6 +78,7 @@ protected:
     bool m_serialise;
     bool m_begin;
     bool m_locked;
+    bool m_smooth;
 
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
