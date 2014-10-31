@@ -62,6 +62,7 @@ public:
             sampleRate(rate_),
             frameNorm(NormaliseFrameToSum1),
             distanceNorm(DistanceMetric::NormaliseDistanceToLogSum),
+            distanceScale(90.0),
             useSpectralDifference(true),
             useChromaFrequencyMap(false),
             hopTime(hopTime_),
@@ -80,6 +81,12 @@ public:
 
         /** Type of distance metric normalisation */
         DistanceMetric::DistanceNormalisation distanceNorm;
+
+        /** Scaling factor for distance metric; must guarantee that the
+         *  final value fits in the data type used, that is, unsigned
+         *  char.
+         */
+        double distanceScale;
 
         /** Flag indicating whether or not the half-wave rectified
          *  spectral difference should be used in calculating the
@@ -140,12 +147,6 @@ protected:
 
     /** Configuration parameters */
     Parameters params;
-
-    /** Scaling factor for distance metric; must guarantee that the
-     *  final value fits in the data type used, that is, unsigned
-     *  char.
-     */
-    double scale;
 
     /** Width of the search band in FFT frames (see <code>blockTime</code>) */
     int blockSize;

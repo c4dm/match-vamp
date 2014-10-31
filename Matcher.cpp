@@ -42,7 +42,6 @@ Matcher::Matcher(Parameters parameters, Matcher *p) :
     externalFeatureSize = 0;
     featureSize = 0;
     blockSize = 0;
-    scale = 90;
 
     blockSize = lrint(params.blockTime / params.hopTime);
 #ifdef DEBUG_MATCHER
@@ -74,7 +73,6 @@ Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize) :
     freqMapSize = 0;
     featureSize = 0;
     blockSize = 0;
-    scale = 90;
 
     blockSize = lrint(params.blockTime / params.hopTime);
 #ifdef DEBUG_MATCHER
@@ -398,7 +396,7 @@ Matcher::calcAdvance()
         int dMN = metric.calcDistanceScaled
             (frames[frameIndex],
              otherMatcher->frames[index % blockSize],
-             scale);
+             params.distanceScale);
         
         if (mx<0)
             mx = mn = dMN;
