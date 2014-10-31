@@ -247,7 +247,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
 } // recalculatePathCostMatrix()
 
 int
-Finder::retrievePath(vector<int> &pathx, vector<int> &pathy)
+Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {
     int x = pm2->getFrameCount() - 1;
     int y = pm1->getFrameCount() - 1;
@@ -273,9 +273,12 @@ Finder::retrievePath(vector<int> &pathx, vector<int> &pathy)
     std::reverse(pathx.begin(), pathx.end());
     std::reverse(pathy.begin(), pathy.end());
 
-    int smoothedLen = Path().smooth(pathx, pathy, pathx.size());
-
-    return smoothedLen;
+    if (smooth) {
+        int smoothedLen = Path().smooth(pathx, pathy, pathx.size());
+        return smoothedLen;
+    } else {
+        return pathx.size();
+    }
 }
 
 

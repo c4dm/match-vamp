@@ -93,8 +93,10 @@ public:
      * pathy. Return value is the length of the returned path: only
      * this many elements from pathx and pathy are valid (any
      * subsequent ones may be spurious).
+     *
+     * @param smooth whether to smooth the path before returning it
      */
-    int retrievePath(std::vector<int> &pathx, std::vector<int> &pathy);
+    int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
     
 }; // class Finder
 
