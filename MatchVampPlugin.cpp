@@ -484,44 +484,17 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::getRemainingFeatures()
 {
-    int x = pm2->getFrameCount() - 1;
-    int y = pm1->getFrameCount() - 1;
-
     Finder *finder = feeder->getFinder();
-
     std::vector<int> pathx;
     std::vector<int> pathy;
-
-//    std::cerr << "initial x,y = " << x << std::endl;
-
-    while (finder->find(y, x) && ((x > 0) || (y > 0))) {
-
-        pathx.push_back(x);
-        pathy.push_back(y);
-
-//        std::cerr << pathx.size() << ": (" << x << "," << y << ")" << std::endl;
-
-        switch (finder->getDistance() & ADVANCE_BOTH) {
-        case ADVANCE_THIS:  y--; break;
-        case ADVANCE_OTHER: x--; break;
-        case ADVANCE_BOTH:  x--; y--; break;
-        default: // this would indicate a bug, but we wouldn't want to hang
-            std::cerr << "WARNING: MatchVampPlugin::getRemainingFeatures: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << std::endl;
-            if (x > y) x--; else y--; break;
-        }
-    }
-
-    std::reverse(pathx.begin(), pathx.end());
-    std::reverse(pathy.begin(), pathy.end());
-
-    int smoothedLen = Path().smooth(pathx, pathy, pathx.size());
-
+    int len = finder->retrievePath(pathx, pathy);
+    
     FeatureSet returnFeatures;
 
     int prevx = 0;
     int prevy = 0;
 
-    for (int i = 0; i < smoothedLen; ++i) {
+    for (int i = 0; i < len; ++i) {
 
         int x = pathx[i];
         int y = pathy[i];
@@ -599,7 +572,7 @@ MatchVampPlugin::getRemainingFeatures()
     
 
 /*
-    for (int i = 0; i < smoothedLen; ++i) {
+    for (int i = 0; i < len; ++i) {
         std::cerr << i << ": [" << pathx[i] << "," << pathy[i] << "]" << std::endl;
     }
 
@@ -617,13 +590,13 @@ MatchVampPlugin::getRemainingFeatures()
     std::cerr << "0.02" << std::endl;
     std::cerr << "0.02" << std::endl;
 
-    std::cerr << smoothedLen << std::endl;
-    for (int i = 0; i < smoothedLen; ++i) {
+    std::cerr << len << std::endl;
+    for (int i = 0; i < len; ++i) {
         std::cerr << pathx[i] << std::endl;
     }
 
-    std::cerr << smoothedLen << std::endl;
-    for (int i = 0; i < smoothedLen; ++i) {
+    std::cerr << len << std::endl;
+    for (int i = 0; i < len; ++i) {
         std::cerr << pathy[i] << std::endl;
     }
 */

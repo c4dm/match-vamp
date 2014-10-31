@@ -2,10 +2,10 @@
 
 # Run from top-level match-vamp directory
 
-../sonic-annotator/sonic-annotator --minversion 1.1 || exit 1
+sonic-annotator --minversion 1.1 || exit 1
 
 VAMP_PATH=. \
-    ../sonic-annotator/sonic-annotator \
+    sonic-annotator \
     -d vamp:match-vamp-plugin:match \
     --multiplex \
     ~/Music/cc-kids-abrsm-dataset/ABRSM/Allegro\ in\ G.mp3 \

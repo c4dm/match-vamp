@@ -86,6 +86,16 @@ public:
      */
     void recalculatePathCostMatrix(int r1, int c1, int r2, int c2);
 
+    /**
+     * Track back after all of the matchers have been fed in order to
+     * obtain the lowest cost path available. Path x and y coordinate
+     * pairs are returned in corresponding elements of pathx and
+     * pathy. Return value is the length of the returned path: only
+     * this many elements from pathx and pathy are valid (any
+     * subsequent ones may be spurious).
+     */
+    int retrievePath(std::vector<int> &pathx, std::vector<int> &pathy);
+    
 }; // class Finder
 
 #endif

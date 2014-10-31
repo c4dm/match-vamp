@@ -16,6 +16,10 @@
 
 #include "Finder.h"
 
+#include "Path.h"
+
+#include <algorithm>
+
 
 Finder::Finder(Matcher *p1, Matcher *p2)
 {
@@ -241,3 +245,37 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
         prevRowStop = c;
     }
 } // recalculatePathCostMatrix()
+
+int
+Finder::retrievePath(vector<int> &pathx, vector<int> &pathy)
+{
+    int x = pm2->getFrameCount() - 1;
+    int y = pm1->getFrameCount() - 1;
+
+    pathx.clear();
+    pathy.clear();
+
+    while (find(y, x) && ((x > 0) || (y > 0))) {
+
+        pathx.push_back(x);
+        pathy.push_back(y);
+
+        switch (getDistance() & ADVANCE_BOTH) {
+        case ADVANCE_THIS:  y--; break;
+        case ADVANCE_OTHER: x--; break;
+        case ADVANCE_BOTH:  x--; y--; break;
+        default: // this would indicate a bug, but we wouldn't want to hang
+            cerr << "WARNING: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << endl;
+            if (x > y) x--; else y--; break;
+        }
+    }
+
+    std::reverse(pathx.begin(), pathx.end());
+    std::reverse(pathy.begin(), pathy.end());
+
+    int smoothedLen = Path().smooth(pathx, pathy, pathx.size());
+
+    return smoothedLen;
+}
+
+
