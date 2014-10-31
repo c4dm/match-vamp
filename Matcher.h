@@ -27,6 +27,7 @@
 #define ADVANCE_BOTH 3
 #define MASK 0xfc
 
+#include "DistanceMetric.h"
 
 using std::vector;
 using std::string;
@@ -55,26 +56,12 @@ public:
         NormaliseFrameToLTAverage,
     };
 
-    enum DistanceNormalisation {
-            
-        /** Do not normalise distance metrics */
-        NoDistanceNormalisation,
-
-        /** Normalise distance metric for pairs of audio frames by
-         *  the sum of the two frames. */
-        NormaliseDistanceToSum,
-
-        /** Normalise distance metric for pairs of audio frames by
-         *  the log of the sum of the frames. */
-        NormaliseDistanceToLogSum,
-    };
-
     struct Parameters {
 
         Parameters(float rate_, double hopTime_, int fftSize_) :
             sampleRate(rate_),
             frameNorm(NormaliseFrameToSum1),
-            distanceNorm(NormaliseDistanceToLogSum),
+            distanceNorm(DistanceMetric::NormaliseDistanceToLogSum),
             useSpectralDifference(true),
             useChromaFrequencyMap(false),
             hopTime(hopTime_),
@@ -92,7 +79,7 @@ public:
         FrameNormalisation frameNorm;
 
         /** Type of distance metric normalisation */
-        DistanceNormalisation distanceNorm;
+        DistanceMetric::DistanceNormalisation distanceNorm;
 
         /** Flag indicating whether or not the half-wave rectified
          *  spectral difference should be used in calculating the
@@ -362,18 +349,6 @@ protected:
      */
     void consumeFeatureVector(std::vector<double> feature);
 
-    /** Calculates the Manhattan distance between two vectors, with an
-     *  optional normalisation by the combined values in the
-     *  vectors. Since the vectors contain energy, this could be
-     *  considered as a squared Euclidean distance metric. Note that
-     *  normalisation assumes the values are all non-negative.
-     *
-     *  @param f1 one of the vectors involved in the distance calculation
-     *  @param f2 one of the vectors involved in the distance calculation
-     *  @return the distance, scaled and truncated to an integer
-     */
-    int calcDistance(const vector<double> &f1, const vector<double> &f2);
-
     /** Retrieves values from the minimum cost matrix.
      *
      *  @param i the frame number of this Matcher
@@ -396,6 +371,8 @@ protected:
     vector<double> processFrameFromFreqData(double *, double *);
     void calcAdvance();
 
+    DistanceMetric metric;
+    
     friend class MatchFeeder;
     friend class MatchFeatureFeeder;
     friend class Finder;

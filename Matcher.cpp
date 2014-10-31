@@ -26,7 +26,8 @@ bool Matcher::silent = true;
 //#define DEBUG_MATCHER 1
 
 Matcher::Matcher(Parameters parameters, Matcher *p) :
-    params(parameters)
+    params(parameters),
+    metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
     cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ")" << endl;
@@ -58,7 +59,8 @@ Matcher::Matcher(Parameters parameters, Matcher *p) :
 
 Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize) :
     params(parameters),
-    externalFeatureSize(featureSize)
+    externalFeatureSize(featureSize),
+    metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
     cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ", " << featureSize << ")" << endl;
@@ -392,8 +394,12 @@ Matcher::calcAdvance()
     int mn= -1;
     int mx= -1;
     for ( ; index < stop; index++) {
-        int dMN = calcDistance(frames[frameIndex],
-                               otherMatcher->frames[index % blockSize]);
+
+        int dMN = metric.calcDistanceScaled
+            (frames[frameIndex],
+             otherMatcher->frames[index % blockSize],
+             scale);
+        
         if (mx<0)
             mx = mn = dMN;
         else if (dMN > mx)
@@ -404,6 +410,7 @@ Matcher::calcAdvance()
             overflow = true;
             dMN = 255;
         }
+
         if ((frameCount == 0) && (index == 0))    // first element
             setValue(0, 0, 0, 0, dMN);
         else if (frameCount == 0)                 // first row
@@ -459,44 +466,6 @@ Matcher::calcAdvance()
     if (!silent)
         std::cerr << "Frame " << frameCount << ", d = " << (mx-mn) << std::endl;
 }
-
-int
-Matcher::calcDistance(const vector<double> &f1, const vector<double> &f2)
-{
-    double d = 0;
-    double sum = 0;
-    for (int i = 0; i < featureSize; i++) {
-        d += fabs(f1[i] - f2[i]);
-        sum += f1[i] + f2[i];
-    }
-    // System.err.print("   " + Format.d(d,3));
-    if (sum == 0)
-        return 0;
-    if (params.distanceNorm == NormaliseDistanceToSum)
-        return (int)(scale * d / sum);	// 0 <= d/sum <= 2
-    if (params.distanceNorm != NormaliseDistanceToLogSum)
-        return (int)(scale * d);
-
-    // note if this were to be restored, it would have to use
-    // totalEnergies vector instead of f1[freqMapSize] which used to
-    // store the total energy:
-    //	double weight = (5 + Math.log(f1[freqMapSize] + f2[freqMapSize]))/10.0;
-
-    double weight = (8 + log(sum)) / 10.0;
-    // if (weight < mins) {
-    // 	mins = weight;
-    //	System.err.println(Format.d(mins,3) + " " + Format.d(maxs));
-    // }
-    // if (weight > maxs) {
-    // 	maxs = weight;
-    //	System.err.println(Format.d(mins,3) + " " + Format.d(maxs));
-    // }
-    if (weight < 0)
-        weight = 0;
-    else if (weight > 1)
-        weight = 1;
-    return (int)(scale * d / sum * weight);
-} // calcDistance()
 
 int
 Matcher::getValue(int i, int j, bool firstAttempt)

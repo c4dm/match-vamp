@@ -255,7 +255,7 @@ MatchVampPlugin::setParameter(std::string name, float value)
     } else if (name == "framenorm") {
         m_params.frameNorm = (Matcher::FrameNormalisation)(int(value + 0.1));
     } else if (name == "distnorm") {
-        m_params.distanceNorm = (Matcher::DistanceNormalisation)(int(value + 0.1));
+        m_params.distanceNorm = (DistanceMetric::DistanceNormalisation)(int(value + 0.1));
     } else if (name == "usespecdiff") {
         m_params.useSpectralDifference = (value > 0.5);
     } else if (name == "usechroma") {
