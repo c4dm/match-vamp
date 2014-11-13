@@ -121,11 +121,6 @@ public:
 
     ~Matcher();
 
-    /** For debugging, outputs information about the Matcher to
-     *  standard error.
-     */
-    void print();
-
     /** Adds a link to the Matcher object representing the performance
      *  which is going to be matched to this one.
      *
