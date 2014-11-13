@@ -93,69 +93,6 @@ public:
         int maxRunCount;
     };
 
-protected:
-    /** Points to the other performance with which this one is being
-     *  compared.  The data for the distance metric and the dynamic
-     *  time warping is shared between the two matchers. In the
-     *  original version, only one of the two performance matchers
-     *  contained the distance metric. (See <code>first</code>)
-     */
-    Matcher *otherMatcher;
-
-    /** Indicates which performance is considered primary (the
-     *  score). This is the performance shown on the vertical axis,
-     *  and referred to as "this" in the codes for the direction of
-     *  DTW steps. */
-    bool firstPM;
-
-    /** Configuration parameters */
-    Parameters params;
-
-    /** Width of the search band in FFT frames (see <code>blockTime</code>) */
-    int blockSize;
-
-    /** The number of frames of audio data which have been read. */
-    int frameCount;
-
-    /** The number of frames sequentially processed by this matcher,
-     *  without a frame of the other matcher being processed.
-     */
-    int runCount;
-
-    /** The number of values in a feature vector. */
-    int featureSize;
-
-    /** A block of previously seen frames are stored in this structure
-     *  for calculation of the distance matrix as the new frames are
-     *  read in.  One can think of the structure of the array as a
-     *  circular buffer of vectors.  These are the frames with all
-     *  applicable processing applied (e.g. spectral difference,
-     *  normalisation), unlike prevFrame and newFrame. The total
-     *  energy of frames[i] is stored in totalEnergies[i]. */
-    vector<vector<double> > frames;
-
-    /** The best path cost matrix. */
-    vector<vector<int> > bestPathCost;
-
-    /** The distance matrix. */
-    vector<vector<unsigned char> > distance;
-
-    /** The bounds of each row of data in the distance and path cost matrices.*/
-    vector<int> first;
-    vector<int> last;
-
-    /** Height of each column in distance and bestPathCost matrices */
-    vector<int> distYSizes;
-
-    /** Width of distance and bestPathCost matrices and first and last vectors */
-    int  distXSize;
-
-    bool initialised;
-
-    /** Disable or enable debugging output */
-    static bool silent;
-
-public:
     /** Constructor for Matcher.
      *
      *  @param p The Matcher representing the performance with which
@@ -257,6 +194,67 @@ protected:
     void setValue(int i, int j, int dir, int value, int dMN);
 
     void calcAdvance();
+
+    /** Points to the other performance with which this one is being
+     *  compared.  The data for the distance metric and the dynamic
+     *  time warping is shared between the two matchers. In the
+     *  original version, only one of the two performance matchers
+     *  contained the distance metric. (See <code>first</code>)
+     */
+    Matcher *otherMatcher;
+
+    /** Indicates which performance is considered primary (the
+     *  score). This is the performance shown on the vertical axis,
+     *  and referred to as "this" in the codes for the direction of
+     *  DTW steps. */
+    bool firstPM;
+
+    /** Configuration parameters */
+    Parameters params;
+
+    /** Width of the search band in FFT frames (see <code>blockTime</code>) */
+    int blockSize;
+
+    /** The number of frames of audio data which have been read. */
+    int frameCount;
+
+    /** The number of frames sequentially processed by this matcher,
+     *  without a frame of the other matcher being processed.
+     */
+    int runCount;
+
+    /** The number of values in a feature vector. */
+    int featureSize;
+
+    /** A block of previously seen frames are stored in this structure
+     *  for calculation of the distance matrix as the new frames are
+     *  read in.  One can think of the structure of the array as a
+     *  circular buffer of vectors.  These are the frames with all
+     *  applicable processing applied (e.g. spectral difference,
+     *  normalisation), unlike prevFrame and newFrame. The total
+     *  energy of frames[i] is stored in totalEnergies[i]. */
+    vector<vector<double> > frames;
+
+    /** The best path cost matrix. */
+    vector<vector<int> > bestPathCost;
+
+    /** The distance matrix. */
+    vector<vector<unsigned char> > distance;
+
+    /** The bounds of each row of data in the distance and path cost matrices.*/
+    vector<int> first;
+    vector<int> last;
+
+    /** Height of each column in distance and bestPathCost matrices */
+    vector<int> distYSizes;
+
+    /** Width of distance and bestPathCost matrices and first and last vectors */
+    int  distXSize;
+
+    bool initialised;
+
+    /** Disable or enable debugging output */
+    static bool silent;
 
     FeatureExtractor featureExtractor;
     DistanceMetric metric;
