@@ -207,7 +207,7 @@ protected:
     void init();
 
     /** The distXSize value has changed: resize internal buffers. */
-    void expand();
+    void size();
 
     /** Process a frequency-domain frame of audio data using the
      *  built-in FeatureExtractor, then calculating the distance to

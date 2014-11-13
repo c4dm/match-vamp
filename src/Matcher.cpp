@@ -91,7 +91,7 @@ Matcher::init()
         (blockSize, vector<double>(featureSize, 0));
 
     distXSize = blockSize * 2;
-    expand();
+    size();
 
     frameCount = 0;
     runCount = 0;
@@ -100,12 +100,12 @@ Matcher::init()
 }
 
 void
-Matcher::expand()
+Matcher::size()
 {
     int distSize = (params.maxRunCount + 1) * blockSize;
     bestPathCost.resize(distXSize, vector<int>(distSize, 0));
     distance.resize(distXSize, vector<unsigned char>(distSize, 0));
-    distYSizes.resize(blockSize, distSize);
+    distYSizes.resize(distXSize, distSize);
     first.resize(distXSize, 0);
     last.resize(distXSize, 0);
 }
@@ -140,7 +140,8 @@ Matcher::calcAdvance()
     int frameIndex = frameCount % blockSize;
 
     if (frameCount >= distXSize) {
-        expand();
+        distXSize *= 2;
+        size();
     }
 
     if (firstPM && (frameCount >= blockSize)) {
