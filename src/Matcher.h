@@ -22,11 +22,6 @@
 #include <sstream>
 #include <cmath>
 
-#define ADVANCE_THIS 1
-#define ADVANCE_OTHER 2
-#define ADVANCE_BOTH 3
-#define MASK 0xfc
-
 #include "DistanceMetric.h"
 #include "FeatureExtractor.h"
 
@@ -37,19 +32,23 @@ using std::endl;
 
 /** Represents an audio stream that can be matched to another audio
  *  stream of the same piece of music.  The matching algorithm uses
- *  dynamic time warping.  The distance metric is a Euclidean metric
- *  on the FFT data with the higher frequencies mapped onto a linear
- *  scale.
+ *  dynamic time warping.
  */
 class Matcher
 {
 public:
+    enum Advance {
+        AdvanceNone,
+        AdvanceBoth,
+        AdvanceThis,
+        AdvanceOther
+    };
+
     struct Parameters {
 
         Parameters(float rate_, double hopTime_, int fftSize_) :
             sampleRate(rate_),
             distanceNorm(DistanceMetric::NormaliseDistanceToLogSum),
-            distanceScale(90.0),
             hopTime(hopTime_),
             fftSize(fftSize_),
             blockTime(10.0),
@@ -61,12 +60,6 @@ public:
 
         /** Type of distance metric normalisation */
         DistanceMetric::DistanceNormalisation distanceNorm;
-
-        /** Scaling factor for distance metric; must guarantee that the
-         *  final value fits in the data type used, that is, unsigned
-         *  char.
-         */
-        double distanceScale;
 
         /** Spacing of audio frames (determines the amount of overlap or
          *  skip between frames). This value is expressed in
@@ -186,7 +179,7 @@ protected:
      *  @param value the cost of the minimum path except the current step
      *  @param dMN the distance cost between the two frames
      */
-    void setValue(int i, int j, int dir, int value, int dMN);
+    void setValue(int i, int j, Advance dir, float value, float dMN);
 
     void calcAdvance();
 
@@ -231,19 +224,25 @@ protected:
     vector<vector<double> > m_frames;
 
     /** The best path cost matrix. */
-    vector<vector<int> > m_bestPathCost;
+    vector<vector<float> > m_bestPathCost;
 
     /** The distance matrix. */
-    vector<vector<unsigned char> > m_distance;
+    vector<vector<float> > m_distance;
 
-    /** The bounds of each row of data in the distance and path cost matrices.*/
+    /** The advance direction matrix. */
+    vector<vector<Advance> > m_advance;
+
+    /** The bounds of each row of data in the distance, path cost, and
+     * advance direction matrices.*/
     vector<int> m_first;
     vector<int> m_last;
 
-    /** Height of each column in distance and bestPathCost matrices */
+    /** Height of each column in distance, path cost, and advance
+     * direction matrices. */
     vector<int> m_distYSizes;
 
-    /** Width of distance and bestPathCost matrices and first and last vectors */
+    /** Width of distance, path cost, and advance direction matrices
+     * and first and last vectors */
     int m_distXSize;
 
     bool m_initialised;

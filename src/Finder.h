@@ -57,21 +57,24 @@ public:
      *  column. */
     void getRowRange(int col, int *range);
 
-    int getExpandDirection(int row, int col);
-    int getExpandDirection(int row, int col, bool check);
+    Matcher::Advance getExpandDirection(int row, int col);
+    Matcher::Advance getExpandDirection(int row, int col, bool check);
 	
-    unsigned char getDistance(int row, int col);
-    void setDistance(int row, int col, unsigned char b);
+    float getDistance(int row, int col);
+    void setDistance(int row, int col, float b);
 
-    int getPathCost(int row, int col);
-    int getRawPathCost(int row, int col);
-    void setPathCost(int row, int col, int i);
+    float getPathCost(int row, int col);
+    float getRawPathCost(int row, int col); //!!!???
+    void setPathCost(int row, int col, float i);
 
-    unsigned char getDistance();
-    void setDistance(int b);
+    Matcher::Advance getAdvance();
+    void setAdvance(Matcher::Advance a);
+    
+    float getDistance();
+    void setDistance(float b);
 
-    int getPathCost();
-    void setPathCost(int i);
+    float getPathCost();
+    void setPathCost(float i);
 
     /** Calculates a rectangle of the path cost matrix so that the
      *  minimum cost path between the bottom left and top right

@@ -115,18 +115,18 @@ MatchFeeder::feedBlock()
     } else {
         switch (finder->getExpandDirection
                 (pm1->m_frameCount-1, pm2->m_frameCount-1)) {
-        case ADVANCE_THIS:
-//            std::cerr << "finder says ADVANCE_THIS" << std::endl;
+        case Matcher::AdvanceThis:
             f1 = feed1();
             break;
-        case ADVANCE_OTHER:
-//            std::cerr << "finder says ADVANCE_OTHER" << std::endl;
+        case Matcher::AdvanceOther:
             f2 = feed2();
             break;
-        case ADVANCE_BOTH:
-//            std::cerr << "finder says ADVANCE_BOTH" << std::endl;
+        case Matcher::AdvanceBoth:
             f1 = feed1();
             f2 = feed2();
+            break;
+        case Matcher::AdvanceNone:
+            cerr << "finder says AdvanceNone!" << endl;
             break;
         }
     }

@@ -89,6 +89,7 @@ Matcher::init()
         (m_blockSize, vector<double>(m_featureSize, 0));
 
     m_distXSize = m_blockSize * 2;
+
     size();
 
     m_frameCount = 0;
@@ -101,8 +102,9 @@ void
 Matcher::size()
 {
     int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-    m_bestPathCost.resize(m_distXSize, vector<int>(distSize, 0));
-    m_distance.resize(m_distXSize, vector<unsigned char>(distSize, 0));
+    m_bestPathCost.resize(m_distXSize, vector<float>(distSize, 0));
+    m_distance.resize(m_distXSize, vector<float>(distSize, 0));
+    m_advance.resize(m_distXSize, vector<Advance>(distSize, AdvanceNone));
     m_distYSizes.resize(m_distXSize, distSize);
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
@@ -158,18 +160,13 @@ Matcher::calcAdvance()
 */
         m_distance[m_frameCount] = m_distance[m_frameCount - m_blockSize];
         m_distance[m_frameCount - m_blockSize].resize(len, 0);
-        for (int i = 0; i < len; ++i) {
-            m_distance[m_frameCount - m_blockSize][i] =
-                m_distance[m_frameCount][i];
-        }
 
         m_bestPathCost[m_frameCount] = m_bestPathCost[m_frameCount - m_blockSize];
         m_bestPathCost[m_frameCount - m_blockSize].resize(len, 0);
-        for (int i = 0; i < len; ++i) {
-            m_bestPathCost[m_frameCount - m_blockSize][i] =
-                m_bestPathCost[m_frameCount][i];
-        }
 
+        m_advance[m_frameCount] = m_advance[m_frameCount - m_blockSize];
+        m_advance[m_frameCount - m_blockSize].resize(len);
+        
         m_distYSizes[m_frameCount] = m_distYSizes[m_frameCount - m_blockSize];
         m_distYSizes[m_frameCount - m_blockSize] = len;
     }
@@ -186,10 +183,9 @@ Matcher::calcAdvance()
     int mx= -1;
     for ( ; index < stop; index++) {
 
-        int dMN = m_metric.calcDistanceScaled
+        float dMN = m_metric.calcDistance
             (m_frames[frameIndex],
-             m_otherMatcher->m_frames[index % m_blockSize],
-             m_params.distanceScale);
+             m_otherMatcher->m_frames[index % m_blockSize]);
         
         if (mx<0)
             mx = mn = dMN;
@@ -203,12 +199,12 @@ Matcher::calcAdvance()
         }
 
         if ((m_frameCount == 0) && (index == 0))    // first element
-            setValue(0, 0, 0, 0, dMN);
+            setValue(0, 0, AdvanceNone, 0, dMN);
         else if (m_frameCount == 0)                 // first row
-            setValue(0, index, ADVANCE_OTHER,
+            setValue(0, index, AdvanceOther,
                      getValue(0, index-1, true), dMN);
         else if (index == 0)                      // first column
-            setValue(m_frameCount, index, ADVANCE_THIS,
+            setValue(m_frameCount, index, AdvanceThis,
                      getValue(m_frameCount - 1, 0, true), dMN);
         else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
             // missing value(s) due to cutoff
@@ -218,13 +214,13 @@ Matcher::calcAdvance()
             //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
             //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
             if (m_first[m_frameCount - 1] == index)
-                setValue(m_frameCount, index, ADVANCE_THIS, min2, dMN);
+                setValue(m_frameCount, index, AdvanceThis, min2, dMN);
             else {
                 int min1 = getValue(m_frameCount - 1, index - 1, true);
                 if (min1 + dMN <= min2)
-                    setValue(m_frameCount, index, ADVANCE_BOTH, min1,dMN);
+                    setValue(m_frameCount, index, AdvanceBoth, min1,dMN);
                 else
-                    setValue(m_frameCount, index, ADVANCE_THIS, min2,dMN);
+                    setValue(m_frameCount, index, AdvanceThis, min2,dMN);
             }
         } else {
             int min1 = getValue(m_frameCount, index-1, true);
@@ -232,14 +228,14 @@ Matcher::calcAdvance()
             int min3 = getValue(m_frameCount - 1, index-1, true);
             if (min1 <= min2) {
                 if (min3 + dMN <= min1)
-                    setValue(m_frameCount, index, ADVANCE_BOTH, min3,dMN);
+                    setValue(m_frameCount, index, AdvanceBoth, min3,dMN);
                 else
-                    setValue(m_frameCount, index, ADVANCE_OTHER,min1,dMN);
+                    setValue(m_frameCount, index, AdvanceOther,min1,dMN);
             } else {
                 if (min3 + dMN <= min2)
-                    setValue(m_frameCount, index, ADVANCE_BOTH, min3,dMN);
+                    setValue(m_frameCount, index, AdvanceBoth, min3,dMN);
                 else
-                    setValue(m_frameCount, index, ADVANCE_THIS, min2,dMN);
+                    setValue(m_frameCount, index, AdvanceThis, min2,dMN);
             }
         }
         m_otherMatcher->m_last[index]++;
@@ -266,18 +262,26 @@ Matcher::getValue(int i, int j, bool firstAttempt)
 } // getValue()
 
 void
-Matcher::setValue(int i, int j, int dir, int value, int dMN)
+Matcher::setValue(int i, int j, Advance dir, float value, float dMN)
 {
     if (m_firstPM) {
-        m_distance[i][j - m_first[i]] = (unsigned char)((dMN & MASK) | dir);
-        m_bestPathCost[i][j - m_first[i]] =
-            (value + (dir==ADVANCE_BOTH? dMN*2: dMN));
+
+        int jdx = j - m_first[i];
+        m_distance[i][jdx] = dMN;
+        m_advance[i][jdx] = dir;
+        m_bestPathCost[i][jdx] =
+            (value + (dir == AdvanceBoth ? dMN*2: dMN));
+
     } else {
-        if (dir == ADVANCE_THIS)
-            dir = ADVANCE_OTHER;
-        else if (dir == ADVANCE_OTHER)
-            dir = ADVANCE_THIS;
+
+        if (dir == AdvanceThis) {
+            dir = AdvanceOther;
+        } else if (dir == AdvanceOther) {
+            dir = AdvanceThis;
+        }
+
         int idx = i - m_otherMatcher->m_first[j];
+        
         if (idx == (int)m_otherMatcher->m_distYSizes[j]) {
             // This should never happen, but if we allow arbitrary
             // pauses in either direction, and arbitrary lengths at
@@ -287,9 +291,11 @@ Matcher::setValue(int i, int j, int dir, int value, int dMN)
             m_otherMatcher->m_bestPathCost[j].resize(idx * 2, 0);
             m_otherMatcher->m_distance[j].resize(idx * 2, 0);
         }
-        m_otherMatcher->m_distance[j][idx] = (unsigned char)((dMN & MASK) | dir);
+
+        m_otherMatcher->m_distance[j][idx] = dMN;
+        m_otherMatcher->m_advance[j][idx] = dir;
         m_otherMatcher->m_bestPathCost[j][idx] =
-            (value + (dir==ADVANCE_BOTH? dMN*2: dMN));
+            (value + (dir == AdvanceBoth ? dMN*2: dMN));
     }
 } // setValue()
 

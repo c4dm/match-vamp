@@ -54,15 +54,18 @@ MatchFeatureFeeder::feedBlock()
     } else {
         switch (finder->getExpandDirection
                 (pm1->m_frameCount-1, pm2->m_frameCount-1)) {
-        case ADVANCE_THIS:
+        case Matcher::AdvanceThis:
             feed1();
             break;
-        case ADVANCE_OTHER:
+        case Matcher::AdvanceOther:
             feed2();
             break;
-        case ADVANCE_BOTH:
+        case Matcher::AdvanceBoth:
             feed1();
             feed2();
+            break;
+        case Matcher::AdvanceNone:
+            cerr << "finder says AdvanceNone!" << endl;
             break;
         }
     }

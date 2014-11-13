@@ -51,21 +51,6 @@ public:
     double calcDistance(const std::vector<double> &f1,
 			const std::vector<double> &f2);
     
-    /** Calculates the Manhattan distance between two vectors, with an
-     *  optional normalisation by the combined values in the
-     *  vectors. Since the vectors contain energy, this could be
-     *  considered as a squared Euclidean distance metric. Note that
-     *  normalisation assumes the values are all non-negative.
-     *
-     *  @param f1 one of the vectors involved in the distance calculation
-     *  @param f2 one of the vectors involved in the distance calculation
-     *  @param scale the scaling factor to place the result in integer range
-     *  @return the distance, scaled by scale and truncated to an integer
-     */
-    int calcDistanceScaled(const std::vector<double> &f1,
-			   const std::vector<double> &f2,
-			   double scale);
-
 private:
     DistanceNormalisation m_norm;
 };

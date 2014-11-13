@@ -56,12 +56,3 @@ DistanceMetric::calcDistance(const vector<double> &f1,
     return d / sum * weight;
 }
 
-int
-DistanceMetric::calcDistanceScaled(const vector<double> &f1,
-				   const vector<double> &f2,
-				   double scale)
-{
-    double distance = calcDistance(f1, f2);
-    return int(distance * scale);
-}
-
