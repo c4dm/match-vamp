@@ -32,6 +32,12 @@ MatchFeatureFeeder::~MatchFeatureFeeder()
 void
 MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 {
+    // We maintain two FIFO queues of feature vectors, one per input
+    // stream.  When the match-feeder function is entered, it knows
+    // that it has at least one feature in each queue.  It loops,
+    // processing up to one feature per matcher, until a queue is
+    // empty.  Then it returns, to be called again with more data.
+
     q1.push(f1);
     q2.push(f2);
 
