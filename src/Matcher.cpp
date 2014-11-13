@@ -202,9 +202,11 @@ Matcher::makeStandardFrequencyMap()
     while (i <= params.fftSize/2) {
         double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
         if (midi > 127) midi = 127;
-        freqMap[i++] = crossoverBin + lrint(midi) - crossoverMidi;
+        int target = crossoverBin + lrint(midi) - crossoverMidi;
+        if (target >= freqMapSize) target = freqMapSize - 1;
+        freqMap[i++] = target;
     }
-    assert(freqMapSize == freqMap[i-1] + 1);
+
     if (!silent) {
         cerr << "Standard map size: " << freqMapSize 
              << ";  Crossover at: " << crossoverBin << endl;
