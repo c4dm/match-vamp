@@ -257,16 +257,33 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 
     while (find(y, x) && ((x > 0) || (y > 0))) {
 
+//        cerr << "x = " << x << ", y = " << y;
+        
         pathx.push_back(x);
         pathy.push_back(y);
 
         switch (getDistance() & ADVANCE_BOTH) {
-        case ADVANCE_THIS:  y--; break;
-        case ADVANCE_OTHER: x--; break;
-        case ADVANCE_BOTH:  x--; y--; break;
+        case ADVANCE_THIS:
+//            cerr << ", going down (dist = " << (int)getDistance() << ")" << endl;
+            y--;
+            break;
+        case ADVANCE_OTHER:
+//            cerr << ", going left (dist = " << (int)getDistance() << ")" << endl;
+            x--;
+            break;
+        case ADVANCE_BOTH:
+//            cerr << ", going diag (dist = " << (int)getDistance() << ")" << endl;
+            x--;
+            y--;
+            break;
         default: // this would indicate a bug, but we wouldn't want to hang
-            cerr << "WARNING: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << endl;
-            if (x > y) x--; else y--; break;
+//            cerr << "WARNING: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << endl;
+            if (x > y) {
+                x--;
+            } else {
+                y--;
+            }
+            break;
         }
     }
 
