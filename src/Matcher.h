@@ -168,7 +168,7 @@ protected:
      *  @param j the frame number of the other Matcher
      *  @return the cost of the minimum cost path to this location
      */
-    int getValue(int i, int j, bool firstAttempt);
+    float getValue(int i, int j, bool firstAttempt);
 
     /** Stores entries in the distance matrix and the optimal path matrix.
      *

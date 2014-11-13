@@ -116,7 +116,7 @@ Finder::getExpandDirection(int row, int col, bool check)
     } else if (bestCol == col) {
         return Matcher::AdvanceOther;
     } else {
-        return Matcher::AdvanceBoth;
+        return Matcher::AdvanceNone;
     }
 
 } // getExpandDirection()

@@ -165,7 +165,7 @@ Matcher::calcAdvance()
         m_bestPathCost[m_frameCount - m_blockSize].resize(len, 0);
 
         m_advance[m_frameCount] = m_advance[m_frameCount - m_blockSize];
-        m_advance[m_frameCount - m_blockSize].resize(len);
+        m_advance[m_frameCount - m_blockSize].resize(len, AdvanceNone);
         
         m_distYSizes[m_frameCount] = m_distYSizes[m_frameCount - m_blockSize];
         m_distYSizes[m_frameCount - m_blockSize] = len;
@@ -178,9 +178,8 @@ Matcher::calcAdvance()
     m_first[m_frameCount] = index;
     m_last[m_frameCount] = stop;
 
-    bool overflow = false;
-    int mn= -1;
-    int mx= -1;
+    float mn= -1;
+    float mx= -1;
     for ( ; index < stop; index++) {
 
         float dMN = m_metric.calcDistance
@@ -193,10 +192,6 @@ Matcher::calcAdvance()
             mx = dMN;
         else if (dMN < mn)
             mn = dMN;
-        if (dMN >= 255) {
-            overflow = true;
-            dMN = 255;
-        }
 
         if ((m_frameCount == 0) && (index == 0))    // first element
             setValue(0, 0, AdvanceNone, 0, dMN);
@@ -210,22 +205,22 @@ Matcher::calcAdvance()
             // missing value(s) due to cutoff
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
-            int min2 = getValue(m_frameCount - 1, index, true);
+            float min2 = getValue(m_frameCount - 1, index, true);
             //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
             //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
             if (m_first[m_frameCount - 1] == index)
                 setValue(m_frameCount, index, AdvanceThis, min2, dMN);
             else {
-                int min1 = getValue(m_frameCount - 1, index - 1, true);
+                float min1 = getValue(m_frameCount - 1, index - 1, true);
                 if (min1 + dMN <= min2)
                     setValue(m_frameCount, index, AdvanceBoth, min1,dMN);
                 else
                     setValue(m_frameCount, index, AdvanceThis, min2,dMN);
             }
         } else {
-            int min1 = getValue(m_frameCount, index-1, true);
-            int min2 = getValue(m_frameCount - 1, index, true);
-            int min3 = getValue(m_frameCount - 1, index-1, true);
+            float min1 = getValue(m_frameCount, index-1, true);
+            float min2 = getValue(m_frameCount - 1, index, true);
+            float min3 = getValue(m_frameCount - 1, index-1, true);
             if (min1 <= min2) {
                 if (min3 + dMN <= min1)
                     setValue(m_frameCount, index, AdvanceBoth, min3,dMN);
@@ -245,14 +240,9 @@ Matcher::calcAdvance()
     m_runCount++;
 
     m_otherMatcher->m_runCount = 0;
-
-    if (overflow) {
-        cerr << "WARNING: overflow in distance metric: "
-             << "frame " << m_frameCount << ", val = " << mx << endl;
-    }
 }
 
-int
+float
 Matcher::getValue(int i, int j, bool firstAttempt)
 {
     if (m_firstPM)
@@ -290,6 +280,7 @@ Matcher::setValue(int i, int j, Advance dir, float value, float dMN)
             m_otherMatcher->m_distYSizes[j] = idx * 2;
             m_otherMatcher->m_bestPathCost[j].resize(idx * 2, 0);
             m_otherMatcher->m_distance[j].resize(idx * 2, 0);
+            m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
         }
 
         m_otherMatcher->m_distance[j][idx] = dMN;
