@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Run from top-level match-vamp directory
+mydir=$(dirname "$0")
 
 sonic-annotator --minversion 1.1 || exit 1
 
-VAMP_PATH=. \
+VAMP_PATH="${mydir}/.." \
     sonic-annotator \
     -d vamp:match-vamp-plugin:match \
     --multiplex \
