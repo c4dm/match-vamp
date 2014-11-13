@@ -79,6 +79,8 @@ FeatureExtractor::makeStandardFrequencyMap()
         m_freqMap[i++] = crossoverBin + lrint(midi) - crossoverMidi;
     }
 
+    cerr << "rate = " << m_params.sampleRate << ", m_featureSize = " << m_featureSize << ", m_freqMap[" << i << "-1] = " << m_freqMap[i-1] << endl;
+
     assert(m_featureSize == m_freqMap[i-1] + 1);
 }
 

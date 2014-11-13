@@ -25,8 +25,11 @@ bool Matcher::silent = true;
 
 //#define DEBUG_MATCHER 1
 
-Matcher::Matcher(Parameters parameters, Matcher *p) :
+Matcher::Matcher(Parameters parameters,
+                 FeatureExtractor::Parameters feParams,
+                 Matcher *p) :
     params(parameters),
+    featureExtractor(feParams),
     metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
@@ -35,12 +38,9 @@ Matcher::Matcher(Parameters parameters, Matcher *p) :
 
     otherMatcher = p;	// the first matcher will need this to be set later
     firstPM = (!p);
-    ltAverage = 0;
     frameCount = 0;
     runCount = 0;
-    freqMapSize = 0;
-    externalFeatureSize = 0;
-    featureSize = 0;
+    featureSize = featureExtractor.getFeatureSize();
     blockSize = 0;
 
     blockSize = lrint(params.blockTime / params.hopTime);
@@ -48,17 +48,13 @@ Matcher::Matcher(Parameters parameters, Matcher *p) :
     cerr << "Matcher: blockSize = " << blockSize << endl;
 #endif
 
-    distance = 0;
-    bestPathCost = 0;
-    distYSizes = 0;
-    distXSize = 0;
-
     initialised = false;
 }
 
-Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize) :
+Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize_) :
     params(parameters),
-    externalFeatureSize(featureSize),
+    featureSize(featureSize_),
+    featureExtractor(FeatureExtractor::Parameters(params.sampleRate, params.fftSize)), // unused default config
     metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
@@ -67,11 +63,8 @@ Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize) :
 
     otherMatcher = p;	// the first matcher will need this to be set later
     firstPM = (!p);
-    ltAverage = 0;
     frameCount = 0;
     runCount = 0;
-    freqMapSize = 0;
-    featureSize = 0;
     blockSize = 0;
 
     blockSize = lrint(params.blockTime / params.hopTime);
@@ -79,13 +72,7 @@ Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize) :
     cerr << "Matcher: blockSize = " << blockSize << endl;
 #endif
 
-    distance = 0;
-    bestPathCost = 0;
-    distYSizes = 0;
-    distXSize = 0;
-
     initialised = false;
-
 } 
 
 Matcher::~Matcher()
@@ -93,23 +80,6 @@ Matcher::~Matcher()
 #ifdef DEBUG_MATCHER
     cerr << "Matcher(" << this << ")::~Matcher()" << endl;
 #endif
-
-    if (initialised) {
-        
-        for (int i = 0; i < distXSize; ++i) {
-            if (distance[i]) {
-                free(distance[i]);
-                free(bestPathCost[i]);
-            }
-        }
-        free(distance);
-        free(bestPathCost);
-
-        free(first);
-        free(last);
-
-        free(distYSizes);
-    }
 }
 
 void
@@ -117,134 +87,43 @@ Matcher::init()
 {
     if (initialised) return;
 
-    initialised = true;
-
-    if (externalFeatureSize == 0) {
-        freqMapSize = getFeatureSizeFor(params);
-        featureSize = freqMapSize;
-        makeFreqMap();
-    } else {
-        featureSize = externalFeatureSize;
-    }
-
-    initVector<double>(prevFrame, featureSize);
-    initVector<double>(newFrame, featureSize);
-    initMatrix<double>(frames, blockSize, featureSize);
-    initVector<double>(totalEnergies, blockSize);
-
-    int distSize = (params.maxRunCount + 1) * blockSize;
+    frames = vector<vector<double> >
+        (blockSize, vector<double>(featureSize, 0));
 
     distXSize = blockSize * 2;
-
-    distance = (unsigned char **)malloc(distXSize * sizeof(unsigned char *));
-    bestPathCost = (int **)malloc(distXSize * sizeof(int *));
-    distYSizes = (int *)malloc(distXSize * sizeof(int));
-
-    for (int i = 0; i < blockSize; ++i) {
-        distance[i] = (unsigned char *)malloc(distSize * sizeof(unsigned char));
-        bestPathCost[i] = (int *)malloc(distSize * sizeof(int));
-        distYSizes[i] = distSize;
-    }
-    for (int i = blockSize; i < distXSize; ++i) {
-        distance[i] = 0;
-    }
-    
-    first = (int *)malloc(distXSize * sizeof(int));
-    last = (int *)malloc(distXSize * sizeof(int));
+    expand();
 
     frameCount = 0;
     runCount = 0;
-    ltAverage = 0;
-
-} // init
-
-void
-Matcher::makeFreqMap()
-{
-    initVector<int>(freqMap, params.fftSize/2 + 1);
-
-    if (params.useChromaFrequencyMap) {
-#ifdef DEBUG_MATCHER
-        cerr << "makeFreqMap: calling makeChromaFrequencyMap" << endl;
-#endif
-        makeChromaFrequencyMap();
-    } else {
-#ifdef DEBUG_MATCHER
-        cerr << "makeFreqMap: calling makeStandardFrequencyMap" << endl;
-#endif
-        makeStandardFrequencyMap();
-    }
-} // makeFreqMap()
-
-int
-Matcher::getFeatureSizeFor(Parameters params)
-{
-    if (params.useChromaFrequencyMap) {
-        return 13;
-    } else {
-        return 84;
-    }
+    
+    initialised = true;
 }
 
 void
-Matcher::makeStandardFrequencyMap()
+Matcher::expand()
 {
-    double binWidth = params.sampleRate / params.fftSize;
-    int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
-    int crossoverMidi = lrint(log(crossoverBin*binWidth/440.0)/
-                              log(2.0) * 12 + 69);
-    // freq = 440 * Math.pow(2, (midi-69)/12.0) / binWidth;
-    int i = 0;
-    while (i <= crossoverBin) {
-        freqMap[i] = i;
-        ++i;
-    }
-    while (i <= params.fftSize/2) {
-        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
-        if (midi > 127) midi = 127;
-        freqMap[i++] = crossoverBin + lrint(midi) - crossoverMidi;
-    }
-    assert(freqMapSize == freqMap[i-1] + 1);
-    if (!silent) {
-        cerr << "Standard map size: " << freqMapSize 
-             << ";  Crossover at: " << crossoverBin << endl;
-            for (i = 0; i < params.fftSize / 2; i++)
-                cerr << "freqMap[" << i << "] = " << freqMap[i] << endl;
-    }
-} // makeStandardFrequencyMap()
+    int distSize = (params.maxRunCount + 1) * blockSize;
 
-void
-Matcher::makeChromaFrequencyMap()
-{
-    double binWidth = params.sampleRate / params.fftSize;
-    int crossoverBin = (int)(1 / (pow(2, 1/12.0) - 1));
-    // freq = 440 * Math.pow(2, (midi-69)/12.0) / binWidth;
-    int i = 0;
-    while (i <= crossoverBin)
-        freqMap[i++] = 0;
-    while (i <= params.fftSize/2) {
-        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
-        freqMap[i++] = (lrint(midi)) % 12 + 1;
-    }
-    if (!silent) {
-        cerr << "Chroma map size: " << freqMapSize 
-             << ";  Crossover at: " << crossoverBin << endl;
-        for (i = 0; i < params.fftSize / 2; i++)
-            cerr << "freqMap[" << i << "] = " << freqMap[i] << endl;
-    }
-} // makeChromaFrequencyMap()
+    bestPathCost.resize(distXSize, vector<int>(distSize, 0));
+    distance.resize(distXSize, vector<unsigned char>(distSize, 0));
+    distYSizes.resize(blockSize, distSize);
+    first.resize(distXSize, 0);
+    last.resize(distXSize, 0);
+}
 
 vector<double>
 Matcher::consumeFrame(double *reBuffer, double *imBuffer)
 {
     if (!initialised) init();
 
-    vector<double> processedFrame = 
-        processFrameFromFreqData(reBuffer, imBuffer);
-
+    vector<double> real(reBuffer, reBuffer + params.fftSize/2 + 1);
+    vector<double> imag(imBuffer, imBuffer + params.fftSize/2 + 1);
+    vector<double> feature = featureExtractor.process(real, imag);
+    int frameIndex = frameCount % blockSize;
+    frames[frameIndex] = feature;
     calcAdvance();
 
-    return processedFrame;
+    return feature;
 }
 
 void
@@ -256,93 +135,13 @@ Matcher::consumeFeatureVector(std::vector<double> feature)
     calcAdvance();
 }
 
-vector<double> 
-Matcher::processFrameFromFreqData(double *reBuffer, double *imBuffer)
-{
-    for (int i = 0; i < (int)newFrame.size(); ++i) {
-        newFrame[i] = 0;
-    }
-    double rms = 0;
-    for (int i = 0; i <= params.fftSize/2; i++) {
-        double mag = reBuffer[i] * reBuffer[i] +
-                     imBuffer[i] * imBuffer[i];
-        rms += mag;
-        newFrame[freqMap[i]] += mag;
-    }
-    rms = sqrt(rms / (params.fftSize/2));
-
-    int frameIndex = frameCount % blockSize;
-
-    vector<double> processedFrame(freqMapSize, 0.0);
-
-    double totalEnergy = 0;
-    if (params.useSpectralDifference) {
-        for (int i = 0; i < freqMapSize; i++) {
-            totalEnergy += newFrame[i];
-            if (newFrame[i] > prevFrame[i]) {
-                processedFrame[i] = newFrame[i] - prevFrame[i];
-            } else {
-                processedFrame[i] = 0;
-            }
-        }
-    } else {
-        for (int i = 0; i < freqMapSize; i++) {
-            processedFrame[i] = newFrame[i];
-            totalEnergy += processedFrame[i];
-        }
-    }
-    totalEnergies[frameIndex] = totalEnergy;
-
-    double decay = frameCount >= 200 ? 0.99:
-        (frameCount < 100? 0: (frameCount - 100) / 100.0);
-
-    if (ltAverage == 0)
-        ltAverage = totalEnergy;
-    else
-        ltAverage = ltAverage * decay + totalEnergy * (1.0 - decay);
-
-    if (rms <= params.silenceThreshold)
-        for (int i = 0; i < freqMapSize; i++)
-            processedFrame[i] = 0;
-    else if (params.frameNorm == NormaliseFrameToSum1)
-        for (int i = 0; i < freqMapSize; i++)
-            processedFrame[i] /= totalEnergy;
-    else if (params.frameNorm == NormaliseFrameToLTAverage)
-        for (int i = 0; i < freqMapSize; i++)
-            processedFrame[i] /= ltAverage;
-
-    vector<double> tmp = prevFrame;
-    prevFrame = newFrame;
-    newFrame = tmp;
-
-    frames[frameIndex] = processedFrame;
-
-    if ((frameCount % 100) == 0) {
-        if (!silent) {
-            cerr << "Progress:" << frameCount << " " << ltAverage << endl;
-        }
-    }
-
-    return processedFrame;
-}
-
 void
 Matcher::calcAdvance()
 {
     int frameIndex = frameCount % blockSize;
 
     if (frameCount >= distXSize) {
-//        std::cerr << "Resizing " << distXSize << " -> " << distXSize * 2 << std::endl;
-        distXSize *= 2;
-        distance = (unsigned char **)realloc(distance, distXSize * sizeof(unsigned char *));
-        bestPathCost = (int **)realloc(bestPathCost, distXSize * sizeof(int *));
-        distYSizes = (int *)realloc(distYSizes, distXSize * sizeof(int));
-        first = (int *)realloc(first, distXSize * sizeof(int));
-        last = (int *)realloc(last, distXSize * sizeof(int));
-        
-        for (int i = distXSize/2; i < distXSize; ++i) {
-            distance[i] = 0;
-        }
+        expand();
     }
 
     if (firstPM && (frameCount >= blockSize)) {
@@ -360,18 +159,14 @@ Matcher::calcAdvance()
                   << frameCount - blockSize << std::endl;
 */
         distance[frameCount] = distance[frameCount - blockSize];
-
-        distance[frameCount - blockSize] = (unsigned char *)
-            malloc(len * sizeof(unsigned char));
+        distance[frameCount - blockSize].resize(len, 0);
         for (int i = 0; i < len; ++i) {
             distance[frameCount - blockSize][i] =
                 distance[frameCount][i];
         }
 
         bestPathCost[frameCount] = bestPathCost[frameCount - blockSize];
-
-        bestPathCost[frameCount - blockSize] = (int *)
-            malloc(len * sizeof(int));
+        bestPathCost[frameCount - blockSize].resize(len, 0);
         for (int i = 0; i < len; ++i) {
             bestPathCost[frameCount - blockSize][i] =
                 bestPathCost[frameCount][i];
@@ -493,12 +288,8 @@ Matcher::setValue(int i, int j, int dir, int value, int dMN)
             // end, it is better than a segmentation fault.
             std::cerr << "Emergency resize: " << idx << " -> " << idx * 2 << std::endl;
             otherMatcher->distYSizes[j] = idx * 2;
-            otherMatcher->bestPathCost[j] =
-                (int *)realloc(otherMatcher->bestPathCost[j],
-                               idx * 2 * sizeof(int));
-            otherMatcher->distance[j] = 
-                (unsigned char *)realloc(otherMatcher->distance[j],
-                                         idx * 2 * sizeof(unsigned char));
+            otherMatcher->bestPathCost[j].resize(idx * 2, 0);
+            otherMatcher->distance[j].resize(idx * 2, 0);
         }
         otherMatcher->distance[j][idx] = (unsigned char)((dMN & MASK) | dir);
         otherMatcher->bestPathCost[j][idx] =

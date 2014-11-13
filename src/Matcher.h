@@ -28,6 +28,7 @@
 #define MASK 0xfc
 
 #include "DistanceMetric.h"
+#include "FeatureExtractor.h"
 
 using std::vector;
 using std::string;
@@ -43,41 +44,20 @@ using std::endl;
 class Matcher
 {
 public:
-    enum FrameNormalisation {
-
-        /** Do not normalise audio frames */
-        NoFrameNormalisation,
-        
-        /** Normalise each frame of audio to have a sum of 1 */
-        NormaliseFrameToSum1,
-        
-        /** Normalise each frame of audio by the long-term average
-         *  of the summed energy */
-        NormaliseFrameToLTAverage,
-    };
-
     struct Parameters {
 
         Parameters(float rate_, double hopTime_, int fftSize_) :
             sampleRate(rate_),
-            frameNorm(NormaliseFrameToSum1),
             distanceNorm(DistanceMetric::NormaliseDistanceToLogSum),
             distanceScale(90.0),
-            useSpectralDifference(true),
-            useChromaFrequencyMap(false),
             hopTime(hopTime_),
             fftSize(fftSize_),
             blockTime(10.0),
-            silenceThreshold(0.01),
-            decay(0.99),
             maxRunCount(3)
         {}
 
         /** Sample rate of audio */
         float sampleRate;
-
-        /** Type of audio frame normalisation */
-        FrameNormalisation frameNorm;
 
         /** Type of distance metric normalisation */
         DistanceMetric::DistanceNormalisation distanceNorm;
@@ -88,40 +68,23 @@ public:
          */
         double distanceScale;
 
-        /** Flag indicating whether or not the half-wave rectified
-         *  spectral difference should be used in calculating the
-         *  distance metric for pairs of audio frames, instead of the
-         *  straight spectrum values. */
-        bool useSpectralDifference;
-
-        /** Flag indicating whether to use a chroma frequency map (12
-         *  bins) instead of the default warped spectrogram */
-        bool useChromaFrequencyMap;
-
         /** Spacing of audio frames (determines the amount of overlap or
          *  skip between frames). This value is expressed in
          *  seconds. */
         double hopTime;
-
+        
         /** Size of an FFT frame in samples. Note that the data passed
          *  in to Matcher is already in the frequency domain, so this
          *  expresses the size of the frame that the caller will be
-         *  providing.
-         */
+         *  providing. */
         int fftSize;
-
+        
         /** The width of the search band (error margin) around the current
          *  match position, measured in seconds. Strictly speaking the
          *  width is measured backwards from the current point, since the
          *  algorithm has to work causally.
          */
         double blockTime;
-        
-        /** RMS level below which frame is considered silent */
-        double silenceThreshold;
-
-        /** Frame-to-frame decay factor in calculating long-term average */
-        double decay;
 
         /** Maximum number of frames sequentially processed by this
          *  matcher, without a frame of the other matcher being
@@ -154,48 +117,13 @@ protected:
     /** The number of frames of audio data which have been read. */
     int frameCount;
 
-    /** Long term average frame energy (in frequency domain
-     *  representation). */
-    double ltAverage;
-
     /** The number of frames sequentially processed by this matcher,
      *  without a frame of the other matcher being processed.
      */
     int runCount;
 
-    /** A mapping function for mapping FFT bins to final frequency
-     *  bins.  The mapping is linear (1-1) until the resolution
-     *  reaches 2 points per semitone, then logarithmic with a
-     *  semitone resolution.  e.g. for 44.1kHz sampling rate and
-     *  fftSize of 2048 (46ms), bin spacing is 21.5Hz, which is mapped
-     *  linearly for bins 0-34 (0 to 732Hz), and logarithmically for
-     *  the remaining bins (midi notes 79 to 127, bins 35 to 83),
-     *  where all energy above note 127 is mapped into the final
-     *  bin. */
-    vector<int> freqMap;
-
-    /** The number of entries in <code>freqMap</code>. */
-    int freqMapSize;
-
-    /** The number of values in an externally-supplied feature vector,
-     *  used in preference to freqMap/freqMapSize if constructed with
-     *  the external feature version of the Matcher constructor. If
-     *  this is zero, the internal feature extractor will be used as
-     *  normal.
-     */
-    int externalFeatureSize;
-
-    /** The number of values in the feature vectors actually in
-     *  use. This will be externalFeatureSize if greater than zero, or
-     *  freqMapSize otherwise.
-     */
+    /** The number of values in a feature vector. */
     int featureSize;
-
-    /** The most recent frame; used for calculating the frame to frame
-     *  spectral difference. These are therefore frequency warped but
-     *  not yet normalised. */
-    vector<double> prevFrame;
-    vector<double> newFrame;
 
     /** A block of previously seen frames are stored in this structure
      *  for calculation of the distance matrix as the new frames are
@@ -206,21 +134,18 @@ protected:
      *  energy of frames[i] is stored in totalEnergies[i]. */
     vector<vector<double> > frames;
 
-    /** The total energy of each frame in the frames block. */ 
-    vector<double> totalEnergies;
-
     /** The best path cost matrix. */
-    int **bestPathCost;
+    vector<vector<int> > bestPathCost;
 
     /** The distance matrix. */
-    unsigned char **distance;
+    vector<vector<unsigned char> > distance;
 
     /** The bounds of each row of data in the distance and path cost matrices.*/
-    int *first;
-    int *last;
+    vector<int> first;
+    vector<int> last;
 
     /** Height of each column in distance and bestPathCost matrices */
-    int *distYSizes;
+    vector<int> distYSizes;
 
     /** Width of distance and bestPathCost matrices and first and last vectors */
     int  distXSize;
@@ -238,7 +163,9 @@ public:
      *  between the two matchers (currently one possesses the distance
      *  matrix and optimal path matrix).
      */
-    Matcher(Parameters parameters, Matcher *p);
+    Matcher(Parameters parameters,
+            FeatureExtractor::Parameters featureParams,
+            Matcher *p);
 
     /** Constructor for Matcher using externally supplied features.
      *  A Matcher made using this constructor will not carry out its
@@ -275,58 +202,18 @@ public:
         return frameCount;
     }
 
-    /**
-     * Return the feature vector size that will be used for the given
-     * parameters.
-     */
-    static int getFeatureSizeFor(Parameters params);
-
 protected:
-    template <typename T>
-    void initVector(vector<T> &vec, int sz, T dflt = 0) {
-        vec.clear();
-        while ((int)vec.size() < sz) vec.push_back(dflt);
-    }
-
-    template <typename T>
-    void initMatrix(vector<vector<T> > &mat, int hsz, int vsz,
-                    T dflt = 0, int fillTo = -1) {
-        mat.clear();
-        if (fillTo < 0) fillTo = hsz;
-        for (int i = 0; i < hsz; ++i) {
-            mat.push_back(vector<T>());
-            if (i < fillTo) {
-                while ((int)mat[i].size() < vsz) {
-                    mat[i].push_back(dflt);
-                }
-            }
-        }
-    }
-
+    /** Create internal structures and reset. */
     void init();
 
-    void makeFreqMap();
+    /** The distXSize value has changed: resize internal buffers. */
+    void expand();
 
-    /** Creates a map of FFT frequency bins to comparison bins.  Where
-     *  the spacing of FFT bins is less than 0.5 semitones, the
-     *  mapping is one to one. Where the spacing is greater than 0.5
-     *  semitones, the FFT energy is mapped into semitone-wide
-     *  bins. No scaling is performed; that is the energy is summed
-     *  into the comparison bins. See also consumeFrame()
-     */
-    void makeStandardFrequencyMap();
-
-    void makeChromaFrequencyMap();
-
-    /** Processes a frame of audio data by first computing the STFT
-     *  with a Hamming window, then mapping the frequency bins into a
-     *  part-linear part-logarithmic array, then (optionally)
-     *  computing the half-wave rectified spectral difference from the
-     *  previous frame, then (optionally) normalising to a sum of 1,
-     *  then calculating the distance to all frames stored in the
-     *  otherMatcher and storing them in the distance matrix, and
-     *  finally updating the optimal path matrix using the dynamic
-     *  time warping algorithm.
+    /** Process a frequency-domain frame of audio data using the
+     *  built-in FeatureExtractor, then calculating the distance to
+     *  all frames stored in the otherMatcher and storing them in the
+     *  distance matrix, and finally updating the optimal path matrix
+     *  using the dynamic time warping algorithm.
      *
      *  Return value is the frame (post-processed, with warping,
      *  rectification, and normalisation as appropriate).
@@ -369,9 +256,9 @@ protected:
      */
     void setValue(int i, int j, int dir, int value, int dMN);
 
-    vector<double> processFrameFromFreqData(double *, double *);
     void calcAdvance();
 
+    FeatureExtractor featureExtractor;
     DistanceMetric metric;
     
     friend class MatchFeeder;

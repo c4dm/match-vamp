@@ -26,6 +26,7 @@
 #endif
 
 #include "Matcher.h"
+#include "FeatureExtractor.h"
 
 class MatchFeeder;
 
@@ -82,6 +83,9 @@ protected:
 
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
+
+    FeatureExtractor::Parameters m_feParams;
+    FeatureExtractor::Parameters m_defaultFeParams;
 
     mutable int m_pathOutNo;
     mutable int m_abOutNo;

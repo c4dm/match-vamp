@@ -57,7 +57,9 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_locked(false),
     m_smooth(true),
     m_params(inputSampleRate, defaultStepTime, m_blockSize),
-    m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize)
+    m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize),
+    m_feParams(inputSampleRate, m_blockSize),
+    m_defaultFeParams(inputSampleRate, m_blockSize)
 {
     if (inputSampleRate < sampleRateMin) {
         std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
@@ -157,7 +159,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for frequency-domain audio features";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultParams.frameNorm;
+    desc.defaultValue = (int)m_defaultFeParams.frameNorm;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -187,7 +189,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to use half-wave rectified spectral difference instead of straight spectrum";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = m_defaultParams.useSpectralDifference ? 1 : 0;
+    desc.defaultValue = m_defaultFeParams.useSpectralDifference ? 1 : 0;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -197,7 +199,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to use a chroma frequency map instead of the default warped spectrogram";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = m_defaultParams.useChromaFrequencyMap ? 1 : 0;
+    desc.defaultValue = m_defaultFeParams.useChromaFrequencyMap ? 1 : 0;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -243,13 +245,13 @@ MatchVampPlugin::getParameter(std::string name) const
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
     } else if (name == "framenorm") {
-        return (int)m_params.frameNorm;
+        return (int)m_feParams.frameNorm;
     } else if (name == "distnorm") {
         return (int)m_params.distanceNorm;
     } else if (name == "usespecdiff") {
-        return m_params.useSpectralDifference ? 1.0 : 0.0;
+        return m_feParams.useSpectralDifference ? 1.0 : 0.0;
     } else if (name == "usechroma") {
-        return m_params.useChromaFrequencyMap ? 1.0 : 0.0;
+        return m_feParams.useChromaFrequencyMap ? 1.0 : 0.0;
     } else if (name == "gradientlimit") {
         return m_params.maxRunCount;
     } else if (name == "zonewidth") {
@@ -267,13 +269,13 @@ MatchVampPlugin::setParameter(std::string name, float value)
     if (name == "serialise") {
         m_serialise = (value > 0.5);
     } else if (name == "framenorm") {
-        m_params.frameNorm = (Matcher::FrameNormalisation)(int(value + 0.1));
+        m_feParams.frameNorm = (FeatureExtractor::FrameNormalisation)(int(value + 0.1));
     } else if (name == "distnorm") {
         m_params.distanceNorm = (DistanceMetric::DistanceNormalisation)(int(value + 0.1));
     } else if (name == "usespecdiff") {
-        m_params.useSpectralDifference = (value > 0.5);
+        m_feParams.useSpectralDifference = (value > 0.5);
     } else if (name == "usechroma") {
-        m_params.useChromaFrequencyMap = (value > 0.5);
+        m_feParams.useChromaFrequencyMap = (value > 0.5);
     } else if (name == "gradientlimit") {
         m_params.maxRunCount = int(value + 0.1);
     } else if (name == "zonewidth") {
@@ -300,8 +302,9 @@ MatchVampPlugin::createMatchers()
 {
     m_params.hopTime = m_stepTime;
     m_params.fftSize = m_blockSize;
-    pm1 = new Matcher(m_params, 0);
-    pm2 = new Matcher(m_params, pm1);
+    m_feParams.fftSize = m_blockSize;
+    pm1 = new Matcher(m_params, m_feParams, 0);
+    pm2 = new Matcher(m_params, m_feParams, pm1);
     pm1->setOtherMatcher(pm2);
     feeder = new MatchFeeder(pm1, pm2);
 }
@@ -420,12 +423,14 @@ MatchVampPlugin::getOutputDescriptors() const
     m_abRatioOutNo = list.size();
     list.push_back(desc);
 
+    int featureSize = FeatureExtractor(m_feParams).getFeatureSize();
+    
     desc.identifier = "a_features";
     desc.name = "A Features";
     desc.description = "Spectral features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
-    desc.binCount = Matcher::getFeatureSizeFor(m_params);
+    desc.binCount = featureSize;
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
@@ -438,7 +443,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.description = "Spectral features extracted from performance B";
     desc.unit = "";
     desc.hasFixedBinCount = true;
-    desc.binCount = Matcher::getFeatureSizeFor(m_params);
+    desc.binCount = featureSize;
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;

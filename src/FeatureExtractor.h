@@ -107,7 +107,8 @@ public:
     /**
      * Process one frequency-domain audio frame (provided as real &
      * imaginary components from the FFT output). Return a feature
-     * vector of size given by getFeatureSize().
+     * vector of size given by getFeatureSize(). Input vectors must
+     * have at least params.fftSize/2+1 elements each.
      *
      * Operates by mapping the frequency bins into a part-linear
      * part-logarithmic array, then (optionally) computing the
