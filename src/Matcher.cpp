@@ -103,7 +103,6 @@ void
 Matcher::expand()
 {
     int distSize = (params.maxRunCount + 1) * blockSize;
-
     bestPathCost.resize(distXSize, vector<int>(distSize, 0));
     distance.resize(distXSize, vector<unsigned char>(distSize, 0));
     distYSizes.resize(blockSize, distSize);

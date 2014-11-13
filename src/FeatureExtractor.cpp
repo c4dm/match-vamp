@@ -76,12 +76,10 @@ FeatureExtractor::makeStandardFrequencyMap()
     while (i <= m_params.fftSize/2) {
         double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
         if (midi > 127) midi = 127;
-        m_freqMap[i++] = crossoverBin + lrint(midi) - crossoverMidi;
+        int target = crossoverBin + lrint(midi) - crossoverMidi;
+        if (target >= m_featureSize) target = m_featureSize - 1;
+        m_freqMap[i++] = target;
     }
-
-    cerr << "rate = " << m_params.sampleRate << ", m_featureSize = " << m_featureSize << ", m_freqMap[" << i << "-1] = " << m_freqMap[i-1] << endl;
-
-    assert(m_featureSize == m_freqMap[i-1] + 1);
 }
 
 void
