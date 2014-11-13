@@ -132,11 +132,11 @@ public:
      *  @param p the Matcher representing the other performance
      */
     void setOtherMatcher(Matcher *p) {
-        otherMatcher = p;
+        m_otherMatcher = p;
     } // setOtherMatcher()
 
     int getFrameCount() { 
-        return frameCount;
+        return m_frameCount;
     }
 
 protected:
@@ -201,30 +201,30 @@ protected:
      *  original version, only one of the two performance matchers
      *  contained the distance metric. (See <code>first</code>)
      */
-    Matcher *otherMatcher;
+    Matcher *m_otherMatcher;
 
     /** Indicates which performance is considered primary (the
      *  score). This is the performance shown on the vertical axis,
      *  and referred to as "this" in the codes for the direction of
      *  DTW steps. */
-    bool firstPM;
+    bool m_firstPM;
 
     /** Configuration parameters */
-    Parameters params;
+    Parameters m_params;
 
     /** Width of the search band in FFT frames (see <code>blockTime</code>) */
-    int blockSize;
+    int m_blockSize;
 
     /** The number of frames of audio data which have been read. */
-    int frameCount;
+    int m_frameCount;
 
     /** The number of frames sequentially processed by this matcher,
      *  without a frame of the other matcher being processed.
      */
-    int runCount;
+    int m_runCount;
 
     /** The number of values in a feature vector. */
-    int featureSize;
+    int m_featureSize;
 
     /** A block of previously seen frames are stored in this structure
      *  for calculation of the distance matrix as the new frames are
@@ -233,31 +233,28 @@ protected:
      *  applicable processing applied (e.g. spectral difference,
      *  normalisation), unlike prevFrame and newFrame. The total
      *  energy of frames[i] is stored in totalEnergies[i]. */
-    vector<vector<double> > frames;
+    vector<vector<double> > m_frames;
 
     /** The best path cost matrix. */
-    vector<vector<int> > bestPathCost;
+    vector<vector<int> > m_bestPathCost;
 
     /** The distance matrix. */
-    vector<vector<unsigned char> > distance;
+    vector<vector<unsigned char> > m_distance;
 
     /** The bounds of each row of data in the distance and path cost matrices.*/
-    vector<int> first;
-    vector<int> last;
+    vector<int> m_first;
+    vector<int> m_last;
 
     /** Height of each column in distance and bestPathCost matrices */
-    vector<int> distYSizes;
+    vector<int> m_distYSizes;
 
     /** Width of distance and bestPathCost matrices and first and last vectors */
-    int  distXSize;
+    int m_distXSize;
 
-    bool initialised;
+    bool m_initialised;
 
-    /** Disable or enable debugging output */
-    static bool silent;
-
-    FeatureExtractor featureExtractor;
-    DistanceMetric metric;
+    FeatureExtractor m_featureExtractor;
+    DistanceMetric m_metric;
     
     friend class MatchFeeder;
     friend class MatchFeatureFeeder;

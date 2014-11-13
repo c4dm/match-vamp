@@ -21,58 +21,56 @@
 #include <cstdlib>
 #include <cassert>
 
-bool Matcher::silent = true;
-
 //#define DEBUG_MATCHER 1
 
 Matcher::Matcher(Parameters parameters,
                  FeatureExtractor::Parameters feParams,
                  Matcher *p) :
-    params(parameters),
-    featureExtractor(feParams),
-    metric(parameters.distanceNorm)
+    m_params(parameters),
+    m_featureExtractor(feParams),
+    m_metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ")" << endl;
+    cerr << "Matcher::Matcher(" << m_params.sampleRate << ", " << p << ")" << endl;
 #endif
 
-    otherMatcher = p;	// the first matcher will need this to be set later
-    firstPM = (!p);
-    frameCount = 0;
-    runCount = 0;
-    featureSize = featureExtractor.getFeatureSize();
-    blockSize = 0;
+    m_otherMatcher = p;	// the first matcher will need this to be set later
+    m_firstPM = (!p);
+    m_frameCount = 0;
+    m_runCount = 0;
+    m_featureSize = m_featureExtractor.getFeatureSize();
+    m_blockSize = 0;
 
-    blockSize = lrint(params.blockTime / params.hopTime);
+    m_blockSize = lrint(m_params.blockTime / m_params.hopTime);
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher: blockSize = " << blockSize << endl;
+    cerr << "Matcher: m_blockSize = " << m_blockSize << endl;
 #endif
 
-    initialised = false;
+    m_initialised = false;
 }
 
-Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize_) :
-    params(parameters),
-    featureSize(featureSize_),
-    featureExtractor(FeatureExtractor::Parameters(params.sampleRate, params.fftSize)), // unused default config
-    metric(parameters.distanceNorm)
+Matcher::Matcher(Parameters parameters, Matcher *p, int m_featureSize_) :
+    m_params(parameters),
+    m_featureSize(m_featureSize_),
+    m_featureExtractor(FeatureExtractor::Parameters(m_params.sampleRate, m_params.fftSize)), // unused default config
+    m_metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ", " << featureSize << ")" << endl;
+    cerr << "Matcher::Matcher(" << m_params.sampleRate << ", " << p << ", " << m_featureSize << ")" << endl;
 #endif
 
-    otherMatcher = p;	// the first matcher will need this to be set later
-    firstPM = (!p);
-    frameCount = 0;
-    runCount = 0;
-    blockSize = 0;
+    m_otherMatcher = p;	// the first matcher will need this to be set later
+    m_firstPM = (!p);
+    m_frameCount = 0;
+    m_runCount = 0;
+    m_blockSize = 0;
 
-    blockSize = lrint(params.blockTime / params.hopTime);
+    m_blockSize = lrint(m_params.blockTime / m_params.hopTime);
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher: blockSize = " << blockSize << endl;
+    cerr << "Matcher: m_blockSize = " << m_blockSize << endl;
 #endif
 
-    initialised = false;
+    m_initialised = false;
 } 
 
 Matcher::~Matcher()
@@ -85,41 +83,41 @@ Matcher::~Matcher()
 void
 Matcher::init()
 {
-    if (initialised) return;
+    if (m_initialised) return;
 
-    frames = vector<vector<double> >
-        (blockSize, vector<double>(featureSize, 0));
+    m_frames = vector<vector<double> >
+        (m_blockSize, vector<double>(m_featureSize, 0));
 
-    distXSize = blockSize * 2;
+    m_distXSize = m_blockSize * 2;
     size();
 
-    frameCount = 0;
-    runCount = 0;
+    m_frameCount = 0;
+    m_runCount = 0;
     
-    initialised = true;
+    m_initialised = true;
 }
 
 void
 Matcher::size()
 {
-    int distSize = (params.maxRunCount + 1) * blockSize;
-    bestPathCost.resize(distXSize, vector<int>(distSize, 0));
-    distance.resize(distXSize, vector<unsigned char>(distSize, 0));
-    distYSizes.resize(distXSize, distSize);
-    first.resize(distXSize, 0);
-    last.resize(distXSize, 0);
+    int distSize = (m_params.maxRunCount + 1) * m_blockSize;
+    m_bestPathCost.resize(m_distXSize, vector<int>(distSize, 0));
+    m_distance.resize(m_distXSize, vector<unsigned char>(distSize, 0));
+    m_distYSizes.resize(m_distXSize, distSize);
+    m_first.resize(m_distXSize, 0);
+    m_last.resize(m_distXSize, 0);
 }
 
 vector<double>
 Matcher::consumeFrame(double *reBuffer, double *imBuffer)
 {
-    if (!initialised) init();
+    if (!m_initialised) init();
 
-    vector<double> real(reBuffer, reBuffer + params.fftSize/2 + 1);
-    vector<double> imag(imBuffer, imBuffer + params.fftSize/2 + 1);
-    vector<double> feature = featureExtractor.process(real, imag);
-    int frameIndex = frameCount % blockSize;
-    frames[frameIndex] = feature;
+    vector<double> real(reBuffer, reBuffer + m_params.fftSize/2 + 1);
+    vector<double> imag(imBuffer, imBuffer + m_params.fftSize/2 + 1);
+    vector<double> feature = m_featureExtractor.process(real, imag);
+    int frameIndex = m_frameCount % m_blockSize;
+    m_frames[frameIndex] = feature;
     calcAdvance();
 
     return feature;
@@ -128,70 +126,70 @@ Matcher::consumeFrame(double *reBuffer, double *imBuffer)
 void
 Matcher::consumeFeatureVector(std::vector<double> feature)
 {
-    if (!initialised) init();
-    int frameIndex = frameCount % blockSize; 
-    frames[frameIndex] = feature;
+    if (!m_initialised) init();
+    int frameIndex = m_frameCount % m_blockSize; 
+    m_frames[frameIndex] = feature;
     calcAdvance();
 }
 
 void
 Matcher::calcAdvance()
 {
-    int frameIndex = frameCount % blockSize;
+    int frameIndex = m_frameCount % m_blockSize;
 
-    if (frameCount >= distXSize) {
-        distXSize *= 2;
+    if (m_frameCount >= m_distXSize) {
+        m_distXSize *= 2;
         size();
     }
 
-    if (firstPM && (frameCount >= blockSize)) {
+    if (m_firstPM && (m_frameCount >= m_blockSize)) {
 
-        int len = last[frameCount - blockSize] -
-                 first[frameCount - blockSize];
+        int len = m_last[m_frameCount - m_blockSize] -
+                 m_first[m_frameCount - m_blockSize];
 
-        // We need to copy distance[frameCount-blockSize] to
-        // distance[frameCount], and then truncate
-        // distance[frameCount-blockSize] to its first len elements.
+        // We need to copy distance[m_frameCount-m_blockSize] to
+        // distance[m_frameCount], and then truncate
+        // distance[m_frameCount-m_blockSize] to its first len elements.
         // Same for bestPathCost.
 /*
-        std::cerr << "Matcher(" << this << "): moving " << distYSizes[frameCount - blockSize] << " from " << frameCount - blockSize << " to "
-                  << frameCount << ", allocating " << len << " for "
-                  << frameCount - blockSize << std::endl;
+        std::cerr << "Matcher(" << this << "): moving " << distYSizes[m_frameCount - m_blockSize] << " from " << m_frameCount - m_blockSize << " to "
+                  << m_frameCount << ", allocating " << len << " for "
+                  << m_frameCount - m_blockSize << std::endl;
 */
-        distance[frameCount] = distance[frameCount - blockSize];
-        distance[frameCount - blockSize].resize(len, 0);
+        m_distance[m_frameCount] = m_distance[m_frameCount - m_blockSize];
+        m_distance[m_frameCount - m_blockSize].resize(len, 0);
         for (int i = 0; i < len; ++i) {
-            distance[frameCount - blockSize][i] =
-                distance[frameCount][i];
+            m_distance[m_frameCount - m_blockSize][i] =
+                m_distance[m_frameCount][i];
         }
 
-        bestPathCost[frameCount] = bestPathCost[frameCount - blockSize];
-        bestPathCost[frameCount - blockSize].resize(len, 0);
+        m_bestPathCost[m_frameCount] = m_bestPathCost[m_frameCount - m_blockSize];
+        m_bestPathCost[m_frameCount - m_blockSize].resize(len, 0);
         for (int i = 0; i < len; ++i) {
-            bestPathCost[frameCount - blockSize][i] =
-                bestPathCost[frameCount][i];
+            m_bestPathCost[m_frameCount - m_blockSize][i] =
+                m_bestPathCost[m_frameCount][i];
         }
 
-        distYSizes[frameCount] = distYSizes[frameCount - blockSize];
-        distYSizes[frameCount - blockSize] = len;
+        m_distYSizes[m_frameCount] = m_distYSizes[m_frameCount - m_blockSize];
+        m_distYSizes[m_frameCount - m_blockSize] = len;
     }
 
-    int stop = otherMatcher->frameCount;
-    int index = stop - blockSize;
+    int stop = m_otherMatcher->m_frameCount;
+    int index = stop - m_blockSize;
     if (index < 0)
         index = 0;
-    first[frameCount] = index;
-    last[frameCount] = stop;
+    m_first[m_frameCount] = index;
+    m_last[m_frameCount] = stop;
 
     bool overflow = false;
     int mn= -1;
     int mx= -1;
     for ( ; index < stop; index++) {
 
-        int dMN = metric.calcDistanceScaled
-            (frames[frameIndex],
-             otherMatcher->frames[index % blockSize],
-             params.distanceScale);
+        int dMN = m_metric.calcDistanceScaled
+            (m_frames[frameIndex],
+             m_otherMatcher->m_frames[index % m_blockSize],
+             m_params.distanceScale);
         
         if (mx<0)
             mx = mn = dMN;
@@ -204,95 +202,93 @@ Matcher::calcAdvance()
             dMN = 255;
         }
 
-        if ((frameCount == 0) && (index == 0))    // first element
+        if ((m_frameCount == 0) && (index == 0))    // first element
             setValue(0, 0, 0, 0, dMN);
-        else if (frameCount == 0)                 // first row
+        else if (m_frameCount == 0)                 // first row
             setValue(0, index, ADVANCE_OTHER,
                      getValue(0, index-1, true), dMN);
         else if (index == 0)                      // first column
-            setValue(frameCount, index, ADVANCE_THIS,
-                     getValue(frameCount - 1, 0, true), dMN);
-        else if (index == otherMatcher->frameCount - blockSize) {
+            setValue(m_frameCount, index, ADVANCE_THIS,
+                     getValue(m_frameCount - 1, 0, true), dMN);
+        else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
             // missing value(s) due to cutoff
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
-            int min2 = getValue(frameCount - 1, index, true);
-            //	if ((firstPM && (first[frameCount - 1] == index)) ||
-            //			(!firstPM && (last[index-1] < frameCount)))
-            if (first[frameCount - 1] == index)
-                setValue(frameCount, index, ADVANCE_THIS, min2, dMN);
+            int min2 = getValue(m_frameCount - 1, index, true);
+            //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
+            //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
+            if (m_first[m_frameCount - 1] == index)
+                setValue(m_frameCount, index, ADVANCE_THIS, min2, dMN);
             else {
-                int min1 = getValue(frameCount - 1, index - 1, true);
+                int min1 = getValue(m_frameCount - 1, index - 1, true);
                 if (min1 + dMN <= min2)
-                    setValue(frameCount, index, ADVANCE_BOTH, min1,dMN);
+                    setValue(m_frameCount, index, ADVANCE_BOTH, min1,dMN);
                 else
-                    setValue(frameCount, index, ADVANCE_THIS, min2,dMN);
+                    setValue(m_frameCount, index, ADVANCE_THIS, min2,dMN);
             }
         } else {
-            int min1 = getValue(frameCount, index-1, true);
-            int min2 = getValue(frameCount - 1, index, true);
-            int min3 = getValue(frameCount - 1, index-1, true);
+            int min1 = getValue(m_frameCount, index-1, true);
+            int min2 = getValue(m_frameCount - 1, index, true);
+            int min3 = getValue(m_frameCount - 1, index-1, true);
             if (min1 <= min2) {
                 if (min3 + dMN <= min1)
-                    setValue(frameCount, index, ADVANCE_BOTH, min3,dMN);
+                    setValue(m_frameCount, index, ADVANCE_BOTH, min3,dMN);
                 else
-                    setValue(frameCount, index, ADVANCE_OTHER,min1,dMN);
+                    setValue(m_frameCount, index, ADVANCE_OTHER,min1,dMN);
             } else {
                 if (min3 + dMN <= min2)
-                    setValue(frameCount, index, ADVANCE_BOTH, min3,dMN);
+                    setValue(m_frameCount, index, ADVANCE_BOTH, min3,dMN);
                 else
-                    setValue(frameCount, index, ADVANCE_THIS, min2,dMN);
+                    setValue(m_frameCount, index, ADVANCE_THIS, min2,dMN);
             }
         }
-        otherMatcher->last[index]++;
+        m_otherMatcher->m_last[index]++;
     } // loop for row (resp. column)
 
-    frameCount++;
-    runCount++;
+    m_frameCount++;
+    m_runCount++;
 
-    otherMatcher->runCount = 0;
+    m_otherMatcher->m_runCount = 0;
 
-    if (overflow && !silent)
+    if (overflow) {
         cerr << "WARNING: overflow in distance metric: "
-             << "frame " << frameCount << ", val = " << mx << endl;
-    
-    if (!silent)
-        std::cerr << "Frame " << frameCount << ", d = " << (mx-mn) << std::endl;
+             << "frame " << m_frameCount << ", val = " << mx << endl;
+    }
 }
 
 int
 Matcher::getValue(int i, int j, bool firstAttempt)
 {
-    if (firstPM)
-        return bestPathCost[i][j - first[i]];
+    if (m_firstPM)
+        return m_bestPathCost[i][j - m_first[i]];
     else
-        return otherMatcher->bestPathCost[j][i - otherMatcher->first[j]];
+        return m_otherMatcher->m_bestPathCost[j][i - m_otherMatcher->m_first[j]];
 } // getValue()
 
 void
 Matcher::setValue(int i, int j, int dir, int value, int dMN)
 {
-    if (firstPM) {
-        distance[i][j - first[i]] = (unsigned char)((dMN & MASK) | dir);
-        bestPathCost[i][j - first[i]] =
+    if (m_firstPM) {
+        m_distance[i][j - m_first[i]] = (unsigned char)((dMN & MASK) | dir);
+        m_bestPathCost[i][j - m_first[i]] =
             (value + (dir==ADVANCE_BOTH? dMN*2: dMN));
     } else {
         if (dir == ADVANCE_THIS)
             dir = ADVANCE_OTHER;
         else if (dir == ADVANCE_OTHER)
             dir = ADVANCE_THIS;
-        int idx = i - otherMatcher->first[j];
-        if (idx == (int)otherMatcher->distYSizes[j]) {
+        int idx = i - m_otherMatcher->m_first[j];
+        if (idx == (int)m_otherMatcher->m_distYSizes[j]) {
             // This should never happen, but if we allow arbitrary
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
             std::cerr << "Emergency resize: " << idx << " -> " << idx * 2 << std::endl;
-            otherMatcher->distYSizes[j] = idx * 2;
-            otherMatcher->bestPathCost[j].resize(idx * 2, 0);
-            otherMatcher->distance[j].resize(idx * 2, 0);
+            m_otherMatcher->m_distYSizes[j] = idx * 2;
+            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, 0);
+            m_otherMatcher->m_distance[j].resize(idx * 2, 0);
         }
-        otherMatcher->distance[j][idx] = (unsigned char)((dMN & MASK) | dir);
-        otherMatcher->bestPathCost[j][idx] =
+        m_otherMatcher->m_distance[j][idx] = (unsigned char)((dMN & MASK) | dir);
+        m_otherMatcher->m_bestPathCost[j][idx] =
             (value + (dir==ADVANCE_BOTH? dMN*2: dMN));
     }
 } // setValue()

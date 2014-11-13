@@ -43,17 +43,17 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 void
 MatchFeatureFeeder::feedBlock()
 {
-    if (pm1->frameCount < pm1->blockSize) {		// fill initial block
+    if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
         feed1();
         feed2();
     }
-    else if (pm1->runCount >= pm1->params.maxRunCount) {  // slope constraints
+    else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
         feed2();
-    } else if (pm2->runCount >= pm2->params.maxRunCount) {
+    } else if (pm2->m_runCount >= pm2->m_params.maxRunCount) {
         feed1();
     } else {
         switch (finder->getExpandDirection
-                (pm1->frameCount-1, pm2->frameCount-1)) {
+                (pm1->m_frameCount-1, pm2->m_frameCount-1)) {
         case ADVANCE_THIS:
             feed1();
             break;

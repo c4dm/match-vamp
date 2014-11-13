@@ -23,7 +23,7 @@
 
 Finder::Finder(Matcher *p1, Matcher *p2)
 {
-    if (!p1->firstPM)
+    if (!p1->m_firstPM)
         std::cerr << "Warning: wrong args in Finder()" << std::endl;
     pm1 = p1;
     pm2 = p2;
@@ -44,23 +44,23 @@ Finder::find(int i1, int i2)
 {
     if (i1 >= 0) {
         index1 = i1;
-        index2 = i2 - pm1->first[i1];
+        index2 = i2 - pm1->m_first[i1];
     }
-    return (i1 >= 0) && (i2 >= pm1->first[i1]) && (i2 < pm1->last[i1]);
+    return (i1 >= 0) && (i2 >= pm1->m_first[i1]) && (i2 < pm1->m_last[i1]);
 } // find()
 
 void
 Finder::getColRange(int row, int *range)
 {
-    range[0] = pm1->first[row];
-    range[1] = pm1->last[row];
+    range[0] = pm1->m_first[row];
+    range[1] = pm1->m_last[row];
 } // getColRange()
 
 void
 Finder::getRowRange(int col, int *range)
 {
-    range[0] = pm2->first[col];
-    range[1] = pm2->last[col];
+    range[0] = pm2->m_first[col];
+    range[1] = pm2->m_last[col];
 } // getRowRange()
 
 int
@@ -114,7 +114,7 @@ unsigned char
 Finder::getDistance(int row, int col) 
 {
     if (find(row, col)) {
-        return pm1->distance[row][col - pm1->first[row]];
+        return pm1->m_distance[row][col - pm1->m_first[row]];
     }
     std::cerr << "getDistance(" << row << "," << col << "): out of bounds" << std::endl;
     throw "getDistance index out of bounds";
@@ -124,7 +124,7 @@ void
 Finder::setDistance(int row, int col, unsigned char b)
 {
     if (find(row, col)) {
-        pm1->distance[row][col - pm1->first[row]] = b;
+        pm1->m_distance[row][col - pm1->m_first[row]] = b;
         return;
     }
     std::cerr << "setDistance(" << row << "," << col << "," << b << "): out of bounds" << std::endl;
@@ -135,7 +135,7 @@ int
 Finder::getPathCost(int row, int col)
 {
     if (find(row, col)) // "1" avoids div by 0 below
-        return pm1->bestPathCost[row][col - pm1->first[row]]*100/ (1+row+col);
+        return pm1->m_bestPathCost[row][col - pm1->m_first[row]]*100/ (1+row+col);
     std::cerr << "getPathCost(" << row << "," << col << "): out of bounds" << std::endl;
     throw "getPathCost index out of bounds";
 } // getPathCost()
@@ -144,7 +144,7 @@ int
 Finder::getRawPathCost(int row, int col)
 {
     if (find(row, col))
-        return pm1->bestPathCost[row][col - pm1->first[row]];
+        return pm1->m_bestPathCost[row][col - pm1->m_first[row]];
     std::cerr << "getRawPathCost(" << row << "," << col << "): out of bounds" << std::endl;
     throw "getRawPathCost index out of bounds";
 } // getRawPathCost()
@@ -153,7 +153,7 @@ void
 Finder::setPathCost(int row, int col, int i)
 {
     if (find(row, col)) {
-         pm1->bestPathCost[row][col - pm1->first[row]] = i;
+         pm1->m_bestPathCost[row][col - pm1->m_first[row]] = i;
          return;
     }
     std::cerr << "setPathCost(" << row << "," << col << "," << i << "): out of bounds" << std::endl;
@@ -163,25 +163,25 @@ Finder::setPathCost(int row, int col, int i)
 unsigned char
 Finder::getDistance() 
 {
-    return pm1->distance[index1][index2];
+    return pm1->m_distance[index1][index2];
 } // getDistance()/0
 
 void
 Finder::setDistance(int b)
 {
-    pm1->distance[index1][index2] = (unsigned char)b;
+    pm1->m_distance[index1][index2] = (unsigned char)b;
 } // setDistance()
 
 int
 Finder::getPathCost()
 {
-    return pm1->bestPathCost[index1][index2];
+    return pm1->m_bestPathCost[index1][index2];
 } // getPathCost()
 
 void
 Finder::setPathCost(int i)
 {
-    pm1->bestPathCost[index1][index2] = i;
+    pm1->m_bestPathCost[index1][index2] = i;
 } // setPathCost()
 
 void
@@ -194,25 +194,25 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
     int thisRowStart, c;
     int prevRowStart = 0, prevRowStop = 0;
     for (int r = r1; r <= r2; r++) {
-        thisRowStart = pm1->first[r];
+        thisRowStart = pm1->m_first[r];
         if (thisRowStart < c1)
             thisRowStart = c1;
         for (c = thisRowStart; c <= c2; c++) {
             if (find(r,c)) {
                 int i2 = index2;
-                int newCost = pm1->distance[r][i2];
+                int newCost = pm1->m_distance[r][i2];
                 int dir = 0;
                 if (r > r1) {	// not first row
                     int min = -1;
                     if ((c > prevRowStart) && (c <= prevRowStop)) {
                         // diagonal from (r-1,c-1)
-                        min = pm1->bestPathCost[r-1][c-pm1->first[r-1]-1] +
+                        min = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]-1] +
                             newCost * 2;
                         dir = ADVANCE_BOTH;
                     }
                     if ((c >= prevRowStart) && (c < prevRowStop)) {
                         // vertical from (r-1,c)
-                        int cost = pm1->bestPathCost[r-1][c-pm1->first[r-1]] +
+                        int cost = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]] +
                             newCost;
                         if ((min == -1) || (cost < min)) {
                             min = cost;
@@ -221,22 +221,22 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                     }
                     if (c > thisRowStart) {
                         // horizontal from (r,c-1)
-                        int cost =pm1->bestPathCost[r][i2-1]+newCost;
+                        int cost =pm1->m_bestPathCost[r][i2-1]+newCost;
                         if ((min == -1) || (cost < min)) {
                             min = cost;
                             dir = ADVANCE_OTHER;
                         }
                     }
-                    pm1->bestPathCost[r][i2] = min;
+                    pm1->m_bestPathCost[r][i2] = min;
                 } else if (c > thisRowStart) {	// first row
                     // horizontal from (r,c-1)
-                    pm1->bestPathCost[r][i2] = pm1->bestPathCost[r][i2-1] +
+                    pm1->m_bestPathCost[r][i2] = pm1->m_bestPathCost[r][i2-1] +
                         newCost;
                     dir = ADVANCE_OTHER;
                 }
                 if ((r != r1) || (c != c1)) {
-                    pm1->distance[r][i2] = (unsigned char)
-                        ((pm1->distance[r][i2] & MASK) | dir);
+                    pm1->m_distance[r][i2] = (unsigned char)
+                        ((pm1->m_distance[r][i2] & MASK) | dir);
                 }
             } else
                 break;	// end of row

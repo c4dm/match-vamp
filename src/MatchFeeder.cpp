@@ -21,7 +21,7 @@ using std::vector;
 MatchFeeder::MatchFeeder(Matcher *m1, Matcher *m2) :
     pm1(m1), pm2(m2)
 {
-    fftSize = m1->params.fftSize;
+    fftSize = m1->m_params.fftSize;
     finder = new Finder(m1, m2);
     reBuffer = new double[fftSize/2+1];
     imBuffer = new double[fftSize/2+1];
@@ -97,7 +97,7 @@ MatchFeeder::feedBlock()
     Features ff;
     vector<double> f1, f2;
 
-    if (pm1->frameCount < pm1->blockSize) {		// fill initial block
+    if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
 //        std::cerr << "feeding initial block" << std::endl;
         f1 = feed1();
         f2 = feed2();
@@ -106,15 +106,15 @@ MatchFeeder::feedBlock()
 //        feed2();
 //!!!    } else if (pm2->atEnd)
 //        feed1();
-    else if (pm1->runCount >= pm1->params.maxRunCount) {  // slope constraints
+    else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
 //        std::cerr << "pm1 too slopey" << std::endl;
         f2 = feed2();
-    } else if (pm2->runCount >= pm2->params.maxRunCount) {
+    } else if (pm2->m_runCount >= pm2->m_params.maxRunCount) {
 //        std::cerr << "pm2 too slopey" << std::endl;
         f1 = feed1();
     } else {
         switch (finder->getExpandDirection
-                (pm1->frameCount-1, pm2->frameCount-1)) {
+                (pm1->m_frameCount-1, pm2->m_frameCount-1)) {
         case ADVANCE_THIS:
 //            std::cerr << "finder says ADVANCE_THIS" << std::endl;
             f1 = feed1();
