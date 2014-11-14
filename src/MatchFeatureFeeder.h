@@ -33,6 +33,13 @@ public:
      * respectively (depending on their advance status). Matchers must
      * have been constructed using the external featureSize
      * constructor.
+     *
+     * f1 and f2 are normally expected to have the same number of
+     * values, and that number should be the featureSize passed to the
+     * constructors for both Matchers. The exception is when one input
+     * ends before the other one: subsequent calls should pass a
+     * feature vector as normal for the input that is still going on,
+     * and an empty vector for the one that has ended.
      */
     void feed(std::vector<double> f1, std::vector<double> f2);
 

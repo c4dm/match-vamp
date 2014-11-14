@@ -31,12 +31,21 @@ Finder::Finder(Matcher *p1, Matcher *p2)
     index2 = 0;
     rowRange = new int[2];
     colRange = new int[2];
+    duration1 = -1;
+    duration2 = -1;
 } // constructor
 
 Finder::~Finder()
 {
     delete[] rowRange;
     delete[] colRange;
+}
+
+void
+Finder::setDurations(int d1, int d2)
+{
+    duration1 = d1;
+    duration2 = d2;
 }
 
 bool
@@ -273,6 +282,13 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {
     int x = pm2->getFrameCount() - 1;
     int y = pm1->getFrameCount() - 1;
+
+    if (duration2 > 0 && duration2 < pm2->getFrameCount()) {
+        x = duration2 - 1;
+    }
+    if (duration1 > 0 && duration1 < pm1->getFrameCount()) {
+        y = duration1 - 1;
+    }
 
     recalculatePathCostMatrix(0, 0, y, x);
 

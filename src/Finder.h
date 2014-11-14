@@ -34,12 +34,22 @@ protected:
     int index1, index2, bestRow, bestCol;
     int *rowRange;
     int *colRange;
+    int duration1, duration2;
 
 public:
     Finder(Matcher *p1, Matcher *p2);
 
     ~Finder();
 
+    /**
+     * Tell the finder that one or both files ends sooner than it
+     * thought, i.e. that some of the trailing features are silence or
+     * otherwise to be ignored. d1 and d2 are feature frame counts for
+     * matchers 1 and 2 respectively. If this is not called, the full
+     * duration of each input will be considered.
+     */
+    void setDurations(int d1, int d2);
+    
     /** Sets up the instance variables to point to the given
      *  coordinate in the distance matrix.
      *
