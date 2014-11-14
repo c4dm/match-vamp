@@ -210,6 +210,8 @@ Finder::setPathCost(double cost)
 void
 Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2) 
 {
+    float diagonalWeight = sqrtf(2.f);
+    
     if (!find(r1,c1)) {
         std::cerr << "recalculatePathCostMatrix(" << r1 << "," << c1 << "): out of bounds" << std::endl;
         throw "recalculatePathCostMatrix index out of bounds";
@@ -230,7 +232,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                     if ((c > prevRowStart) && (c <= prevRowStop)) {
                         // diagonal from (r-1,c-1)
                         min = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]-1] +
-                            newCost;
+                            newCost * diagonalWeight;
                         dir = Matcher::AdvanceBoth;
                     }
                     if ((c >= prevRowStart) && (c < prevRowStop)) {

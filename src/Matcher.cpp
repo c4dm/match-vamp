@@ -254,6 +254,12 @@ Matcher::getValue(int i, int j, bool firstAttempt)
 void
 Matcher::setValue(int i, int j, Advance dir, double value, float dMN)
 {
+    float diagonalWeight = sqrtf(2.f);
+    
+    if (dir == AdvanceBoth) {
+        dMN *= diagonalWeight;
+    }
+    
     if (m_firstPM) {
 
         int jdx = j - m_first[i];
