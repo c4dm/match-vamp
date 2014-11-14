@@ -259,8 +259,7 @@ Matcher::setValue(int i, int j, Advance dir, double value, float dMN)
         int jdx = j - m_first[i];
         m_distance[i][jdx] = dMN;
         m_advance[i][jdx] = dir;
-        m_bestPathCost[i][jdx] =
-            (value + (dir == AdvanceBoth ? dMN*2: dMN));
+        m_bestPathCost[i][jdx] = value + dMN;
 
     } else {
 
@@ -285,8 +284,7 @@ Matcher::setValue(int i, int j, Advance dir, double value, float dMN)
 
         m_otherMatcher->m_distance[j][idx] = dMN;
         m_otherMatcher->m_advance[j][idx] = dir;
-        m_otherMatcher->m_bestPathCost[j][idx] =
-            (value + (dir == AdvanceBoth ? dMN*2: dMN));
+        m_otherMatcher->m_bestPathCost[j][idx] = value + dMN;
     }
 } // setValue()
 

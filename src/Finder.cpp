@@ -230,7 +230,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                     if ((c > prevRowStart) && (c <= prevRowStop)) {
                         // diagonal from (r-1,c-1)
                         min = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]-1] +
-                            newCost * 2;
+                            newCost;
                         dir = Matcher::AdvanceBoth;
                     }
                     if ((c >= prevRowStart) && (c < prevRowStop)) {
