@@ -19,7 +19,7 @@
 using std::vector;
 
 MatchFeeder::MatchFeeder(Matcher *m1, Matcher *m2) :
-    pm1(m1), pm2(m2)
+    pm1(m1), pm2(m2), n(0), lastIn1(0), lastIn2(0)
 {
     fftSize = m1->m_params.fftSize;
     finder = new Finder(m1, m2);
@@ -53,7 +53,7 @@ MatchFeeder::feed(const float *const *input)
 
     prepare(input);
 
-    while (!q1.empty() && !q2.empty()) {
+    while (!q1.empty() || !q2.empty()) {
 //        std::cerr << "MatchFeeder::feed: q1 " << q1.size() << " q2 " << q2.size() << std::endl;
         (void)feedBlock();
     }
@@ -66,7 +66,7 @@ MatchFeeder::feedAndGetFeatures(const float *const *input)
 
     Features all;
 
-    while (!q1.empty() && !q2.empty()) {
+    while (!q1.empty() || !q2.empty()) {
         Features ff = feedBlock();
         all.f1.insert(all.f1.end(), ff.f1.begin(), ff.f1.end());
         all.f2.insert(all.f2.end(), ff.f2.begin(), ff.f2.end());
@@ -78,17 +78,36 @@ MatchFeeder::feedAndGetFeatures(const float *const *input)
 void
 MatchFeeder::prepare(const float *const *input)
 {
+    float threshold = 1e-5f;
+    
     float *block = new float[fftSize+2];
+    float rms = 0;
+
     for (size_t i = 0; i < fftSize+2; ++i) {
         block[i] = input[0][i];
+        rms += block[i] * block[i];
+    }
+    rms = sqrtf(rms / (fftSize+2));
+    if (rms > threshold) {
+        lastIn1 = n;
     }
     q1.push(block);
 
     block = new float[fftSize+2];
+    rms = 0;
+    
     for (size_t i = 0; i < fftSize+2; ++i) {
         block[i] = input[1][i];
+        rms += block[i] * block[i];
+    }
+    rms = sqrtf(rms / (fftSize+2));
+    if (rms > threshold) {
+        lastIn2 = n;
     }
     q2.push(block);
+
+    ++n;
+    finder->setDurations(lastIn1, lastIn2);
 }
 
 MatchFeeder::Features
@@ -97,16 +116,15 @@ MatchFeeder::feedBlock()
     Features ff;
     vector<double> f1, f2;
 
-    if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
+    if (q1.empty()) {
+        feed2();
+    } else if (q2.empty()) {
+        feed1();
+    } else if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
 //        std::cerr << "feeding initial block" << std::endl;
         f1 = feed1();
         f2 = feed2();
-    }
-//!!!    } else if (pm1->atEnd) {
-//        feed2();
-//!!!    } else if (pm2->atEnd)
-//        feed1();
-    else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
+    } else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
 //        std::cerr << "pm1 too slopey" << std::endl;
         f2 = feed2();
     } else if (pm2->m_runCount >= pm2->m_params.maxRunCount) {

@@ -38,10 +38,15 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
     // processing up to one feature per matcher, until a queue is
     // empty.  Then it returns, to be called again with more data.
 
-    q1.push(f1);
-    q2.push(f2);
+    if (!f1.empty()) {
+        q1.push(f1);
+    }
+    
+    if (!f2.empty()) {
+        q2.push(f2);
+    }
 
-    while (!q1.empty() && !q2.empty()) {
+    while (!q1.empty() || !q2.empty()) {
         feedBlock();
     }
 }
@@ -49,11 +54,14 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 void
 MatchFeatureFeeder::feedBlock()
 {
-    if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
+    if (q1.empty()) { // ended
+        feed2();
+    } else if (q2.empty()) { // ended
+        feed1();
+    } else if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
         feed1();
         feed2();
-    }
-    else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
+    } else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
         feed2();
     } else if (pm2->m_runCount >= pm2->m_params.maxRunCount) {
         feed1();

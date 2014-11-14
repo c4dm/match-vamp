@@ -47,7 +47,7 @@ public:
      * calculated by the two feeders.
      */
     Features feedAndGetFeatures(const float *const *input);
-
+    
     Finder *getFinder() { return finder; }
 
 protected:
@@ -66,6 +66,10 @@ protected:
 
     std::queue<float *> q1;
     std::queue<float *> q2;
+
+    int n;
+    int lastIn1;
+    int lastIn2;
 };
 
 #endif
