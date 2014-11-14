@@ -45,11 +45,11 @@ MatchVampPlugin::m_serialisingMutexInitialised = false;
 // sample rates
 static float sampleRateMin = 5000.f;
 
-static float defaultStepTime = 0.020;
+static float defaultStepTime = 0.020f;
 
 MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
-    m_stepSize(inputSampleRate * defaultStepTime + 0.001),
+    m_stepSize(int(inputSampleRate * defaultStepTime + 0.001)),
     m_stepTime(defaultStepTime),
     m_blockSize(2048),
     m_serialise(false),
@@ -219,7 +219,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Width of the search zone (error margin) either side of the ongoing match position, in seconds";
     desc.minValue = 1;
     desc.maxValue = 60;
-    desc.defaultValue = m_defaultParams.blockTime;
+    desc.defaultValue = (float)m_defaultParams.blockTime;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.unit = "s";
@@ -255,7 +255,7 @@ MatchVampPlugin::getParameter(std::string name) const
     } else if (name == "gradientlimit") {
         return m_params.maxRunCount;
     } else if (name == "zonewidth") {
-        return m_params.blockTime;
+        return (float)m_params.blockTime;
     } else if (name == "smooth") {
         return m_smooth ? 1.0 : 0.0;
     }
@@ -288,7 +288,7 @@ MatchVampPlugin::setParameter(std::string name, float value)
 size_t
 MatchVampPlugin::getPreferredStepSize() const
 {
-    return m_inputSampleRate * defaultStepTime;
+    return int(m_inputSampleRate * defaultStepTime + 0.001);
 }
 
 size_t
@@ -354,7 +354,7 @@ MatchVampPlugin::getOutputDescriptors() const
 {
     OutputList list;
 
-    float outRate = 1.0 / m_stepTime;
+    float outRate = 1.0f / m_stepTime;
 
     OutputDescriptor desc;
     desc.identifier = "path";
@@ -483,7 +483,7 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     for (int i = 0; i < (int)ff.f1.size(); ++i) {
         f.values.clear();
         for (int j = 0; j < (int)ff.f1[i].size(); ++j) {
-            f.values.push_back(ff.f1[i][j]);
+            f.values.push_back(float(ff.f1[i][j]));
         }
         returnFeatures[m_aFeaturesOutNo].push_back(f);
     }
@@ -491,7 +491,7 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     for (int i = 0; i < (int)ff.f2.size(); ++i) {
         f.values.clear();
         for (int j = 0; j < (int)ff.f2[i].size(); ++j) {
-            f.values.push_back(ff.f2[i][j]);
+            f.values.push_back(float(ff.f2[i][j]));
         }
         returnFeatures[m_bFeaturesOutNo].push_back(f);
     }
@@ -529,7 +529,7 @@ MatchVampPlugin::getRemainingFeatures()
         feature.hasTimestamp = true;
         feature.timestamp = m_startTime + xt;
         feature.values.clear();
-        feature.values.push_back(yt.sec + double(yt.nsec)/1.0e9);
+        feature.values.push_back(float(yt.sec + double(yt.nsec)/1.0e9));
         returnFeatures[m_pathOutNo].push_back(feature);
         
         if (x != prevx) {
@@ -537,12 +537,12 @@ MatchVampPlugin::getRemainingFeatures()
             feature.hasTimestamp = true;
             feature.timestamp = m_startTime + xt;
             feature.values.clear();
-            feature.values.push_back(yt.sec + yt.msec()/1000.0);
+            feature.values.push_back(float(yt.sec + yt.msec()/1000.0));
             returnFeatures[m_abOutNo].push_back(feature);
 
             Vamp::RealTime diff = yt - xt;
             feature.values.clear();
-            feature.values.push_back(diff.sec + diff.msec()/1000.0);
+            feature.values.push_back(float(diff.sec + diff.msec()/1000.0));
             returnFeatures[m_abDivOutNo].push_back(feature);
 
             if (i > 0) {
@@ -565,7 +565,7 @@ MatchVampPlugin::getRemainingFeatures()
             feature.hasTimestamp = true;
             feature.timestamp = m_startTime + yt;
             feature.values.clear();
-            feature.values.push_back(xt.sec + xt.msec()/1000.0);
+            feature.values.push_back(float(xt.sec + xt.msec()/1000.0));
             returnFeatures[m_baOutNo].push_back(feature);
         }
 

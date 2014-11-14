@@ -182,7 +182,7 @@ Matcher::calcAdvance()
     float mx= -1;
     for ( ; index < stop; index++) {
 
-        float dMN = m_metric.calcDistance
+        float dMN = (float) m_metric.calcDistance
             (m_frames[frameIndex],
              m_otherMatcher->m_frames[index % m_blockSize]);
         
