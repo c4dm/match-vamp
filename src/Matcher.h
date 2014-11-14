@@ -221,13 +221,10 @@ protected:
     /** The number of values in a feature vector. */
     int m_featureSize;
 
-    /** A block of previously seen frames are stored in this structure
-     *  for calculation of the distance matrix as the new frames are
-     *  read in.  One can think of the structure of the array as a
-     *  circular buffer of vectors.  These are the frames with all
-     *  applicable processing applied (e.g. spectral difference,
-     *  normalisation), unlike prevFrame and newFrame. The total
-     *  energy of frames[i] is stored in totalEnergies[i]. */
+    /** A block of previously seen feature frames is stored in this
+     *  structure for calculation of the distance matrix as the new
+     *  frames are received.  One can think of the structure of the
+     *  array as a circular buffer of vectors. */
     vector<vector<double> > m_frames;
 
     /** The best path cost matrix. */
