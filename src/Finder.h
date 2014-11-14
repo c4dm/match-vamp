@@ -63,9 +63,9 @@ public:
     float getDistance(int row, int col);
     void setDistance(int row, int col, float b);
 
-    float getPathCost(int row, int col);
-    float getRawPathCost(int row, int col); //!!!???
-    void setPathCost(int row, int col, float i);
+    double getPathCost(int row, int col);
+    double getRawPathCost(int row, int col); //!!!???
+    void setPathCost(int row, int col, double i);
 
     Matcher::Advance getAdvance();
     void setAdvance(Matcher::Advance a);
@@ -73,8 +73,8 @@ public:
     float getDistance();
     void setDistance(float b);
 
-    float getPathCost();
-    void setPathCost(float i);
+    double getPathCost();
+    void setPathCost(double i);
 
     /** Calculates a rectangle of the path cost matrix so that the
      *  minimum cost path between the bottom left and top right

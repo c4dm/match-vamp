@@ -72,14 +72,14 @@ Finder::getExpandDirection(int row, int col)
 Matcher::Advance
 Finder::getExpandDirection(int row, int col, bool check)
 {
-    float min = getPathCost(row, col);
+    double min = getPathCost(row, col);
     bestRow = row;
     bestCol = col;
     getRowRange(col, rowRange);
     if (rowRange[1] > row+1)
         rowRange[1] = row+1;	// don't cheat by looking at future :)
     for (int index = rowRange[0]; index < rowRange[1]; index++) {
-        float tmp = getPathCost(index, col);
+        double tmp = getPathCost(index, col);
         if (tmp < min) {
             min = tmp;
             bestRow = index;
@@ -89,7 +89,7 @@ Finder::getExpandDirection(int row, int col, bool check)
     if (colRange[1] > col+1)
         colRange[1] = col+1;	// don't cheat by looking at future :)
     for (int index = colRange[0]; index < colRange[1]; index++) {
-        float tmp = getPathCost(row, index);
+        double tmp = getPathCost(row, index);
         if (tmp < min) {
             min = tmp;
             bestCol = index;
@@ -142,7 +142,7 @@ Finder::setDistance(int row, int col, float b)
     throw "setDistance index out of bounds";
 } // setDistance()
 
-float
+double
 Finder::getPathCost(int row, int col)
 {
     if (find(row, col)) // "1" avoids div by 0 below
@@ -151,7 +151,7 @@ Finder::getPathCost(int row, int col)
     throw "getPathCost index out of bounds";
 } // getPathCost()
 	
-float
+double
 Finder::getRawPathCost(int row, int col)
 {
     if (find(row, col))
@@ -161,7 +161,7 @@ Finder::getRawPathCost(int row, int col)
 } // getRawPathCost()
 
 void
-Finder::setPathCost(int row, int col, float cost)
+Finder::setPathCost(int row, int col, double cost)
 {
     if (find(row, col)) {
          pm1->m_bestPathCost[row][col - pm1->m_first[row]] = cost;
@@ -195,14 +195,14 @@ Finder::setDistance(float b)
     pm1->m_distance[index1][index2] = b;
 } // setDistance()
 
-float
+double
 Finder::getPathCost()
 {
     return pm1->m_bestPathCost[index1][index2];
 } // getPathCost()
 
 void
-Finder::setPathCost(float cost)
+Finder::setPathCost(double cost)
 {
     pm1->m_bestPathCost[index1][index2] = cost;
 } // setPathCost()
@@ -226,7 +226,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                 float newCost = pm1->m_distance[r][i2];
                 Matcher::Advance dir = Matcher::AdvanceNone;
                 if (r > r1) {	// not first row
-                    float min = -1;
+                    double min = -1;
                     if ((c > prevRowStart) && (c <= prevRowStop)) {
                         // diagonal from (r-1,c-1)
                         min = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]-1] +
@@ -235,7 +235,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                     }
                     if ((c >= prevRowStart) && (c < prevRowStop)) {
                         // vertical from (r-1,c)
-                        float cost = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]] +
+                        double cost = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]] +
                             newCost;
                         if ((min == -1) || (cost < min)) {
                             min = cost;
@@ -244,7 +244,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                     }
                     if (c > thisRowStart) {
                         // horizontal from (r,c-1)
-                        float cost =pm1->m_bestPathCost[r][i2-1]+newCost;
+                        double cost =pm1->m_bestPathCost[r][i2-1]+newCost;
                         if ((min == -1) || (cost < min)) {
                             min = cost;
                             dir = Matcher::AdvanceOther;

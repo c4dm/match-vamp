@@ -102,7 +102,7 @@ void
 Matcher::size()
 {
     int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-    m_bestPathCost.resize(m_distXSize, vector<float>(distSize, 0));
+    m_bestPathCost.resize(m_distXSize, vector<double>(distSize, 0));
     m_distance.resize(m_distXSize, vector<float>(distSize, 0));
     m_advance.resize(m_distXSize, vector<Advance>(distSize, AdvanceNone));
     m_distYSizes.resize(m_distXSize, distSize);
@@ -205,22 +205,22 @@ Matcher::calcAdvance()
             // missing value(s) due to cutoff
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
-            float min2 = getValue(m_frameCount - 1, index, true);
+            double min2 = getValue(m_frameCount - 1, index, true);
             //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
             //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
             if (m_first[m_frameCount - 1] == index)
                 setValue(m_frameCount, index, AdvanceThis, min2, dMN);
             else {
-                float min1 = getValue(m_frameCount - 1, index - 1, true);
+                double min1 = getValue(m_frameCount - 1, index - 1, true);
                 if (min1 + dMN <= min2)
                     setValue(m_frameCount, index, AdvanceBoth, min1,dMN);
                 else
                     setValue(m_frameCount, index, AdvanceThis, min2,dMN);
             }
         } else {
-            float min1 = getValue(m_frameCount, index-1, true);
-            float min2 = getValue(m_frameCount - 1, index, true);
-            float min3 = getValue(m_frameCount - 1, index-1, true);
+            double min1 = getValue(m_frameCount, index-1, true);
+            double min2 = getValue(m_frameCount - 1, index, true);
+            double min3 = getValue(m_frameCount - 1, index-1, true);
             if (min1 <= min2) {
                 if (min3 + dMN <= min1)
                     setValue(m_frameCount, index, AdvanceBoth, min3,dMN);
@@ -242,7 +242,7 @@ Matcher::calcAdvance()
     m_otherMatcher->m_runCount = 0;
 }
 
-float
+double
 Matcher::getValue(int i, int j, bool firstAttempt)
 {
     if (m_firstPM)
@@ -252,7 +252,7 @@ Matcher::getValue(int i, int j, bool firstAttempt)
 } // getValue()
 
 void
-Matcher::setValue(int i, int j, Advance dir, float value, float dMN)
+Matcher::setValue(int i, int j, Advance dir, double value, float dMN)
 {
     if (m_firstPM) {
 

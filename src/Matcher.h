@@ -168,7 +168,7 @@ protected:
      *  @param j the frame number of the other Matcher
      *  @return the cost of the minimum cost path to this location
      */
-    float getValue(int i, int j, bool firstAttempt);
+    double getValue(int i, int j, bool firstAttempt);
 
     /** Stores entries in the distance matrix and the optimal path matrix.
      *
@@ -179,7 +179,7 @@ protected:
      *  @param value the cost of the minimum path except the current step
      *  @param dMN the distance cost between the two frames
      */
-    void setValue(int i, int j, Advance dir, float value, float dMN);
+    void setValue(int i, int j, Advance dir, double value, float dMN);
 
     void calcAdvance();
 
@@ -221,7 +221,7 @@ protected:
     vector<vector<double> > m_frames;
 
     /** The best path cost matrix. */
-    vector<vector<float> > m_bestPathCost;
+    vector<vector<double> > m_bestPathCost;
 
     /** The distance matrix. */
     vector<vector<float> > m_distance;
