@@ -252,6 +252,8 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     int x = pm2->getFrameCount() - 1;
     int y = pm1->getFrameCount() - 1;
 
+    recalculatePathCostMatrix(0, 0, y, x);
+
     pathx.clear();
     pathy.clear();
 
