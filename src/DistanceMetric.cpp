@@ -32,6 +32,8 @@ DistanceMetric::calcDistance(const vector<double> &f1,
     assert(int(f2.size()) == featureSize);
     
     for (int i = 0; i < featureSize; i++) {
+        assert(f1[i] >= 0);
+        assert(f2[i] >= 0);
         d += fabs(f1[i] - f2[i]);
         sum += f1[i] + f2[i];
     }

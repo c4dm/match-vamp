@@ -234,10 +234,6 @@ protected:
     vector<int> m_first;
     vector<int> m_last;
 
-    /** Height of each column in distance, path cost, and advance
-     * direction matrices. */
-    vector<int> m_distYSizes;
-
     /** Width of distance, path cost, and advance direction matrices
      * and first and last vectors */
     int m_distXSize;

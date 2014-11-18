@@ -86,7 +86,7 @@ Matcher::init()
     if (m_initialised) return;
 
     m_frames = vector<vector<double> >
-        (m_blockSize, vector<double>(m_featureSize, 0));
+        (m_blockSize, vector<double>(m_featureSize, -1.0));
 
     m_distXSize = m_blockSize * 2;
 
@@ -105,7 +105,6 @@ Matcher::size()
     m_bestPathCost.resize(m_distXSize, vector<double>(distSize, 0));
     m_distance.resize(m_distXSize, vector<float>(distSize, 0));
     m_advance.resize(m_distXSize, vector<Advance>(distSize, AdvanceNone));
-    m_distYSizes.resize(m_distXSize, distSize);
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
 }
@@ -153,22 +152,30 @@ Matcher::calcAdvance()
         // distance[m_frameCount], and then truncate
         // distance[m_frameCount-m_blockSize] to its first len elements.
         // Same for bestPathCost.
-/*
-        std::cerr << "Matcher(" << this << "): moving " << distYSizes[m_frameCount - m_blockSize] << " from " << m_frameCount - m_blockSize << " to "
-                  << m_frameCount << ", allocating " << len << " for "
-                  << m_frameCount - m_blockSize << std::endl;
-*/
-        m_distance[m_frameCount] = m_distance[m_frameCount - m_blockSize];
-        m_distance[m_frameCount - m_blockSize].resize(len, 0);
 
-        m_bestPathCost[m_frameCount] = m_bestPathCost[m_frameCount - m_blockSize];
-        m_bestPathCost[m_frameCount - m_blockSize].resize(len, 0);
+        vector<float> dOld = m_distance[m_frameCount - m_blockSize];
+        vector<float> dNew(len, 0.f);
 
-        m_advance[m_frameCount] = m_advance[m_frameCount - m_blockSize];
-        m_advance[m_frameCount - m_blockSize].resize(len, AdvanceNone);
+        vector<double> bpcOld = m_bestPathCost[m_frameCount - m_blockSize];
+        vector<double> bpcNew(len, 0.0);
+
+        vector<Advance> adOld = m_advance[m_frameCount - m_blockSize];
+        vector<Advance> adNew(len, AdvanceNone);
+
+        for (int i = 0; i < len; ++i) {
+            dNew[i] = dOld[i];
+            bpcNew[i] = bpcOld[i];
+            adNew[i] = adOld[i];
+        }
         
-        m_distYSizes[m_frameCount] = m_distYSizes[m_frameCount - m_blockSize];
-        m_distYSizes[m_frameCount - m_blockSize] = len;
+        m_distance[m_frameCount] = dOld;
+        m_distance[m_frameCount - m_blockSize] = dNew;
+
+        m_bestPathCost[m_frameCount] = bpcOld;
+        m_bestPathCost[m_frameCount - m_blockSize] = bpcNew;
+
+        m_advance[m_frameCount] = adOld;
+        m_advance[m_frameCount - m_blockSize] = adNew;
     }
 
     int stop = m_otherMatcher->m_frameCount;
@@ -272,12 +279,11 @@ Matcher::setValue(int i, int j, Advance dir, double value, float dMN)
 
         int idx = i - m_otherMatcher->m_first[j];
         
-        if (idx == (int)m_otherMatcher->m_distYSizes[j]) {
+        if (idx == (int)m_otherMatcher->m_distance[j].size()) {
             // This should never happen, but if we allow arbitrary
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
             std::cerr << "Emergency resize: " << idx << " -> " << idx * 2 << std::endl;
-            m_otherMatcher->m_distYSizes[j] = idx * 2;
             m_otherMatcher->m_bestPathCost[j].resize(idx * 2, 0);
             m_otherMatcher->m_distance[j].resize(idx * 2, 0);
             m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);

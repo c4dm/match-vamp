@@ -51,11 +51,14 @@ Finder::setDurations(int d1, int d2)
 bool
 Finder::find(int i1, int i2)
 {
-    if (i1 >= 0) {
+    if ((i1 >= 0) && (i1 < (int)pm1->m_first.size()) &&
+        (i2 >= pm1->m_first[i1]) && (i2 < pm1->m_last[i1])) {
         index1 = i1;
         index2 = i2 - pm1->m_first[i1];
+        return true;
+    } else {
+        return false;
     }
-    return (i1 >= 0) && (i2 >= pm1->m_first[i1]) && (i2 < pm1->m_last[i1]);
 } // find()
 
 void
@@ -278,8 +281,15 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
 int
 Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {
+    pathx.clear();
+    pathy.clear();
+
     int ex = pm2->getFrameCount() - 1;
     int ey = pm1->getFrameCount() - 1;
+
+    if (ex < 0 || ey < 0) {
+        return 0;
+    }
     
     int x = ex;
     int y = ey;
@@ -305,9 +315,6 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 
     recalculatePathCostMatrix(0, 0, y, x);
 
-    pathx.clear();
-    pathy.clear();
-
 //    cerr << "start: x = " << x << ", y = " << y << endl;
     
     while (find(y, x) && ((x > 0) || (y > 0))) {
@@ -332,7 +339,7 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
             y--;
             break;
         case Matcher::AdvanceNone: // this would indicate a bug, but we wouldn't want to hang
-//            cerr << "WARNING: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << endl;
+            cerr << "WARNING: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << endl;
             if (x > y) {
                 x--;
             } else {
