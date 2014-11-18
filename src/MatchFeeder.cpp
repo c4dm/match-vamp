@@ -53,8 +53,7 @@ MatchFeeder::feed(const float *const *input)
 
     prepare(input);
 
-    while (!q1.empty() || !q2.empty()) {
-//        std::cerr << "MatchFeeder::feed: q1 " << q1.size() << " q2 " << q2.size() << std::endl;
+    while (!q1.empty() && !q2.empty()) {
         (void)feedBlock();
     }
 }
@@ -64,6 +63,28 @@ MatchFeeder::feedAndGetFeatures(const float *const *input)
 {
     prepare(input);
 
+    Features all;
+
+    while (!q1.empty() && !q2.empty()) {
+        Features ff = feedBlock();
+        all.f1.insert(all.f1.end(), ff.f1.begin(), ff.f1.end());
+        all.f2.insert(all.f2.end(), ff.f2.begin(), ff.f2.end());
+    }
+
+    return all;
+}
+
+void
+MatchFeeder::finish()
+{
+    while (!q1.empty() || !q2.empty()) {
+        (void)feedBlock();
+    }
+}
+
+MatchFeeder::Features
+MatchFeeder::finishAndGetFeatures()
+{
     Features all;
 
     while (!q1.empty() || !q2.empty()) {
@@ -117,9 +138,9 @@ MatchFeeder::feedBlock()
     vector<double> f1, f2;
 
     if (q1.empty()) {
-        feed2();
+        f2 = feed2();
     } else if (q2.empty()) {
-        feed1();
+        f1 = feed1();
     } else if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
 //        std::cerr << "feeding initial block" << std::endl;
         f1 = feed1();

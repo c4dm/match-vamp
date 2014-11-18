@@ -43,6 +43,11 @@ public:
      */
     void feed(std::vector<double> f1, std::vector<double> f2);
 
+    /**
+     * Indicate that both inputs have come to an end.
+     */
+    void finish();
+    
     Finder *getFinder() { return finder; }
 
 protected:
