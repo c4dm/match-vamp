@@ -35,6 +35,11 @@ public:
      */
     void feed(const float *const *input);
 
+    /**
+     * Indicate that the input has come to an end.
+     */
+    void finish();
+    
     struct Features {
         std::vector<std::vector<double> > f1;
         std::vector<std::vector<double> > f2;
@@ -47,6 +52,12 @@ public:
      * calculated by the two feeders.
      */
     Features feedAndGetFeatures(const float *const *input);
+
+    /**
+     * Indicate that the input has come to an end, and return any
+     * remaining features.
+     */
+    Features finishAndGetFeatures();
     
     Finder *getFinder() { return finder; }
 
