@@ -258,8 +258,13 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
 int
 Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {
-    int x = pm2->getFrameCount() - 1;
-    int y = pm1->getFrameCount() - 1;
+    int ex = pm2->getFrameCount() - 1;
+    int ey = pm1->getFrameCount() - 1;
+    
+    int x = ex;
+    int y = ey;
+    
+//    cerr << "before: x = " << x << ", y = " << y << endl;
 
     if (duration2 > 0 && duration2 < pm2->getFrameCount()) {
         x = duration2 - 1;
@@ -268,11 +273,23 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
         y = duration1 - 1;
     }
 
+    if (!find(y, x)) {
+        // Path did not pass through the expected end point --
+        // probably means the pieces are substantially different in
+        // the later bits. Reset the expected end point to the end of
+        // both files including any trailing silence.
+        cerr << "NOTE: Path did not pass through expected end point, inputs are probably significantly different" << endl;
+        x = ex;
+        y = ey;
+    }
+
     recalculatePathCostMatrix(0, 0, y, x);
 
     pathx.clear();
     pathy.clear();
 
+//    cerr << "start: x = " << x << ", y = " << y << endl;
+    
     while (find(y, x) && ((x > 0) || (y > 0))) {
 
 //        cerr << "x = " << x << ", y = " << y;
