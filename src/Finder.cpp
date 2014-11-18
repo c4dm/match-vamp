@@ -249,15 +249,15 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                         // vertical from (r-1,c)
                         double cost = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]] +
                             newCost;
-                        if ((min == -1) || (cost < min)) {
+                        if ((min < 0) || (cost < min)) {
                             min = cost;
                             dir = Matcher::AdvanceThis;
                         }
                     }
                     if (c > thisRowStart) {
                         // horizontal from (r,c-1)
-                        double cost =pm1->m_bestPathCost[r][i2-1]+newCost;
-                        if ((min == -1) || (cost < min)) {
+                        double cost = pm1->m_bestPathCost[r][i2-1]+newCost;
+                        if ((min < 0) || (cost < min)) {
                             min = cost;
                             dir = Matcher::AdvanceOther;
                         }
@@ -326,15 +326,15 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 
         switch (getAdvance()) {
         case Matcher::AdvanceThis:
-//            cerr << ", going down (dist = " << (int)getDistance() << ")" << endl;
+//            cerr << ", going down (dist = " << getDistance() << ")" << endl;
             y--;
             break;
         case Matcher::AdvanceOther:
-//            cerr << ", going left (dist = " << (int)getDistance() << ")" << endl;
+//            cerr << ", going left (dist = " << getDistance() << ")" << endl;
             x--;
             break;
         case Matcher::AdvanceBoth:
-//            cerr << ", going diag (dist = " << (int)getDistance() << ")" << endl;
+//            cerr << ", going diag (dist = " << getDistance() << ")" << endl;
             x--;
             y--;
             break;
