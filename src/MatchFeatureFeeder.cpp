@@ -46,6 +46,14 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
         q2.push(f2);
     }
 
+    while (!q1.empty() && !q2.empty()) {
+        feedBlock();
+    }
+}
+
+void
+MatchFeatureFeeder::finish()
+{
     while (!q1.empty() || !q2.empty()) {
         feedBlock();
     }

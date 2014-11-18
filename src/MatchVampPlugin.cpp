@@ -505,12 +505,33 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::getRemainingFeatures()
 {
+    FeatureSet returnFeatures;
+    
+    MatchFeeder::Features ff = feeder->finishAndGetFeatures();
+
+    Feature f;
+    f.hasTimestamp = false;
+
+    for (int i = 0; i < (int)ff.f1.size(); ++i) {
+        f.values.clear();
+        for (int j = 0; j < (int)ff.f1[i].size(); ++j) {
+            f.values.push_back(float(ff.f1[i][j]));
+        }
+        returnFeatures[m_aFeaturesOutNo].push_back(f);
+    }
+
+    for (int i = 0; i < (int)ff.f2.size(); ++i) {
+        f.values.clear();
+        for (int j = 0; j < (int)ff.f2[i].size(); ++j) {
+            f.values.push_back(float(ff.f2[i][j]));
+        }
+        returnFeatures[m_bFeaturesOutNo].push_back(f);
+    }
+
     Finder *finder = feeder->getFinder();
     std::vector<int> pathx;
     std::vector<int> pathy;
     int len = finder->retrievePath(m_smooth, pathx, pathy);
-    
-    FeatureSet returnFeatures;
 
     int prevx = 0;
     int prevy = 0;
