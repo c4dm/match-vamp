@@ -162,15 +162,39 @@ protected:
      */
     void consumeFeatureVector(std::vector<double> feature);
 
-    /** Retrieves values from the minimum cost matrix.
+    /** Tests whether a location is in range in the minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return true if the location is in range
+     */
+    bool isInRange(int i, int j);
+    
+    /** Tests whether a location is available in the minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return true if the location is in range and contains a valid cost
+     */
+    bool isAvailable(int i, int j);
+    
+    /** Retrieves a value from the minimum cost matrix.
      *
      *  @param i the frame number of this Matcher
      *  @param j the frame number of the other Matcher
      *  @return the cost of the minimum cost path to this location
      */
-    double getValue(int i, int j, bool firstAttempt);
+    double getValue(int i, int j);
 
-    /** Stores entries in the distance matrix and the optimal path matrix.
+    /** Sets a value to the minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @param value the cost of the minimum cost path to set for this location
+     */
+    void setValue(int i, int j, double value);
+
+    /** Updates an entry in the distance matrix and the optimal path matrix.
      *
      *  @param i the frame number of this Matcher
      *  @param j the frame number of the other Matcher
@@ -179,7 +203,7 @@ protected:
      *  @param value the cost of the minimum path except the current step
      *  @param dMN the distance cost between the two frames
      */
-    void setValue(int i, int j, Advance dir, double value, float dMN);
+    void updateValue(int i, int j, Advance dir, double value, float dMN);
 
     void calcAdvance();
 

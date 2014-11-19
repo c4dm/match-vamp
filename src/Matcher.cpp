@@ -102,8 +102,8 @@ void
 Matcher::size()
 {
     int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-    m_bestPathCost.resize(m_distXSize, vector<double>(distSize, 0));
-    m_distance.resize(m_distXSize, vector<float>(distSize, 0));
+    m_bestPathCost.resize(m_distXSize, vector<double>(distSize, -1));
+    m_distance.resize(m_distXSize, vector<float>(distSize, -1));
     m_advance.resize(m_distXSize, vector<Advance>(distSize, AdvanceNone));
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
@@ -154,10 +154,10 @@ Matcher::calcAdvance()
         // Same for bestPathCost.
 
         vector<float> dOld = m_distance[m_frameCount - m_blockSize];
-        vector<float> dNew(len, 0.f);
+        vector<float> dNew(len, -1.f);
 
         vector<double> bpcOld = m_bestPathCost[m_frameCount - m_blockSize];
-        vector<double> bpcNew(len, 0.0);
+        vector<double> bpcNew(len, -1.0);
 
         vector<Advance> adOld = m_advance[m_frameCount - m_blockSize];
         vector<Advance> adNew(len, AdvanceNone);
@@ -201,43 +201,43 @@ Matcher::calcAdvance()
             mn = dMN;
 
         if ((m_frameCount == 0) && (index == 0))    // first element
-            setValue(0, 0, AdvanceNone, 0, dMN);
+            updateValue(0, 0, AdvanceNone, 0, dMN);
         else if (m_frameCount == 0)                 // first row
-            setValue(0, index, AdvanceOther,
-                     getValue(0, index-1, true), dMN);
+            updateValue(0, index, AdvanceOther,
+                        getValue(0, index-1), dMN);
         else if (index == 0)                      // first column
-            setValue(m_frameCount, index, AdvanceThis,
-                     getValue(m_frameCount - 1, 0, true), dMN);
+            updateValue(m_frameCount, index, AdvanceThis,
+                        getValue(m_frameCount - 1, 0), dMN);
         else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
             // missing value(s) due to cutoff
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
-            double min2 = getValue(m_frameCount - 1, index, true);
+            double min2 = getValue(m_frameCount - 1, index);
             //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
             //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
             if (m_first[m_frameCount - 1] == index)
-                setValue(m_frameCount, index, AdvanceThis, min2, dMN);
+                updateValue(m_frameCount, index, AdvanceThis, min2, dMN);
             else {
-                double min1 = getValue(m_frameCount - 1, index - 1, true);
+                double min1 = getValue(m_frameCount - 1, index - 1);
                 if (min1 + dMN <= min2)
-                    setValue(m_frameCount, index, AdvanceBoth, min1,dMN);
+                    updateValue(m_frameCount, index, AdvanceBoth, min1,dMN);
                 else
-                    setValue(m_frameCount, index, AdvanceThis, min2,dMN);
+                    updateValue(m_frameCount, index, AdvanceThis, min2,dMN);
             }
         } else {
-            double min1 = getValue(m_frameCount, index-1, true);
-            double min2 = getValue(m_frameCount - 1, index, true);
-            double min3 = getValue(m_frameCount - 1, index-1, true);
+            double min1 = getValue(m_frameCount, index-1);
+            double min2 = getValue(m_frameCount - 1, index);
+            double min3 = getValue(m_frameCount - 1, index-1);
             if (min1 <= min2) {
                 if (min3 + dMN <= min1)
-                    setValue(m_frameCount, index, AdvanceBoth, min3,dMN);
+                    updateValue(m_frameCount, index, AdvanceBoth, min3,dMN);
                 else
-                    setValue(m_frameCount, index, AdvanceOther,min1,dMN);
+                    updateValue(m_frameCount, index, AdvanceOther,min1,dMN);
             } else {
                 if (min3 + dMN <= min2)
-                    setValue(m_frameCount, index, AdvanceBoth, min3,dMN);
+                    updateValue(m_frameCount, index, AdvanceBoth, min3,dMN);
                 else
-                    setValue(m_frameCount, index, AdvanceThis, min2,dMN);
+                    updateValue(m_frameCount, index, AdvanceThis, min2,dMN);
             }
         }
         m_otherMatcher->m_last[index]++;
@@ -249,25 +249,79 @@ Matcher::calcAdvance()
     m_otherMatcher->m_runCount = 0;
 }
 
-double
-Matcher::getValue(int i, int j, bool firstAttempt)
+bool
+Matcher::isInRange(int i, int j)
 {
-    if (m_firstPM)
+    if (m_firstPM) {
+        return ((i >= 0) &&
+                (i < int(m_first.size())) &&
+                (j >= m_first[i]) &&
+                (j < int(m_first[i] + m_bestPathCost[i].size())));
+    } else {
+        return m_otherMatcher->isInRange(j, i);
+    }
+}
+
+bool
+Matcher::isAvailable(int i, int j)
+{
+    if (m_firstPM) {
+        if (isInRange(i, j)) {
+            return (m_bestPathCost[i][j - m_first[i]] >= 0);
+        } else {
+            return false;
+        }
+    } else {
+        return m_otherMatcher->isAvailable(j, i);
+    }
+}
+
+double
+Matcher::getValue(int i, int j)
+{
+    if (m_firstPM) {
+        if (!isAvailable(i, j)) {
+            if (!isInRange(i, j)) {
+                cerr << "ERROR: Matcher::getValue(" << i << ", " << j << "): "
+                     << "Location is not in range" << endl;
+            } else {
+                cerr << "ERROR: Matcher::getValue(" << i << ", " << j << "): "
+                     << "Location is in range, but value ("
+                     << m_bestPathCost[i][j - m_first[i]]
+                     << ") is invalid or has not been set" << endl;
+            }
+            throw "Value not available";
+        }
         return m_bestPathCost[i][j - m_first[i]];
-    else
-        return m_otherMatcher->m_bestPathCost[j][i - m_otherMatcher->m_first[j]];
-} // getValue()
+    } else {
+        return m_otherMatcher->getValue(j, i);
+    }
+}
+                
+void
+Matcher::setValue(int i, int j, double value)
+{
+    if (m_firstPM) {
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::setValue(" << i << ", " << j << ", "
+                 << value << "): Location is out of range" << endl;
+            throw "Indices out of range";
+        }
+        m_bestPathCost[i][j - m_first[i]] = value;
+    } else {
+        m_otherMatcher->setValue(j, i, value);
+    }
+}
 
 void
-Matcher::setValue(int i, int j, Advance dir, double value, float dMN)
+Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
 {
     if (m_firstPM) {
 
         int jdx = j - m_first[i];
         m_distance[i][jdx] = dMN;
         m_advance[i][jdx] = dir;
-        m_bestPathCost[i][jdx] =
-            (value + (dir == AdvanceBoth ? dMN*2: dMN));
+        setValue(i, j, value + (dir == AdvanceBoth ? dMN*2: dMN));
 
     } else {
 
@@ -284,15 +338,14 @@ Matcher::setValue(int i, int j, Advance dir, double value, float dMN)
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
             std::cerr << "Emergency resize: " << idx << " -> " << idx * 2 << std::endl;
-            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, 0);
-            m_otherMatcher->m_distance[j].resize(idx * 2, 0);
+            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, -1);
+            m_otherMatcher->m_distance[j].resize(idx * 2, -1);
             m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
         }
 
         m_otherMatcher->m_distance[j][idx] = dMN;
         m_otherMatcher->m_advance[j][idx] = dir;
-        m_otherMatcher->m_bestPathCost[j][idx] =
-            (value + (dir == AdvanceBoth ? dMN*2: dMN));
+        m_otherMatcher->setValue(j, i, value + (dir == AdvanceBoth ? dMN*2: dMN));
     }
-} // setValue()
+}
 
