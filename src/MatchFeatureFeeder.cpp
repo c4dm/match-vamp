@@ -66,16 +66,16 @@ MatchFeatureFeeder::feedBlock()
         feed2();
     } else if (m_q2.empty()) { // ended
         feed1();
-    } else if (m_pm1->m_frameCount < m_pm1->m_blockSize) {		// fill initial block
+    } else if (m_pm1->getFrameCount() < m_pm1->getBlockSize()) { // fill initial block
         feed1();
         feed2();
-    } else if (m_pm1->m_runCount >= m_pm1->m_params.maxRunCount) {  // slope constraints
+    } else if (m_pm1->isOverrunning()) { // slope constraints
         feed2();
-    } else if (m_pm2->m_runCount >= m_pm2->m_params.maxRunCount) {
+    } else if (m_pm2->isOverrunning()) {
         feed1();
     } else {
         switch (m_finder->getExpandDirection
-                (m_pm1->m_frameCount-1, m_pm2->m_frameCount-1)) {
+                (m_pm1->getFrameCount()-1, m_pm2->getFrameCount()-1)) {
         case Matcher::AdvanceThis:
             feed1();
             break;
