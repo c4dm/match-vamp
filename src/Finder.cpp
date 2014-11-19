@@ -20,57 +20,25 @@
 
 #include <algorithm>
 
+using namespace std;
 
-Finder::Finder(Matcher *p1, Matcher *p2)
+Finder::Finder(Matcher *pm)
 {
-    if (!p1->m_firstPM)
-        std::cerr << "Warning: wrong args in Finder()" << std::endl;
-    pm1 = p1;
-    pm2 = p2;
-    index1 = 0;
-    index2 = 0;
-    rowRange = new int[2];
-    colRange = new int[2];
-    duration1 = -1;
-    duration2 = -1;
+    m_m = pm;
+    m_duration1 = -1;
+    m_duration2 = -1;
 } // constructor
 
 Finder::~Finder()
 {
-    delete[] rowRange;
-    delete[] colRange;
 }
 
 void
 Finder::setDurations(int d1, int d2)
 {
-    duration1 = d1;
-    duration2 = d2;
+    m_duration1 = d1;
+    m_duration2 = d2;
 }
-
-bool
-Finder::find(int i1, int i2)
-{
-    if (i1 >= 0) {
-        index1 = i1;
-        index2 = i2 - pm1->m_first[i1];
-    }
-    return (i1 >= 0) && (i2 >= pm1->m_first[i1]) && (i2 < pm1->m_last[i1]);
-} // find()
-
-void
-Finder::getColRange(int row, int *range)
-{
-    range[0] = pm1->m_first[row];
-    range[1] = pm1->m_last[row];
-} // getColRange()
-
-void
-Finder::getRowRange(int col, int *range)
-{
-    range[0] = pm2->m_first[col];
-    range[1] = pm2->m_last[col];
-} // getRowRange()
 
 Matcher::Advance
 Finder::getExpandDirection(int row, int col)
@@ -81,38 +49,33 @@ Finder::getExpandDirection(int row, int col)
 Matcher::Advance
 Finder::getExpandDirection(int row, int col, bool check)
 {
-    double min = getPathCost(row, col);
-    bestRow = row;
-    bestCol = col;
-    getRowRange(col, rowRange);
-    if (rowRange[1] > row+1)
-        rowRange[1] = row+1;	// don't cheat by looking at future :)
-    for (int index = rowRange[0]; index < rowRange[1]; index++) {
-        double tmp = getPathCost(index, col);
+    double min = m_m->getPathCost(row, col);
+    
+    int bestRow = row;
+    int bestCol = col;
+
+    pair<int, int> rowRange = m_m->getRowRange(col);
+    if (rowRange.second > row+1) {
+        rowRange.second = row+1;	// don't cheat by looking at future :)
+    }
+    for (int index = rowRange.first; index < rowRange.second; index++) {
+        double tmp = m_m->getPathCost(index, col);
         if (tmp < min) {
             min = tmp;
             bestRow = index;
         }
     }
-    getColRange(row, colRange);
-    if (colRange[1] > col+1)
-        colRange[1] = col+1;	// don't cheat by looking at future :)
-    for (int index = colRange[0]; index < colRange[1]; index++) {
-        double tmp = getPathCost(row, index);
+
+    pair<int, int> colRange = m_m->getColRange(row);
+    if (colRange.second > col+1) {
+        colRange.second = col+1;	// don't cheat by looking at future :)
+    }
+    for (int index = colRange.first; index < colRange.second; index++) {
+        double tmp = m_m->getPathCost(row, index);
         if (tmp < min) {
             min = tmp;
             bestCol = index;
             bestRow = row;
-        }
-    }
-    //	System.err.print("  BEST: " + bestRow + " " + bestCol + " " + check);
-    //	System.err.println(" " + pm1->frameCount + " " + pm2->frameCount);
-    if (check) {
-        //		System.err.println(find(row+1, col) + " " + find(row, col+1));
-        if (!find(row, col+1)) {
-            return Matcher::AdvanceThis;
-        } else if (!find(row+1, col)) {
-            return Matcher::AdvanceOther;
         }
     }
 
@@ -128,174 +91,91 @@ Finder::getExpandDirection(int row, int col, bool check)
         return Matcher::AdvanceNone;
     }
 
-} // getExpandDirection()
-	
-float
-Finder::getDistance(int row, int col) 
-{
-    if (find(row, col)) {
-        return pm1->m_distance[row][col - pm1->m_first[row]];
-    }
-    std::cerr << "getDistance(" << row << "," << col << "): out of bounds" << std::endl;
-    throw "getDistance index out of bounds";
-} // getDistance()/2
-
-void
-Finder::setDistance(int row, int col, float b)
-{
-    if (find(row, col)) {
-        pm1->m_distance[row][col - pm1->m_first[row]] = b;
-        return;
-    }
-    std::cerr << "setDistance(" << row << "," << col << "," << b << "): out of bounds" << std::endl;
-    throw "setDistance index out of bounds";
-} // setDistance()
-
-double
-Finder::getPathCost(int row, int col)
-{
-    if (find(row, col)) // "1" avoids div by 0 below
-        return pm1->m_bestPathCost[row][col - pm1->m_first[row]] / float(1+row+col);
-    std::cerr << "getPathCost(" << row << "," << col << "): out of bounds" << std::endl;
-    throw "getPathCost index out of bounds";
-} // getPathCost()
-	
-double
-Finder::getRawPathCost(int row, int col)
-{
-    if (find(row, col))
-        return pm1->m_bestPathCost[row][col - pm1->m_first[row]];
-    std::cerr << "getRawPathCost(" << row << "," << col << "): out of bounds" << std::endl;
-    throw "getRawPathCost index out of bounds";
-} // getRawPathCost()
-
-void
-Finder::setPathCost(int row, int col, double cost)
-{
-    if (find(row, col)) {
-         pm1->m_bestPathCost[row][col - pm1->m_first[row]] = cost;
-         return;
-    }
-    std::cerr << "setPathCost(" << row << "," << col << "," << cost << "): out of bounds" << std::endl;
-    throw "setPathCost index out of bounds";
-} // setPathCost()
-
-Matcher::Advance
-Finder::getAdvance()
-{
-    return pm1->m_advance[index1][index2];
 }
-
-void
-Finder::setAdvance(Matcher::Advance a)
-{
-    pm1->m_advance[index1][index2] = a;
-}
-
-float
-Finder::getDistance() 
-{
-    return pm1->m_distance[index1][index2];
-} // getDistance()/0
-
-void
-Finder::setDistance(float b)
-{
-    pm1->m_distance[index1][index2] = b;
-} // setDistance()
-
-double
-Finder::getPathCost()
-{
-    return pm1->m_bestPathCost[index1][index2];
-} // getPathCost()
-
-void
-Finder::setPathCost(double cost)
-{
-    pm1->m_bestPathCost[index1][index2] = cost;
-} // setPathCost()
 
 void
 Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2) 
 {
     float diagonalWeight = sqrtf(2.f);
     
-    if (!find(r1,c1)) {
-        std::cerr << "recalculatePathCostMatrix(" << r1 << "," << c1 << "): out of bounds" << std::endl;
-        throw "recalculatePathCostMatrix index out of bounds";
-    }
-    int thisRowStart, c;
     int prevRowStart = 0, prevRowStop = 0;
+
     for (int r = r1; r <= r2; r++) {
-        thisRowStart = pm1->m_first[r];
-        if (thisRowStart < c1)
-            thisRowStart = c1;
-        for (c = thisRowStart; c <= c2; c++) {
-            if (find(r,c)) {
-                int i2 = index2;
-                float newCost = pm1->m_distance[r][i2];
-                Matcher::Advance dir = Matcher::AdvanceNone;
-                if (r > r1) {	// not first row
-                    double min = -1;
-                    if ((c > prevRowStart) && (c <= prevRowStop)) {
-                        // diagonal from (r-1,c-1)
-                        min = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]-1] +
-                            newCost * diagonalWeight;
-                        dir = Matcher::AdvanceBoth;
-                    }
-                    if ((c >= prevRowStart) && (c < prevRowStop)) {
-                        // vertical from (r-1,c)
-                        double cost = pm1->m_bestPathCost[r-1][c-pm1->m_first[r-1]] +
-                            newCost;
-                        if ((min == -1) || (cost < min)) {
-                            min = cost;
-                            dir = Matcher::AdvanceThis;
-                        }
-                    }
-                    if (c > thisRowStart) {
-                        // horizontal from (r,c-1)
-                        double cost =pm1->m_bestPathCost[r][i2-1]+newCost;
-                        if ((min == -1) || (cost < min)) {
-                            min = cost;
-                            dir = Matcher::AdvanceOther;
-                        }
-                    }
-                    pm1->m_bestPathCost[r][i2] = min;
-                } else if (c > thisRowStart) {	// first row
-                    // horizontal from (r,c-1)
-                    pm1->m_bestPathCost[r][i2] = pm1->m_bestPathCost[r][i2-1] +
-                        newCost;
-                    dir = Matcher::AdvanceOther;
+
+        pair<int, int> colRange = m_m->getColRange(r);
+
+        int rowStart = max(c1, colRange.first);
+        int rowStop = min(c2 + 1, colRange.second);
+        
+        for (int c = rowStart; c < rowStop; c++) {
+
+            float newCost = m_m->getDistance(r, c);
+            Matcher::Advance dir = Matcher::AdvanceNone;
+
+            if (r > r1) {	// not first row
+                double min = -1;
+                if ((c > prevRowStart) && (c <= prevRowStop)) {
+                    // diagonal from (r-1,c-1)
+                    min = m_m->getPathCost(r-1, c-1) + newCost * diagonalWeight;
+                    dir = Matcher::AdvanceBoth;
                 }
-                pm1->m_advance[r][i2] = dir;
-            } else
-                break;	// end of row
+                if ((c >= prevRowStart) && (c < prevRowStop)) {
+                    // vertical from (r-1,c)
+                    double cost = m_m->getPathCost(r-1, c) + newCost;
+                    if ((min < 0) || (cost < min)) {
+                        min = cost;
+                        dir = Matcher::AdvanceThis;
+                    }
+                }
+                if (c > rowStart) {
+                    // horizontal from (r,c-1)
+                    double cost = m_m->getPathCost(r, c-1) + newCost;
+                    if ((min < 0) || (cost < min)) {
+                        min = cost;
+                        dir = Matcher::AdvanceOther;
+                    }
+                }
+                
+                m_m->setPathCost(r, c, dir, min);
+
+            } else if (c > rowStart) {	// first row
+                // horizontal from (r,c-1)
+                m_m->setPathCost(r, c, Matcher::AdvanceOther,
+                                   m_m->getPathCost(r, c-1) + newCost);
+            }
         }
-        prevRowStart = thisRowStart;
-        prevRowStop = c;
+
+        prevRowStart = rowStart;
+        prevRowStop = rowStop;
     }
-} // recalculatePathCostMatrix()
+} 
 
 int
 Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {
-    int ex = pm2->getFrameCount() - 1;
-    int ey = pm1->getFrameCount() - 1;
+    pathx.clear();
+    pathy.clear();
+
+    int ex = m_m->getOtherFrameCount() - 1;
+    int ey = m_m->getFrameCount() - 1;
+
+    if (ex < 0 || ey < 0) {
+        return 0;
+    }
     
     int x = ex;
     int y = ey;
     
 //    cerr << "before: x = " << x << ", y = " << y << endl;
 
-    if (duration2 > 0 && duration2 < pm2->getFrameCount()) {
-        x = duration2 - 1;
+    if (m_duration2 > 0 && m_duration2 < m_m->getOtherFrameCount()) {
+        x = m_duration2 - 1;
     }
-    if (duration1 > 0 && duration1 < pm1->getFrameCount()) {
-        y = duration1 - 1;
+    if (m_duration1 > 0 && m_duration1 < m_m->getFrameCount()) {
+        y = m_duration1 - 1;
     }
 
-    if (!find(y, x)) {
+    if (!m_m->isAvailable(y, x)) {
         // Path did not pass through the expected end point --
         // probably means the pieces are substantially different in
         // the later bits. Reset the expected end point to the end of
@@ -307,34 +187,31 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 
     recalculatePathCostMatrix(0, 0, y, x);
 
-    pathx.clear();
-    pathy.clear();
-
 //    cerr << "start: x = " << x << ", y = " << y << endl;
     
-    while (find(y, x) && ((x > 0) || (y > 0))) {
+    while (m_m->isAvailable(y, x) && (x > 0 || y > 0)) {
 
 //        cerr << "x = " << x << ", y = " << y;
         
         pathx.push_back(x);
         pathy.push_back(y);
 
-        switch (getAdvance()) {
+        switch (m_m->getAdvance(y, x)) {
         case Matcher::AdvanceThis:
-//            cerr << ", going down (dist = " << (int)getDistance() << ")" << endl;
+//            cerr << ", going down (dist = " << getDistance() << ")" << endl;
             y--;
             break;
         case Matcher::AdvanceOther:
-//            cerr << ", going left (dist = " << (int)getDistance() << ")" << endl;
+//            cerr << ", going left (dist = " << getDistance() << ")" << endl;
             x--;
             break;
         case Matcher::AdvanceBoth:
-//            cerr << ", going diag (dist = " << (int)getDistance() << ")" << endl;
+//            cerr << ", going diag (dist = " << getDistance() << ")" << endl;
             x--;
             y--;
             break;
         case Matcher::AdvanceNone: // this would indicate a bug, but we wouldn't want to hang
-//            cerr << "WARNING: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << endl;
+            cerr << "WARNING: Neither matcher advanced in path backtrack at (" << x << "," << y << ")" << endl;
             if (x > y) {
                 x--;
             } else {
@@ -344,8 +221,13 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
         }
     }
 
-    std::reverse(pathx.begin(), pathx.end());
-    std::reverse(pathy.begin(), pathy.end());
+    if (x > 0 || y > 0) {
+        cerr << "WARNING: Ran out of available path at (" << y << "," << x
+             << ")!" << endl;
+    }
+    
+    reverse(pathx.begin(), pathx.end());
+    reverse(pathy.begin(), pathy.end());
 
     if (smooth) {
         int smoothedLen = Path().smooth(pathx, pathy, pathx.size());

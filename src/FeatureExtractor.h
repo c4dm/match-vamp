@@ -103,6 +103,12 @@ public:
      * Return the feature vector size that will be returned from process().
      */
     int getFeatureSize() const { return m_featureSize; }
+
+    /**
+     * Return the feature vector size that would be returned from
+     * process() with these parameters.
+     */
+    static int getFeatureSizeFor(Parameters params);
     
     /**
      * Process one frequency-domain audio frame (provided as real &
@@ -121,6 +127,21 @@ public:
     std::vector<double> process(const std::vector<double> &real,
                                 const std::vector<double> &imag);
     
+    /**
+     * Process one frequency-domain audio frame, provided as a single
+     * array of alternating real and imaginary components. Input array
+     * must have at least 2 * (params.fftSize/2 + 1) elements.
+     *
+     * Operates by mapping the frequency bins into a part-linear
+     * part-logarithmic array, then (optionally) computing the
+     * half-wave rectified spectral difference from the previous
+     * frame, then (optionally) normalising to a sum of 1.
+     *
+     * Return value is the frame (post-processed, with warping,
+     * rectification, and normalisation as appropriate).
+     */
+    std::vector<double> process(const float *carray);
+    
 protected:
     /** Make either standard or chroma map, depending on m_params */
     void makeFreqMap();
@@ -136,6 +157,8 @@ protected:
     /** Creates a map of FFT frequency bins to semitone chroma bins. */
     void makeChromaFrequencyMap();
 
+    std::vector<double> postProcess(const std::vector<double> &, double rms);
+    
     /** Configuration parameters */
     Parameters m_params;
     

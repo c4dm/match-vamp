@@ -28,7 +28,7 @@
 #include "Matcher.h"
 #include "FeatureExtractor.h"
 
-class MatchFeeder;
+class MatchFeatureFeeder;
 
 class MatchVampPlugin : public Vamp::Plugin
 {
@@ -67,10 +67,13 @@ public:
 
 protected:
     void createMatchers();
+    bool aboveThreshold(const float *);
 
-    Matcher *pm1;
-    Matcher *pm2;
-    MatchFeeder *feeder;
+    Matcher *m_pm1;
+    Matcher *m_pm2;
+    FeatureExtractor *m_fe1;
+    FeatureExtractor *m_fe2;
+    MatchFeatureFeeder *m_feeder;
 
     Vamp::RealTime m_startTime;
     int m_stepSize;
@@ -81,6 +84,10 @@ protected:
     bool m_locked;
     bool m_smooth;
 
+    int m_frameNo;
+    int m_lastFrameIn1;
+    int m_lastFrameIn2;
+    
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
 

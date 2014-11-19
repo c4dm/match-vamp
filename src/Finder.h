@@ -22,22 +22,10 @@
 
 #include "Matcher.h"
 
-/** Maps cost matrix coordinates into an efficient
- *  (linear instead of quadratic space) representation.
- *  Stores result of most recent mapping for fast
- *  sequential access.
- */
-class Finder {
-
-protected:
-    Matcher *pm1, *pm2;
-    int index1, index2, bestRow, bestCol;
-    int *rowRange;
-    int *colRange;
-    int duration1, duration2;
-
+class Finder
+{
 public:
-    Finder(Matcher *p1, Matcher *p2);
+    Finder(Matcher *pm);
 
     ~Finder();
 
@@ -50,42 +38,9 @@ public:
      */
     void setDurations(int d1, int d2);
     
-    /** Sets up the instance variables to point to the given
-     *  coordinate in the distance matrix.
-     *
-     *  @param i1 frameNumber in the first Matcher
-     *  @param i2 frameNumber in the second Matcher
-     *  @return true iff the point (i2,i1) is represented in the distance matrix
-     */
-    bool find(int i1, int i2);
-
-    /** Returns the range [lo,hi) of legal column indices for the
-     *  given row. */
-    void getColRange(int row, int *range);
-
-    /** Returns the range [lo,hi) of legal row indices for the given
-     *  column. */
-    void getRowRange(int col, int *range);
-
     Matcher::Advance getExpandDirection(int row, int col);
     Matcher::Advance getExpandDirection(int row, int col, bool check);
-	
-    float getDistance(int row, int col);
-    void setDistance(int row, int col, float b);
-
-    double getPathCost(int row, int col);
-    double getRawPathCost(int row, int col); //!!!???
-    void setPathCost(int row, int col, double i);
-
-    Matcher::Advance getAdvance();
-    void setAdvance(Matcher::Advance a);
     
-    float getDistance();
-    void setDistance(float b);
-
-    double getPathCost();
-    void setPathCost(double i);
-
     /** Calculates a rectangle of the path cost matrix so that the
      *  minimum cost path between the bottom left and top right
      *  corners can be computed.  Caches previous values to avoid
@@ -110,7 +65,11 @@ public:
      * @param smooth whether to smooth the path before returning it
      */
     int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
-    
-}; // class Finder
+
+protected:
+    Matcher *m_m;
+    int m_duration1;
+    int m_duration2;
+};
 
 #endif
