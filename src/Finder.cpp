@@ -79,19 +79,6 @@ Finder::getExpandDirection(int row, int col, bool check)
         }
     }
 
-    //	System.err.print("  BEST: " + bestRow + " " + bestCol + " " + check);
-    //	System.err.println(" " + pm1->frameCount + " " + pm2->frameCount);
-    /*
-    if (check) {
-        //		System.err.println(find(row+1, col) + " " + find(row, col+1));
-        if (!find(row, col+1)) {
-            return Matcher::AdvanceThis;
-        } else if (!find(row+1, col)) {
-            return Matcher::AdvanceOther;
-        }
-    }
-    */
-
     if (bestRow == row) {
         if (bestCol == col) {
             return Matcher::AdvanceBoth;
@@ -104,7 +91,7 @@ Finder::getExpandDirection(int row, int col, bool check)
         return Matcher::AdvanceNone;
     }
 
-} // getExpandDirection()
+}
 
 void
 Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2) 
