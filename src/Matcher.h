@@ -102,6 +102,8 @@ public:
      */
     Matcher(Parameters parameters, Matcher *p, int featureSize);
 
+    /** Destructor for Matcher.
+     */
     ~Matcher();
 
     /** Adds a link to the Matcher object representing the performance
@@ -113,6 +115,14 @@ public:
         m_otherMatcher = p;
     }
 
+    int getBlockSize() {
+        return m_blockSize;
+    }
+
+    bool isOverrunning() {
+        return m_runCount >= m_params.maxRunCount;
+    }
+    
     int getFrameCount() { 
         return m_frameCount;
     }
@@ -290,10 +300,6 @@ protected:
     bool m_initialised;
 
     DistanceMetric m_metric;
-    
-    friend class MatchFeeder;
-    friend class MatchFeatureFeeder;
-    
-}; // class Matcher
+};
 
 #endif
