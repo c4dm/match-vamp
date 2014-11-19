@@ -127,6 +127,89 @@ public:
         return m_frameCount;
     }
 
+    int getOtherFrameCount() {
+        return m_otherMatcher->getFrameCount();
+    }
+    
+    /** Tests whether a location is in range in the minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return true if the location is in range
+     */
+    bool isInRange(int i, int j);
+    
+    /** Tests whether a location is available in the minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return true if the location is in range and contains a valid cost
+     */
+    bool isAvailable(int i, int j);
+
+    /** Returns the valid range of frames in the other Matcher for the
+     *  given frame in this Matcher's minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @return the first, last pair of frame numbers for the other
+     *  Matcher. Note that the last frame is exclusive (last valid
+     *  frame + 1).
+     */
+    std::pair<int, int> getColRange(int i);
+
+    /** Returns the valid range of frames in this Matcher for the
+     *  given frame in the other Matcher's minimum cost matrix.
+     *
+     *  @param i the frame number of the other Matcher
+     *  @return the first, last pair of frame numbers for this
+     *  Matcher. Note that the last frame is exclusive (last valid
+     *  frame + 1).
+     */
+    std::pair<int, int> getRowRange(int i);
+    
+    /** Retrieves a value from the distance matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return the distance metric at this location
+     */
+    float getDistance(int i, int j);
+
+    /** Sets a value to the distance matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @param value the distance metric to set for this location
+     */
+    void setDistance(int i, int j, float value);
+    
+    /** Retrieves a value from the minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return the cost of the minimum cost path to this location
+     */
+    double getPathCost(int i, int j);
+
+    /** Sets a value and an advance direction to the minimum cost matrix.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @param dir the direction from which this position is reached with
+     *  minimum cost
+     *  @param value the cost of the minimum cost path to set for this location
+     */
+    void setPathCost(int i, int j, Advance dir, double value);
+
+    /** Retrieves an advance direction from the matrix.
+     * 
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return the direction from which this position is reached with
+     *  minimum cost
+     */
+    Advance getAdvance(int i, int j);
+    
 protected:
     /** Create internal structures and reset. */
     void init();
@@ -161,38 +244,6 @@ protected:
      *  that was passed to the constructor.
      */
     void consumeFeatureVector(std::vector<double> feature);
-
-    /** Tests whether a location is in range in the minimum cost matrix.
-     *
-     *  @param i the frame number of this Matcher
-     *  @param j the frame number of the other Matcher
-     *  @return true if the location is in range
-     */
-    bool isInRange(int i, int j);
-    
-    /** Tests whether a location is available in the minimum cost matrix.
-     *
-     *  @param i the frame number of this Matcher
-     *  @param j the frame number of the other Matcher
-     *  @return true if the location is in range and contains a valid cost
-     */
-    bool isAvailable(int i, int j);
-    
-    /** Retrieves a value from the minimum cost matrix.
-     *
-     *  @param i the frame number of this Matcher
-     *  @param j the frame number of the other Matcher
-     *  @return the cost of the minimum cost path to this location
-     */
-    double getValue(int i, int j);
-
-    /** Sets a value to the minimum cost matrix.
-     *
-     *  @param i the frame number of this Matcher
-     *  @param j the frame number of the other Matcher
-     *  @param value the cost of the minimum cost path to set for this location
-     */
-    void setValue(int i, int j, double value);
 
     /** Updates an entry in the distance matrix and the optimal path matrix.
      *
@@ -269,8 +320,7 @@ protected:
     
     friend class MatchFeeder;
     friend class MatchFeatureFeeder;
-    friend class Finder;
-
+    
 }; // class Matcher
 
 #endif

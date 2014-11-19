@@ -22,7 +22,7 @@ MatchFeeder::MatchFeeder(Matcher *m1, Matcher *m2) :
     pm1(m1), pm2(m2), n(0), lastIn1(0), lastIn2(0)
 {
     fftSize = m1->m_params.fftSize;
-    finder = new Finder(m1, m2);
+    finder = new Finder(m1);
     reBuffer = new double[fftSize/2+1];
     imBuffer = new double[fftSize/2+1];
 }
@@ -138,29 +138,35 @@ MatchFeeder::feedBlock()
     vector<double> f1, f2;
 
     if (q1.empty()) {
+        cerr << "feedBlock: q1 empty, feeding 2" << endl;
         f2 = feed2();
     } else if (q2.empty()) {
+        cerr << "feedBlock: q2 empty, feeding 1" << endl;
         f1 = feed1();
     } else if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
-//        std::cerr << "feeding initial block" << std::endl;
+        std::cerr << "feeding initial block" << std::endl;
         f1 = feed1();
         f2 = feed2();
     } else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
-//        std::cerr << "pm1 too slopey" << std::endl;
+        std::cerr << "pm1 too slopey" << std::endl;
         f2 = feed2();
     } else if (pm2->m_runCount >= pm2->m_params.maxRunCount) {
-//        std::cerr << "pm2 too slopey" << std::endl;
+        std::cerr << "pm2 too slopey" << std::endl;
         f1 = feed1();
     } else {
+//        cerr << "run counts: " << pm1->m_runCount << ", " << pm2->m_runCount << endl;
         switch (finder->getExpandDirection
                 (pm1->m_frameCount-1, pm2->m_frameCount-1)) {
         case Matcher::AdvanceThis:
+//            cerr << "feeding 1" << endl;
             f1 = feed1();
             break;
         case Matcher::AdvanceOther:
+//            cerr << "feeding 2" << endl;
             f2 = feed2();
             break;
         case Matcher::AdvanceBoth:
+//            cerr << "feeding 1 and 2" << endl;
             f1 = feed1();
             f2 = feed2();
             break;

@@ -21,7 +21,7 @@ using std::vector;
 MatchFeatureFeeder::MatchFeatureFeeder(Matcher *m1, Matcher *m2) :
     pm1(m1), pm2(m2)
 {
-    finder = new Finder(m1, m2);
+    finder = new Finder(m1);
 }
 
 MatchFeatureFeeder::~MatchFeatureFeeder()

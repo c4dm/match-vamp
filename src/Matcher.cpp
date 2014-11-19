@@ -21,6 +21,8 @@
 #include <cstdlib>
 #include <cassert>
 
+using namespace std;
+
 //#define DEBUG_MATCHER 1
 
 Matcher::Matcher(Parameters parameters,
@@ -125,7 +127,7 @@ Matcher::consumeFrame(double *reBuffer, double *imBuffer)
 }
 
 void
-Matcher::consumeFeatureVector(std::vector<double> feature)
+Matcher::consumeFeatureVector(vector<double> feature)
 {
     if (!m_initialised) init();
     int frameIndex = m_frameCount % m_blockSize; 
@@ -204,30 +206,30 @@ Matcher::calcAdvance()
             updateValue(0, 0, AdvanceNone, 0, dMN);
         else if (m_frameCount == 0)                 // first row
             updateValue(0, index, AdvanceOther,
-                        getValue(0, index-1), dMN);
+                        getPathCost(0, index-1), dMN);
         else if (index == 0)                      // first column
             updateValue(m_frameCount, index, AdvanceThis,
-                        getValue(m_frameCount - 1, 0), dMN);
+                        getPathCost(m_frameCount - 1, 0), dMN);
         else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
             // missing value(s) due to cutoff
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
-            double min2 = getValue(m_frameCount - 1, index);
+            double min2 = getPathCost(m_frameCount - 1, index);
             //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
             //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
             if (m_first[m_frameCount - 1] == index)
                 updateValue(m_frameCount, index, AdvanceThis, min2, dMN);
             else {
-                double min1 = getValue(m_frameCount - 1, index - 1);
+                double min1 = getPathCost(m_frameCount - 1, index - 1);
                 if (min1 + dMN <= min2)
                     updateValue(m_frameCount, index, AdvanceBoth, min1,dMN);
                 else
                     updateValue(m_frameCount, index, AdvanceThis, min2,dMN);
             }
         } else {
-            double min1 = getValue(m_frameCount, index-1);
-            double min2 = getValue(m_frameCount - 1, index);
-            double min3 = getValue(m_frameCount - 1, index-1);
+            double min1 = getPathCost(m_frameCount, index-1);
+            double min2 = getPathCost(m_frameCount - 1, index);
+            double min3 = getPathCost(m_frameCount - 1, index-1);
             if (min1 <= min2) {
                 if (min3 + dMN <= min1)
                     updateValue(m_frameCount, index, AdvanceBoth, min3,dMN);
@@ -276,41 +278,104 @@ Matcher::isAvailable(int i, int j)
     }
 }
 
-double
-Matcher::getValue(int i, int j)
+pair<int, int>
+Matcher::getColRange(int i)
+{
+    if (i < 0 || i >= int(m_first.size())) {
+        cerr << "ERROR: Matcher::getColRange(" << i << "): Index out of range"
+             << endl;
+        throw "Index out of range";
+    } else {
+        return pair<int, int>(m_first[i], m_last[i]);
+    }
+}
+
+pair<int, int>
+Matcher::getRowRange(int i)
+{
+    return m_otherMatcher->getColRange(i);
+}
+
+float
+Matcher::getDistance(int i, int j)
 {
     if (m_firstPM) {
-        if (!isAvailable(i, j)) {
-            if (!isInRange(i, j)) {
-                cerr << "ERROR: Matcher::getValue(" << i << ", " << j << "): "
-                     << "Location is not in range" << endl;
-            } else {
-                cerr << "ERROR: Matcher::getValue(" << i << ", " << j << "): "
-                     << "Location is in range, but value ("
-                     << m_bestPathCost[i][j - m_first[i]]
-                     << ") is invalid or has not been set" << endl;
-            }
-            throw "Value not available";
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
+                 << "Location is not in range" << endl;
+            throw "Distance not available";
         }
-        return m_bestPathCost[i][j - m_first[i]];
+        float dist = m_distance[i][j - m_first[i]];
+        if (dist < 0) {
+            cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
+                 << "Location is in range, but distance ("
+                 << dist << ") is invalid or has not been set" << endl;
+            throw "Distance not available";
+        }
+        return dist;
     } else {
-        return m_otherMatcher->getValue(j, i);
+        return m_otherMatcher->getDistance(j, i);
     }
 }
                 
 void
-Matcher::setValue(int i, int j, double value)
+Matcher::setDistance(int i, int j, float distance)
 {
     if (m_firstPM) {
         if (!isInRange(i, j)) {
-            cerr << "ERROR: Matcher::setValue(" << i << ", " << j << ", "
-                 << value << "): Location is out of range" << endl;
+            cerr << "ERROR: Matcher::setDistance(" << i << ", " << j << ", "
+                 << distance << "): Location is out of range" << endl;
             throw "Indices out of range";
         }
-        m_bestPathCost[i][j - m_first[i]] = value;
+        m_distance[i][j - m_first[i]] = distance;
     } else {
-        m_otherMatcher->setValue(j, i, value);
+        m_otherMatcher->setDistance(j, i, distance);
     }
+}
+
+double
+Matcher::getPathCost(int i, int j)
+{
+    if (m_firstPM) {
+        if (!isAvailable(i, j)) {
+            if (!isInRange(i, j)) {
+                cerr << "ERROR: Matcher::getPathCost(" << i << ", " << j << "): "
+                     << "Location is not in range" << endl;
+            } else {
+                cerr << "ERROR: Matcher::getPathCost(" << i << ", " << j << "): "
+                     << "Location is in range, but pathCost ("
+                     << m_bestPathCost[i][j - m_first[i]]
+                     << ") is invalid or has not been set" << endl;
+            }
+            throw "Path cost not available";
+        }
+        return m_bestPathCost[i][j - m_first[i]];
+    } else {
+        return m_otherMatcher->getPathCost(j, i);
+    }
+}
+                
+void
+Matcher::setPathCost(int i, int j, Advance dir, double pathCost)
+{
+    if (m_firstPM) {
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::setPathCost(" << i << ", " << j << ", "
+                 << dir << ", " << pathCost
+                 << "): Location is out of range" << endl;
+            throw "Indices out of range";
+        }
+        m_advance[i][j - m_first[i]] = dir;
+        m_bestPathCost[i][j - m_first[i]] = pathCost;
+    } else {
+        if (dir == AdvanceThis) {
+            dir = AdvanceOther;
+        } else if (dir == AdvanceOther) {
+            dir = AdvanceThis;
+        }
+        m_otherMatcher->setPathCost(j, i, dir, pathCost);
+    }
+
 }
 
 void
@@ -318,18 +383,10 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
 {
     if (m_firstPM) {
 
-        int jdx = j - m_first[i];
-        m_distance[i][jdx] = dMN;
-        m_advance[i][jdx] = dir;
-        setValue(i, j, value + (dir == AdvanceBoth ? dMN*2: dMN));
+        m_distance[i][j - m_first[i]] = dMN;
+        setPathCost(i, j, dir, value + (dir == AdvanceBoth ? dMN*2: dMN));
 
     } else {
-
-        if (dir == AdvanceThis) {
-            dir = AdvanceOther;
-        } else if (dir == AdvanceOther) {
-            dir = AdvanceThis;
-        }
 
         int idx = i - m_otherMatcher->m_first[j];
         
@@ -337,15 +394,28 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
             // This should never happen, but if we allow arbitrary
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
-            std::cerr << "Emergency resize: " << idx << " -> " << idx * 2 << std::endl;
+            cerr << "Emergency resize: " << idx << " -> " << idx * 2 << endl;
             m_otherMatcher->m_bestPathCost[j].resize(idx * 2, -1);
             m_otherMatcher->m_distance[j].resize(idx * 2, -1);
             m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
         }
 
         m_otherMatcher->m_distance[j][idx] = dMN;
-        m_otherMatcher->m_advance[j][idx] = dir;
-        m_otherMatcher->setValue(j, i, value + (dir == AdvanceBoth ? dMN*2: dMN));
+        m_otherMatcher->setPathCost(j, i, dir, value + (dir == AdvanceBoth ? dMN*2: dMN));
     }
 }
 
+Matcher::Advance
+Matcher::getAdvance(int i, int j)
+{
+    if (m_firstPM) {
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::getAdvance(" << i << ", " << j << "): "
+                 << "Location is not in range" << endl;
+            throw "Advance not available";
+        }
+        return m_advance[i][j - m_first[i]];
+    } else {
+        return m_otherMatcher->getAdvance(j, i);
+    }
+}
