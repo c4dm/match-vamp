@@ -23,16 +23,15 @@
 #include <cmath>
 
 #include "DistanceMetric.h"
-#include "FeatureExtractor.h"
 
 using std::vector;
 using std::string;
 using std::cerr;
 using std::endl;
 
-/** Represents an audio stream that can be matched to another audio
- *  stream of the same piece of music.  The matching algorithm uses
- *  dynamic time warping.
+/** Represents an audio feature stream that can be matched to another
+ *  audio stream of the same piece of music.  The matching algorithm
+ *  uses dynamic time warping.
  */
 class Matcher
 {
@@ -87,28 +86,19 @@ public:
     };
 
     /** Constructor for Matcher.
-     *
-     *  @param p The Matcher representing the performance with which
-     *  this one is going to be matched.  Some information is shared
-     *  between the two matchers (currently one possesses the distance
-     *  matrix and optimal path matrix).
-     */
-    Matcher(Parameters parameters,
-            FeatureExtractor::Parameters featureParams,
-            Matcher *p);
-
-    /** Constructor for Matcher using externally supplied features.
-     *  A Matcher made using this constructor will not carry out its
-     *  own feature extraction from frequency-domain audio data, but
-     *  instead will accept arbitrary feature frames calculated by
-     *  some external code.
+     * 
+     *  A Matcher expects to be provided with feature vectors
+     *  calculated by some external code (for example, a
+     *  FeatureExtractor). Call consumeFeatureVector to provide each
+     *  feature frame.
      *
      *  @param p The Matcher representing the performance with which
      *  this one is going to be matched.  Some information is shared
      *  between the two matchers (currently one possesses the distance
      *  matrix and optimal path matrix).
      *  
-     *  @param featureSize Number of values in each feature vector.
+     *  @param featureSize Number of values in each of the feature
+     *  vectors that will be provided.
      */
     Matcher(Parameters parameters, Matcher *p, int featureSize);
 
@@ -121,7 +111,7 @@ public:
      */
     void setOtherMatcher(Matcher *p) {
         m_otherMatcher = p;
-    } // setOtherMatcher()
+    }
 
     int getFrameCount() { 
         return m_frameCount;
@@ -130,6 +120,18 @@ public:
     int getOtherFrameCount() {
         return m_otherMatcher->getFrameCount();
     }
+
+    /** Processes a feature vector frame, presumably calculated from
+     *  audio data by some external code such as a FeatureExtractor.
+     *  Calculates the distance to all frames stored in the
+     *  otherMatcher and stores in the distance matrix, before
+     *  updating the optimal path matrix using the dynamic time
+     *  warping algorithm.
+     *
+     *  The supplied feature must be of the size that was passed as
+     *  featureSize to the constructor.
+     */
+    void consumeFeatureVector(std::vector<double> feature);
     
     /** Tests whether a location is in range in the minimum cost matrix.
      *
@@ -217,34 +219,6 @@ protected:
     /** The distXSize value has changed: resize internal buffers. */
     void size();
 
-    /** Process a frequency-domain frame of audio data using the
-     *  built-in FeatureExtractor, then calculating the distance to
-     *  all frames stored in the otherMatcher and storing them in the
-     *  distance matrix, and finally updating the optimal path matrix
-     *  using the dynamic time warping algorithm.
-     *
-     *  Return value is the frame (post-processed, with warping,
-     *  rectification, and normalisation as appropriate).
-     *
-     *  The Matcher must have been constructed using the constructor
-     *  without an external featureSize parameter in order to use this
-     *  function. (Otherwise it will be expecting you to call
-     *  consumeFeatureVector.)
-     */
-    std::vector<double> consumeFrame(double *reBuffer, double *imBuffer);
-
-    /** Processes a feature vector frame (presumably calculated from
-     *  audio data by some external code). As consumeFrame, except
-     *  that it does not calculate a feature from audio data but
-     *  instead uses the supplied feature directly.
-     *
-     *  The Matcher must have been constructed using the constructor
-     *  that accepts an external featureSize parameter in order to
-     *  use this function. The supplied feature must be of the size
-     *  that was passed to the constructor.
-     */
-    void consumeFeatureVector(std::vector<double> feature);
-
     /** Updates an entry in the distance matrix and the optimal path matrix.
      *
      *  @param i the frame number of this Matcher
@@ -315,7 +289,6 @@ protected:
 
     bool m_initialised;
 
-    FeatureExtractor m_featureExtractor;
     DistanceMetric m_metric;
     
     friend class MatchFeeder;

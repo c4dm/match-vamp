@@ -28,15 +28,20 @@ FeatureExtractor::FeatureExtractor(Parameters parameters) :
     m_params(parameters),
     m_ltAverage(0)
 {
-    if (m_params.useChromaFrequencyMap) {
-	m_featureSize = 13;
-    } else {
-	m_featureSize = 84;
-    }
-
+    m_featureSize = getFeatureSizeFor(parameters);
     m_prevFrame = vector<double>(m_featureSize, 0.0);
 
     makeFreqMap();
+}
+
+int
+FeatureExtractor::getFeatureSizeFor(Parameters parameters)
+{
+    if (parameters.useChromaFrequencyMap) {
+	return 13;
+    } else {
+	return 84;
+    }
 }
 
 void
@@ -110,6 +115,28 @@ FeatureExtractor::process(const vector<double> &real, const vector<double> &imag
     }
     rms = sqrt(rms / (m_params.fftSize/2));
 
+    return postProcess(frame, rms);
+}
+
+vector<double>
+FeatureExtractor::process(const float *cframe)
+{
+    vector<double> frame(m_featureSize, 0.0);
+    
+    double rms = 0;
+    for (int i = 0; i <= m_params.fftSize/2; i++) {
+        double mag = cframe[i*2] * cframe[i*2] + cframe[i*2+1] * cframe[i*2+1];
+        rms += mag;
+        frame[m_freqMap[i]] += mag;
+    }
+    rms = sqrt(rms / (m_params.fftSize/2));
+
+    return postProcess(frame, rms);
+}
+
+vector<double>
+FeatureExtractor::postProcess(const vector<double> &frame, double rms)
+{
     vector<double> feature(m_featureSize, 0.0);
 
     double totalEnergy = 0;

@@ -19,14 +19,14 @@
 using std::vector;
 
 MatchFeatureFeeder::MatchFeatureFeeder(Matcher *m1, Matcher *m2) :
-    pm1(m1), pm2(m2)
+    m_pm1(m1), m_pm2(m2)
 {
-    finder = new Finder(m1);
+    m_finder = new Finder(m1);
 }
 
 MatchFeatureFeeder::~MatchFeatureFeeder()
 {
-    delete finder;
+    delete m_finder;
 }
 
 void
@@ -39,14 +39,14 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
     // empty.  Then it returns, to be called again with more data.
 
     if (!f1.empty()) {
-        q1.push(f1);
+        m_q1.push(f1);
     }
     
     if (!f2.empty()) {
-        q2.push(f2);
+        m_q2.push(f2);
     }
 
-    while (!q1.empty() && !q2.empty()) {
+    while (!m_q1.empty() && !m_q2.empty()) {
         feedBlock();
     }
 }
@@ -54,7 +54,7 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 void
 MatchFeatureFeeder::finish()
 {
-    while (!q1.empty() || !q2.empty()) {
+    while (!m_q1.empty() || !m_q2.empty()) {
         feedBlock();
     }
 }
@@ -62,20 +62,20 @@ MatchFeatureFeeder::finish()
 void
 MatchFeatureFeeder::feedBlock()
 {
-    if (q1.empty()) { // ended
+    if (m_q1.empty()) { // ended
         feed2();
-    } else if (q2.empty()) { // ended
+    } else if (m_q2.empty()) { // ended
         feed1();
-    } else if (pm1->m_frameCount < pm1->m_blockSize) {		// fill initial block
+    } else if (m_pm1->m_frameCount < m_pm1->m_blockSize) {		// fill initial block
         feed1();
         feed2();
-    } else if (pm1->m_runCount >= pm1->m_params.maxRunCount) {  // slope constraints
+    } else if (m_pm1->m_runCount >= m_pm1->m_params.maxRunCount) {  // slope constraints
         feed2();
-    } else if (pm2->m_runCount >= pm2->m_params.maxRunCount) {
+    } else if (m_pm2->m_runCount >= m_pm2->m_params.maxRunCount) {
         feed1();
     } else {
-        switch (finder->getExpandDirection
-                (pm1->m_frameCount-1, pm2->m_frameCount-1)) {
+        switch (m_finder->getExpandDirection
+                (m_pm1->m_frameCount-1, m_pm2->m_frameCount-1)) {
         case Matcher::AdvanceThis:
             feed1();
             break;
@@ -87,7 +87,7 @@ MatchFeatureFeeder::feedBlock()
             feed2();
             break;
         case Matcher::AdvanceNone:
-            cerr << "finder says AdvanceNone!" << endl;
+            cerr << "m_finder says AdvanceNone!" << endl;
             break;
         }
     }
@@ -96,14 +96,14 @@ MatchFeatureFeeder::feedBlock()
 void
 MatchFeatureFeeder::feed1()
 {
-    pm1->consumeFeatureVector(q1.front());
-    q1.pop();
+    m_pm1->consumeFeatureVector(m_q1.front());
+    m_q1.pop();
 }
 
 void
 MatchFeatureFeeder::feed2()
 {
-    pm2->consumeFeatureVector(q2.front());
-    q2.pop();
+    m_pm2->consumeFeatureVector(m_q2.front());
+    m_q2.pop();
 }
 

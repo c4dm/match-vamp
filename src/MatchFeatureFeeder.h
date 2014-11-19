@@ -48,19 +48,19 @@ public:
      */
     void finish();
     
-    Finder *getFinder() { return finder; }
+    Finder *getFinder() { return m_finder; }
 
 protected:
     void feedBlock();
     void feed1();
     void feed2();
 
-    Finder *finder;
-    Matcher *pm1;
-    Matcher *pm2;
+    Finder *m_finder;
+    Matcher *m_pm1;
+    Matcher *m_pm2;
 
-    std::queue<std::vector<double> > q1;
-    std::queue<std::vector<double> > q2;
+    std::queue<std::vector<double> > m_q1;
+    std::queue<std::vector<double> > m_q2;
 };
 
 #endif

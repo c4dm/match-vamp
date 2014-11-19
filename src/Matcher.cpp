@@ -25,36 +25,9 @@ using namespace std;
 
 //#define DEBUG_MATCHER 1
 
-Matcher::Matcher(Parameters parameters,
-                 FeatureExtractor::Parameters feParams,
-                 Matcher *p) :
-    m_params(parameters),
-    m_featureExtractor(feParams),
-    m_metric(parameters.distanceNorm)
-{
-#ifdef DEBUG_MATCHER
-    cerr << "Matcher::Matcher(" << m_params.sampleRate << ", " << p << ")" << endl;
-#endif
-
-    m_otherMatcher = p;	// the first matcher will need this to be set later
-    m_firstPM = (!p);
-    m_frameCount = 0;
-    m_runCount = 0;
-    m_featureSize = m_featureExtractor.getFeatureSize();
-    m_blockSize = 0;
-
-    m_blockSize = lrint(m_params.blockTime / m_params.hopTime);
-#ifdef DEBUG_MATCHER
-    cerr << "Matcher: m_blockSize = " << m_blockSize << endl;
-#endif
-
-    m_initialised = false;
-}
-
 Matcher::Matcher(Parameters parameters, Matcher *p, int m_featureSize_) :
     m_params(parameters),
     m_featureSize(m_featureSize_),
-    m_featureExtractor(FeatureExtractor::Parameters(m_params.sampleRate, m_params.fftSize)), // unused default config
     m_metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
@@ -109,21 +82,6 @@ Matcher::size()
     m_advance.resize(m_distXSize, vector<Advance>(distSize, AdvanceNone));
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
-}
-
-vector<double>
-Matcher::consumeFrame(double *reBuffer, double *imBuffer)
-{
-    if (!m_initialised) init();
-
-    vector<double> real(reBuffer, reBuffer + m_params.fftSize/2 + 1);
-    vector<double> imag(imBuffer, imBuffer + m_params.fftSize/2 + 1);
-    vector<double> feature = m_featureExtractor.process(real, imag);
-    int frameIndex = m_frameCount % m_blockSize;
-    m_frames[frameIndex] = feature;
-    calcAdvance();
-
-    return feature;
 }
 
 void

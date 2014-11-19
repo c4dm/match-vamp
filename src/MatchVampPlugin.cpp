@@ -17,7 +17,8 @@
 #include "MatchVampPlugin.h"
 
 #include "Matcher.h"
-#include "MatchFeeder.h"
+#include "MatchFeatureFeeder.h"
+#include "FeatureExtractor.h"
 #include "Path.h"
 
 #include <vamp/vamp.h>
@@ -56,6 +57,9 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_begin(true),
     m_locked(false),
     m_smooth(true),
+    m_frameNo(0),
+    m_lastFrameIn1(0),
+    m_lastFrameIn2(0),
     m_params(inputSampleRate, defaultStepTime, m_blockSize),
     m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize),
     m_feParams(inputSampleRate, m_blockSize),
@@ -77,9 +81,11 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
 #endif
     }
 
-    pm1 = 0;
-    pm2 = 0;
-    feeder = 0;
+    m_pm1 = 0;
+    m_pm2 = 0;
+    m_fe1 = 0;
+    m_fe2 = 0;
+    m_feeder = 0;
 //    std::cerr << "MatchVampPlugin::MatchVampPlugin(" << this << "): extant = " << ++extant << std::endl;
 }
 
@@ -87,9 +93,11 @@ MatchVampPlugin::~MatchVampPlugin()
 {
 //    std::cerr << "MatchVampPlugin::~MatchVampPlugin(" << this << "): extant = " << --extant << std::endl;
 
-    delete feeder;
-    delete pm1;
-    delete pm2;
+    delete m_feeder;
+    delete m_fe1;
+    delete m_fe2;
+    delete m_pm1;
+    delete m_pm2;
 
     if (m_locked) {
 #ifdef _WIN32
@@ -303,10 +311,12 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_params.fftSize = m_blockSize;
     m_feParams.fftSize = m_blockSize;
-    pm1 = new Matcher(m_params, m_feParams, 0);
-    pm2 = new Matcher(m_params, m_feParams, pm1);
-    pm1->setOtherMatcher(pm2);
-    feeder = new MatchFeeder(pm1, pm2);
+    m_fe1 = new FeatureExtractor(m_feParams);
+    m_fe2 = new FeatureExtractor(m_feParams);
+    m_pm1 = new Matcher(m_params, 0, m_fe1->getFeatureSize());
+    m_pm2 = new Matcher(m_params, m_pm1, m_fe2->getFeatureSize());
+    m_pm1->setOtherMatcher(m_pm2);
+    m_feeder = new MatchFeatureFeeder(m_pm1, m_pm2);
 }
 
 bool
@@ -337,12 +347,21 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 void
 MatchVampPlugin::reset()
 {
-    delete feeder;
-    delete pm1;
-    delete pm2;
-    feeder = 0;
-    pm1 = 0;
-    pm2 = 0;
+    delete m_feeder;
+    delete m_fe1;
+    delete m_fe2;
+    delete m_pm1;
+    delete m_pm2;
+
+    m_feeder = 0;
+    m_fe1 = 0;
+    m_fe2 = 0;
+    m_pm1 = 0;
+    m_pm2 = 0;
+
+    m_frameNo = 0;
+    m_lastFrameIn1 = 0;
+    m_lastFrameIn2 = 0;
 
     createMatchers();
     m_begin = true;
@@ -454,6 +473,18 @@ MatchVampPlugin::getOutputDescriptors() const
     return list;
 }
 
+bool
+MatchVampPlugin::aboveThreshold(const float *frame)
+{
+    float threshold = 1e-5f;
+    float rms = 0.f;
+    for (int i = 0; i < m_blockSize/2 + 2; ++i) {
+        rms += frame[i] * frame[i];
+    }
+    rms = sqrtf(rms / (m_blockSize/2 + 2));
+    return (rms > threshold);
+}
+
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::process(const float *const *inputBuffers,
                          Vamp::RealTime timestamp)
@@ -473,62 +504,47 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     
 //    std::cerr << timestamp.toString();
 
-    MatchFeeder::Features ff = feeder->feedAndGetFeatures(inputBuffers);
+    if (aboveThreshold(inputBuffers[0])) m_lastFrameIn1 = m_frameNo;
+    if (aboveThreshold(inputBuffers[1])) m_lastFrameIn2 = m_frameNo;
+
+    vector<double> f1 = m_fe1->process(inputBuffers[0]);
+    vector<double> f2 = m_fe2->process(inputBuffers[1]);
+    
+    m_feeder->feed(f1, f2);
 
     FeatureSet returnFeatures;
 
     Feature f;
     f.hasTimestamp = false;
 
-    for (int i = 0; i < (int)ff.f1.size(); ++i) {
-        f.values.clear();
-        for (int j = 0; j < (int)ff.f1[i].size(); ++j) {
-            f.values.push_back(float(ff.f1[i][j]));
-        }
-        returnFeatures[m_aFeaturesOutNo].push_back(f);
+    f.values.clear();
+    for (int j = 0; j < (int)f1.size(); ++j) {
+        f.values.push_back(float(f1[j]));
     }
+    returnFeatures[m_aFeaturesOutNo].push_back(f);
 
-    for (int i = 0; i < (int)ff.f2.size(); ++i) {
-        f.values.clear();
-        for (int j = 0; j < (int)ff.f2[i].size(); ++j) {
-            f.values.push_back(float(ff.f2[i][j]));
-        }
-        returnFeatures[m_bFeaturesOutNo].push_back(f);
+    f.values.clear();
+    for (int j = 0; j < (int)f2.size(); ++j) {
+        f.values.push_back(float(f2[j]));
     }
+    returnFeatures[m_bFeaturesOutNo].push_back(f);
 
 //    std::cerr << ".";
 //    std::cerr << std::endl;
 
+    ++m_frameNo;
+    
     return returnFeatures;
 }
 
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::getRemainingFeatures()
 {
+    m_feeder->finish();
+
     FeatureSet returnFeatures;
     
-    MatchFeeder::Features ff = feeder->finishAndGetFeatures();
-
-    Feature f;
-    f.hasTimestamp = false;
-
-    for (int i = 0; i < (int)ff.f1.size(); ++i) {
-        f.values.clear();
-        for (int j = 0; j < (int)ff.f1[i].size(); ++j) {
-            f.values.push_back(float(ff.f1[i][j]));
-        }
-        returnFeatures[m_aFeaturesOutNo].push_back(f);
-    }
-
-    for (int i = 0; i < (int)ff.f2.size(); ++i) {
-        f.values.clear();
-        for (int j = 0; j < (int)ff.f2[i].size(); ++j) {
-            f.values.push_back(float(ff.f2[i][j]));
-        }
-        returnFeatures[m_bFeaturesOutNo].push_back(f);
-    }
-
-    Finder *finder = feeder->getFinder();
+    Finder *finder = m_feeder->getFinder();
     std::vector<int> pathx;
     std::vector<int> pathy;
     int len = finder->retrievePath(m_smooth, pathx, pathy);
@@ -594,12 +610,12 @@ MatchVampPlugin::getRemainingFeatures()
         prevy = y;
     }
 
-    delete feeder;
-    delete pm1;
-    delete pm2;
-    feeder = 0;
-    pm1 = 0;
-    pm2 = 0;
+    delete m_feeder;
+    delete m_pm1;
+    delete m_pm2;
+    m_feeder = 0;
+    m_pm1 = 0;
+    m_pm2 = 0;
 
     if (m_locked) {
 #ifdef _WIN32
