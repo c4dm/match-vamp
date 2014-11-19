@@ -545,6 +545,7 @@ MatchVampPlugin::getRemainingFeatures()
     FeatureSet returnFeatures;
     
     Finder *finder = m_feeder->getFinder();
+    finder->setDurations(m_lastFrameIn1, m_lastFrameIn2);
     std::vector<int> pathx;
     std::vector<int> pathy;
     int len = finder->retrievePath(m_smooth, pathx, pathy);

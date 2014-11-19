@@ -165,8 +165,6 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     
     int x = ex;
     int y = ey;
-    
-//    cerr << "before: x = " << x << ", y = " << y << endl;
 
     if (m_duration2 > 0 && m_duration2 < m_m->getOtherFrameCount()) {
         x = m_duration2 - 1;
@@ -174,6 +172,8 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     if (m_duration1 > 0 && m_duration1 < m_m->getFrameCount()) {
         y = m_duration1 - 1;
     }
+    
+//    cerr << "before: x = " << x << ", y = " << y << endl;
 
     if (!m_m->isAvailable(y, x)) {
         // Path did not pass through the expected end point --
