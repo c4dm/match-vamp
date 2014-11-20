@@ -10,7 +10,7 @@ SOURCES		:= $(wildcard src/*.cpp)
 OBJECTS		:= $(SOURCES:.cpp=.o)
 
 $(PLUGIN):	$(OBJECTS)
-		$(CXX) -o $@ $^ $(LDFLAGS)
+		$(CXX) -o $@ $^ $(LDFLAGS) $(PLUGIN_LDFLAGS)
 
 clean:		
 		rm -f $(OBJECTS)
