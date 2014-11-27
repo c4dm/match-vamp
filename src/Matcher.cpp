@@ -341,9 +341,14 @@ Matcher::calcAdvance()
             // Choosing is easy if there is a strict cheapest of the
             // three. If two or more share the lowest cost, we choose
             // in order of preference: cost3 (AdvanceBoth), cost2
-            // (AdvanceThis), cost1 (AdvanceOther).
-            
-            if (cost1 < cost2) {
+            // (AdvanceThis), cost1 (AdvanceOther) if we are the first
+            // matcher; and cost3 (AdvanceBoth), cost1 (AdvanceOther),
+            // cost2 (AdvanceThis) if we are the second matcher.  That
+            // is, we always prioritise the diagonal followed by the
+            // first matcher.
+
+            if (( m_firstPM && (cost1 <  cost2)) ||
+                (!m_firstPM && (cost1 <= cost2))) {
                 if (cost3 <= cost1) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min3, distance);
