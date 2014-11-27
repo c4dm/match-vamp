@@ -337,8 +337,13 @@ Matcher::calcAdvance()
             double cost1 = min1 + distance;
             double cost2 = min2 + distance;
             double cost3 = min3 + diagDistance;
+
+            // Choosing is easy if there is a strict cheapest of the
+            // three. If two or more share the lowest cost, we choose
+            // in order of preference: cost3 (AdvanceBoth), cost2
+            // (AdvanceThis), cost1 (AdvanceOther).
             
-            if (cost1 <= cost2) {
+            if (cost1 < cost2) {
                 if (cost3 <= cost1) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min3, distance);
