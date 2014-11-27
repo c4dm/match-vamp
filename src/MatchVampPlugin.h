@@ -101,6 +101,8 @@ protected:
     mutable int m_abRatioOutNo;
     mutable int m_aFeaturesOutNo;
     mutable int m_bFeaturesOutNo;
+    mutable int m_distOutNo;
+    mutable int m_featureMagOutNo;
 
 #ifdef _WIN32
     static HANDLE m_serialisingMutex;

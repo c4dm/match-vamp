@@ -484,6 +484,32 @@ MatchVampPlugin::getOutputDescriptors() const
     m_bFeaturesOutNo = list.size();
     list.push_back(desc);
 
+    desc.identifier = "feature_distance";
+    desc.name = "Feature Distance";
+    desc.description = "Value of distance metric between features from performances A and B at each point-in-A along the chosen alignment path";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = 1;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::VariableSampleRate;
+    desc.sampleRate = outRate;
+    m_distOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "feature_mag_a";
+    desc.name = "Feature Magnitude A";
+    desc.description = "Magnitude of feature vector for performance A";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = 1;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_featureMagOutNo = list.size();
+    list.push_back(desc);
+
     return list;
 }
 
@@ -532,10 +558,17 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     f.hasTimestamp = false;
 
     f.values.clear();
+    double mag = 0.0;
     for (int j = 0; j < (int)f1.size(); ++j) {
         f.values.push_back(float(f1[j]));
+        mag += f1[j] * f1[j];
     }
+    mag = sqrt(mag);
     returnFeatures[m_aFeaturesOutNo].push_back(f);
+
+    f.values.clear();
+    f.values.push_back(mag);
+    returnFeatures[m_featureMagOutNo].push_back(f);
 
     f.values.clear();
     for (int j = 0; j < (int)f2.size(); ++j) {
@@ -597,6 +630,10 @@ MatchVampPlugin::getRemainingFeatures()
             feature.values.push_back(float(diff.sec + diff.msec()/1000.0));
             returnFeatures[m_abDivOutNo].push_back(feature);
 
+            feature.values.clear();
+            feature.values.push_back(m_pm1->getDistance(y, x));
+            returnFeatures[m_distOutNo].push_back(feature);
+            
             if (i > 0) {
                 int lookback = 100; //!!! arbitrary
                 if (lookback > i) lookback = i;
