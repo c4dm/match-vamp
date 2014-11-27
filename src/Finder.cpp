@@ -291,6 +291,32 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
              << endl;
         cerr << "Note: diagonal weight = " << m_m->getDiagonalWeight() << endl;
         cerr << endl;
+        cerr << "Distance matrix to this point (flipped):" << endl;
+        for (int c = 0; c <= err.r; ++c) {
+            cerr << "\t" << c;
+        }
+        cerr << endl;
+        for (int r = 0; r <= err.c; ++r) {
+            cerr << r;
+            for (int c = 0; c <= err.r; ++c) {
+                cerr << "\t" << m_m->getDistance(c, r);
+            }
+            cerr << endl;
+        }
+        cerr << endl;
+        cerr << "Cost matrix to this point (flipped):" << endl;
+        for (int c = 0; c <= err.r; ++c) {
+            cerr << "\t" << c;
+        }
+        cerr << endl;
+        for (int r = 0; r <= err.c; ++r) {
+            cerr << r;
+            for (int c = 0; c <= err.r; ++c) {
+                cerr << "\t" << m_m->getPathCost(c, r);
+            }
+            cerr << endl;
+        }
+        cerr << endl;
     }
 #endif
 
