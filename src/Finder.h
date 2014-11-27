@@ -67,6 +67,20 @@ public:
     int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
 
 protected:
+    struct ErrorPosition {
+        enum Type { NoError = 0, CostError };
+        ErrorPosition() : type(NoError) { }
+        Type type;
+        int r;
+        int c;
+        double prevCost;
+        float distance;
+        Matcher::Advance advance;
+        double costWas;
+        double costShouldBe;
+    };
+    ErrorPosition checkPathCostMatrix();
+
     Matcher *m_m;
     int m_duration1;
     int m_duration2;

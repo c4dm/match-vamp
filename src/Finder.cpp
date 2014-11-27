@@ -148,6 +148,91 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
     }
 } 
 
+Finder::ErrorPosition
+Finder::checkPathCostMatrix() 
+{
+    ErrorPosition err;
+
+    int r1 = 0;
+    int c1 = 0;
+    int r2 = m_m->getFrameCount() - 1;
+    int c2 = m_m->getOtherFrameCount() - 1;
+
+    if (r2 < r1 || c2 < c1) {
+        return err;
+    }
+
+    int prevRowStart = 0, prevRowStop = 0;
+
+    for (int r = r1; r <= r2; r++) {
+
+        pair<int, int> colRange = m_m->getColRange(r);
+
+        int rowStart = max(c1, colRange.first);
+        int rowStop = min(c2 + 1, colRange.second);
+        
+        for (int c = rowStart; c < rowStop; c++) {
+
+            float newCost = m_m->getDistance(r, c);
+            double updateTo = -1.0;
+            Matcher::Advance dir = Matcher::AdvanceNone;
+
+            if (r > r1) {	// not first row
+                double min = -1;
+                if ((c > prevRowStart) && (c <= prevRowStop)) {
+                    // diagonal from (r-1,c-1)
+                    min = m_m->getPathCost(r-1, c-1) + newCost * 2;
+                    err.prevCost = m_m->getPathCost(r-1, c-1);
+                    err.distance = newCost * 2;
+                    dir = Matcher::AdvanceBoth;
+                }
+                if ((c >= prevRowStart) && (c < prevRowStop)) {
+                    // vertical from (r-1,c)
+                    double cost = m_m->getPathCost(r-1, c) + newCost;
+                    if ((min < 0) || (cost < min)) {
+                        min = cost;
+                        err.prevCost = m_m->getPathCost(r-1, c);
+                        err.distance = newCost;
+                        dir = Matcher::AdvanceThis;
+                    }
+                }
+                if (c > rowStart) {
+                    // horizontal from (r,c-1)
+                    double cost = m_m->getPathCost(r, c-1) + newCost;
+                    if ((min < 0) || (cost < min)) {
+                        min = cost;
+                        err.prevCost = m_m->getPathCost(r, c-1);
+                        err.distance = newCost;
+                        dir = Matcher::AdvanceOther;
+                    }
+                }
+
+                updateTo = min;
+
+            } else if (c > rowStart) {	// first row
+                // horizontal from (r,c-1)
+                dir = Matcher::AdvanceOther;
+                updateTo = m_m->getPathCost(r, c-1) + newCost;
+            }
+
+            if (m_m->getPathCost(r, c) != updateTo) {
+                err.type = ErrorPosition::CostError;
+                err.r = r;
+                err.c = c;
+                err.advance = dir;
+                err.costWas = m_m->getPathCost(r, c);
+                err.costShouldBe = updateTo;
+                return err;
+            }
+        }
+
+        prevRowStart = rowStart;
+        prevRowStop = rowStop;
+    }
+
+    return err;
+} 
+
 int
 Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {
