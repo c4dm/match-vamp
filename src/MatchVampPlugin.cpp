@@ -233,6 +233,16 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.unit = "s";
     list.push_back(desc);
 
+    desc.identifier = "diagonalweight";
+    desc.name = "Diagonal Weight";
+    desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step. The default of 2.0 is good for gross tracking of quite different performances; closer to 1.0 produces a smoother path for performances more similar in tempo";
+    desc.minValue = 1.0;
+    desc.maxValue = 3.0;
+    desc.defaultValue = 2.0;
+    desc.isQuantized = false;
+    desc.unit = "";
+    list.push_back(desc);
+    
     desc.identifier = "smooth";
     desc.name = "Smooth Path";
     desc.description = "Smooth the path by replacing steps with diagonals";
@@ -262,6 +272,8 @@ MatchVampPlugin::getParameter(std::string name) const
         return m_feParams.useChromaFrequencyMap ? 1.0 : 0.0;
     } else if (name == "gradientlimit") {
         return m_params.maxRunCount;
+    } else if (name == "diagonalweight") {
+        return m_params.diagonalWeight;
     } else if (name == "zonewidth") {
         return (float)m_params.blockTime;
     } else if (name == "smooth") {
@@ -286,6 +298,8 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_feParams.useChromaFrequencyMap = (value > 0.5);
     } else if (name == "gradientlimit") {
         m_params.maxRunCount = int(value + 0.1);
+    } else if (name == "diagonalweight") {
+        m_params.diagonalWeight = value;
     } else if (name == "zonewidth") {
         m_params.blockTime = value;
     } else if (name == "smooth") {

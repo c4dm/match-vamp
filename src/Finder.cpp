@@ -92,6 +92,8 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
 {
     int prevRowStart = 0, prevRowStop = 0;
 
+    float diagonalWeight = m_m->getDiagonalWeight();
+    
     for (int r = r1; r <= r2; r++) {
 
         pair<int, int> colRange = m_m->getColRange(r);
@@ -108,7 +110,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                 double min = -1;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
-                    min = m_m->getPathCost(r-1, c-1) + newCost * 2;
+                    min = m_m->getPathCost(r-1, c-1) + newCost * diagonalWeight;
                     dir = Matcher::AdvanceBoth;
                 }
                 if ((c >= prevRowStart) && (c < prevRowStop)) {
@@ -161,6 +163,8 @@ Finder::checkPathCostMatrix()
 
     int prevRowStart = 0, prevRowStop = 0;
 
+    float diagonalWeight = m_m->getDiagonalWeight();
+    
     for (int r = r1; r <= r2; r++) {
 
         pair<int, int> colRange = m_m->getColRange(r);
@@ -178,9 +182,9 @@ Finder::checkPathCostMatrix()
                 double min = -1;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
-                    min = m_m->getPathCost(r-1, c-1) + newCost * 2;
+                    min = m_m->getPathCost(r-1, c-1) + newCost * diagonalWeight;
                     err.prevCost = m_m->getPathCost(r-1, c-1);
-                    err.distance = newCost * 2;
+                    err.distance = newCost * diagonalWeight;
                     dir = Matcher::AdvanceBoth;
                 }
                 if ((c >= prevRowStart) && (c < prevRowStop)) {
@@ -210,8 +214,10 @@ Finder::checkPathCostMatrix()
 
                 if (c > rowStart) {
                     // horizontal from (r,c-1)
-                    dir = Matcher::AdvanceOther;
                     updateTo = m_m->getPathCost(r, c-1) + newCost;
+                    err.prevCost = m_m->getPathCost(r, c-1);
+                    err.distance = newCost;
+                    dir = Matcher::AdvanceOther;
                 }
             }
 
@@ -262,10 +268,13 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
         cerr << "\nWARNING: Checking path-cost matrix returned mismatch:" << endl;
         cerr << "Type: " << err.type << endl;
         cerr << "At row " << err.r << ", column " << err.c << " advancing "
-             << err.advance << "\nPrev cost " << err.prevCost
+             << Matcher::advanceToString(err.advance)
+             << "\nPrev cost " << err.prevCost
              << " plus distance " << err.distance << " gives "
              << err.costShouldBe << ", but matrix contains " << err.costWas
-             << "\n" << endl;
+             << endl;
+        cerr << "Note: diagonal weight = " << m_m->getDiagonalWeight() << endl;
+        cerr << endl;
     }
 #endif
 

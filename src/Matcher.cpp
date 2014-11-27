@@ -339,10 +339,16 @@ Matcher::setPathCost(int i, int j, Advance dir, double pathCost)
 void
 Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
 {
+    float weighted = dMN;
+    if (dir == AdvanceBoth) {
+        weighted *= m_params.diagonalWeight;
+    }
+    
     if (m_firstPM) {
 
         m_distance[i][j - m_first[i]] = dMN;
-        setPathCost(i, j, dir, value + (dir == AdvanceBoth ? dMN*2: dMN));
+        
+        setPathCost(i, j, dir, value + weighted);
 
     } else {
 
@@ -359,7 +365,7 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
         }
 
         m_otherMatcher->m_distance[j][idx] = dMN;
-        m_otherMatcher->setPathCost(j, i, dir, value + (dir == AdvanceBoth ? dMN*2: dMN));
+        m_otherMatcher->setPathCost(j, i, dir, value + weighted);
     }
 }
 

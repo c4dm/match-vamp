@@ -42,6 +42,15 @@ public:
         AdvanceThis,
         AdvanceOther
     };
+    static string advanceToString(Advance a) {
+        switch (a) {
+        case AdvanceNone: return "AdvanceNone";
+        case AdvanceBoth: return "AdvanceBoth";
+        case AdvanceThis: return "AdvanceThis";
+        case AdvanceOther: return "AdvanceOther";
+        }
+        return "(unknown)";
+    }
 
     struct Parameters {
 
@@ -51,7 +60,8 @@ public:
             hopTime(hopTime_),
             fftSize(fftSize_),
             blockTime(10.0),
-            maxRunCount(3)
+            maxRunCount(3),
+            diagonalWeight(2.0)
         {}
 
         /** Sample rate of audio */
@@ -62,13 +72,15 @@ public:
 
         /** Spacing of audio frames (determines the amount of overlap or
          *  skip between frames). This value is expressed in
-         *  seconds. */
+         *  seconds.
+         */
         double hopTime;
         
         /** Size of an FFT frame in samples. Note that the data passed
          *  in to Matcher is already in the frequency domain, so this
          *  expresses the size of the frame that the caller will be
-         *  providing. */
+         *  providing.
+         */
         int fftSize;
         
         /** The width of the search band (error margin) around the current
@@ -83,6 +95,17 @@ public:
          *  processed.
          */
         int maxRunCount;
+
+        /** Weight applied to cost of diagonal step relative to
+         *  horizontal or vertical step. The default of 2.0 means that
+         *  a diagonal is not favoured over horizontal+vertical
+         *  combined, which is good when maintaining gross tracking of
+         *  performances that may have wildly differing speeds but
+         *  which also leads to quite jaggy paths. A more typical
+         *  normal DTW approach for performances with similar speeds
+         *  might use 1.0 or something close to it.
+         */
+        float diagonalWeight;
     };
 
     /** Constructor for Matcher.
@@ -131,6 +154,10 @@ public:
         return m_otherMatcher->getFrameCount();
     }
 
+    float getDiagonalWeight() {
+        return m_params.diagonalWeight;
+    }
+    
     /** Processes a feature vector frame, presumably calculated from
      *  audio data by some external code such as a FeatureExtractor.
      *  Calculates the distance to all frames stored in the
