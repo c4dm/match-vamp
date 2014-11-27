@@ -39,7 +39,6 @@ public:
     void setDurations(int d1, int d2);
     
     Matcher::Advance getExpandDirection(int row, int col);
-    Matcher::Advance getExpandDirection(int row, int col, bool check);
     
     /** Calculates a rectangle of the path cost matrix so that the
      *  minimum cost path between the bottom left and top right
@@ -67,8 +66,9 @@ public:
     int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
 
 protected:
+#ifdef PERFORM_ERROR_CHECKS
     struct ErrorPosition {
-        enum Type { NoError = 0, CostError };
+        enum Type { NoError = 0, CostError, NoAdvance };
         ErrorPosition() : type(NoError) { }
         Type type;
         int r;
@@ -80,7 +80,8 @@ protected:
         double costShouldBe;
     };
     ErrorPosition checkPathCostMatrix();
-
+#endif
+    
     Matcher *m_m;
     int m_duration1;
     int m_duration2;

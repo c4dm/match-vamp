@@ -43,12 +43,6 @@ Finder::setDurations(int d1, int d2)
 Matcher::Advance
 Finder::getExpandDirection(int row, int col)
 {
-    return getExpandDirection(row, col, false);
-} // getExpandDirection()
-
-Matcher::Advance
-Finder::getExpandDirection(int row, int col, bool check)
-{
     double min = m_m->getPathCost(row, col);
     
     int bestRow = row;
@@ -148,9 +142,12 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
     }
 } 
 
+#ifdef PERFORM_ERROR_CHECKS
 Finder::ErrorPosition
 Finder::checkPathCostMatrix() 
 {
+    cerr << "Finder: Checking path-cost matrix..." << endl;
+    
     ErrorPosition err;
 
     int r1 = 0;
@@ -209,20 +206,38 @@ Finder::checkPathCostMatrix()
 
                 updateTo = min;
 
-            } else if (c > rowStart) {	// first row
-                // horizontal from (r,c-1)
-                dir = Matcher::AdvanceOther;
-                updateTo = m_m->getPathCost(r, c-1) + newCost;
+            } else { // first row
+
+                if (c > rowStart) {
+                    // horizontal from (r,c-1)
+                    dir = Matcher::AdvanceOther;
+                    updateTo = m_m->getPathCost(r, c-1) + newCost;
+                }
             }
 
-            if (m_m->getPathCost(r, c) != updateTo) {
-                err.type = ErrorPosition::CostError;
-                err.r = r;
-                err.c = c;
-                err.advance = dir;
-                err.costWas = m_m->getPathCost(r, c);
-                err.costShouldBe = updateTo;
-                return err;
+            if (dir != Matcher::AdvanceNone) {
+                if (m_m->getPathCost(r, c) != updateTo) {
+                    cerr << "CostError found" << endl;
+                    err.type = ErrorPosition::CostError;
+                    err.r = r;
+                    err.c = c;
+                    err.advance = dir;
+                    err.costWas = m_m->getPathCost(r, c);
+                    err.costShouldBe = updateTo;
+                    return err;
+                }
+            } else {
+                // AdvanceNone should occur only at r = r1, c = c1
+                if (r != r1 || c != c1) {
+                    cerr << "AdvanceNone error found" << endl;
+                    err.type = ErrorPosition::NoAdvance;
+                    err.r = r;
+                    err.c = c;
+                    err.advance = dir;
+                    err.costWas = m_m->getPathCost(r, c);
+                    err.costShouldBe = updateTo;
+                    return err;
+                }
             }
         }
 
@@ -230,14 +245,29 @@ Finder::checkPathCostMatrix()
         prevRowStop = rowStop;
     }
 
+    cerr << "No errors found" << endl;
     return err;
-} 
+}
+#endif
 
 int
 Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {
     pathx.clear();
     pathy.clear();
+
+#ifdef PERFORM_ERROR_CHECKS
+    ErrorPosition err = checkPathCostMatrix();
+    if (err.type != ErrorPosition::NoError) {
+        cerr << "\nWARNING: Checking path-cost matrix returned mismatch:" << endl;
+        cerr << "Type: " << err.type << endl;
+        cerr << "At row " << err.r << ", column " << err.c << " advancing "
+             << err.advance << "\nPrev cost " << err.prevCost
+             << " plus distance " << err.distance << " gives "
+             << err.costShouldBe << ", but matrix contains " << err.costWas
+             << "\n" << endl;
+    }
+#endif
 
     int ex = m_m->getOtherFrameCount() - 1;
     int ey = m_m->getFrameCount() - 1;
