@@ -19,6 +19,7 @@
 #include "Path.h"
 
 #include <algorithm>
+#include <iomanip>
 
 using namespace std;
 
@@ -148,8 +149,6 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
 Finder::ErrorPosition
 Finder::checkPathCostMatrix() 
 {
-    cerr << "Finder: Checking path-cost matrix..." << endl;
-    
     ErrorPosition err;
 
     int r1 = 0;
@@ -223,7 +222,6 @@ Finder::checkPathCostMatrix()
 
             if (dir != Matcher::AdvanceNone) {
                 if (m_m->getAdvance(r, c) != dir) {
-                    cerr << "WrongAdvance found" << endl;
                     err.type = ErrorPosition::WrongAdvance;
                     err.r = r;
                     err.c = c;
@@ -234,7 +232,6 @@ Finder::checkPathCostMatrix()
                     return err;
                 }
                 if (m_m->getPathCost(r, c) != updateTo) {
-                    cerr << "WrongCost found" << endl;
                     err.type = ErrorPosition::WrongCost;
                     err.r = r;
                     err.c = c;
@@ -247,7 +244,6 @@ Finder::checkPathCostMatrix()
             } else {
                 // AdvanceNone should occur only at r = r1, c = c1
                 if (r != r1 || c != c1) {
-                    cerr << "AdvanceNone error found" << endl;
                     err.type = ErrorPosition::NoAdvance;
                     err.r = r;
                     err.c = c;
@@ -264,22 +260,26 @@ Finder::checkPathCostMatrix()
         prevRowStop = rowStop;
     }
 
-    cerr << "No errors found" << endl;
     return err;
 }
-#endif
 
-int
-Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
+void
+Finder::checkAndReport()
 {
-    pathx.clear();
-    pathy.clear();
-
-#ifdef PERFORM_ERROR_CHECKS
+    cerr << "Finder: Checking path-cost matrix..." << endl;
     ErrorPosition err = checkPathCostMatrix();
-    if (err.type != ErrorPosition::NoError) {
+    if (err.type == ErrorPosition::NoError) {
+        cerr << "No errors found" << endl;
+    } else {
         cerr << "\nWARNING: Checking path-cost matrix returned mismatch:" << endl;
-        cerr << "Type: " << err.type << endl;
+        cerr << "Type: " << err.type << ": ";
+        switch (err.type) {
+        case ErrorPosition::NoError: break;
+        case ErrorPosition::WrongCost: cerr << "WrongCost"; break;
+        case ErrorPosition::WrongAdvance: cerr << "WrongAdvance"; break;
+        case ErrorPosition::NoAdvance: cerr << "NoAdvance"; break;
+        }
+        cerr << endl;
         cerr << "At row " << err.r << ", column " << err.c
              << "\nShould be advancing "
              << Matcher::advanceToString(err.advanceShouldBe)
@@ -291,7 +291,50 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
              << endl;
         cerr << "Note: diagonal weight = " << m_m->getDiagonalWeight() << endl;
         cerr << endl;
+
+        int w(10);
+
+        cerr << "Distance matrix leading up to this point:" << endl;
+        cerr << setw(w) << "";
+        for (int i = -4; i <= 0; ++i) {
+            cerr << setw(w) << i;
+        }
+        cerr << endl;
+        for (int j = -4; j <= 0; ++j) {
+            cerr << setw(w) << j;
+            for (int i = -4; i <= 0; ++i) {
+                cerr << setw(w) << m_m->getDistance(err.r + j, err.c + i);
+            }
+            cerr << endl;
+        }
+        cerr << endl;
+
+        cerr << "Cost matrix leading up to this point:" << endl;
+        cerr << setw(w) << "";
+        for (int i = -4; i <= 0; ++i) {
+            cerr << setw(w) << i;
+        }
+        cerr << endl;
+        for (int j = -4; j <= 0; ++j) {
+            cerr << setw(w) << j;
+            for (int i = -4; i <= 0; ++i) {
+                cerr << setw(w) << m_m->getPathCost(err.r + j, err.c + i);
+            }
+            cerr << endl;
+        }
+        cerr << endl;
     }
+}
+#endif
+
+int
+Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
+{
+    pathx.clear();
+    pathy.clear();
+
+#ifdef PERFORM_ERROR_CHECKS
+    checkAndReport();
 #endif
 
     int ex = m_m->getOtherFrameCount() - 1;

@@ -81,6 +81,7 @@ protected:
         Matcher::Advance advanceShouldBe;
     };
     ErrorPosition checkPathCostMatrix();
+    void checkAndReport();
 #endif
     
     Matcher *m_m;
