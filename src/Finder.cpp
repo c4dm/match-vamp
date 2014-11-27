@@ -177,7 +177,7 @@ Finder::checkPathCostMatrix()
             double updateTo = -1.0;
             Matcher::Advance dir = Matcher::AdvanceNone;
 
-            if (r > r1) {	// not first row
+            if (r > r1) { // not first row
                 double min = -1;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
@@ -292,18 +292,19 @@ Finder::checkAndReport()
         cerr << "Note: diagonal weight = " << m_m->getDiagonalWeight() << endl;
         cerr << endl;
 
-        int w(10);
+        int w(4);
+        int ww(15);
 
         cerr << "Distance matrix leading up to this point:" << endl;
-        cerr << setw(w) << "";
+        cerr << setprecision(12) << setw(w) << "";
         for (int i = -4; i <= 0; ++i) {
-            cerr << setw(w) << i;
+            cerr << setw(ww) << i;
         }
         cerr << endl;
         for (int j = -4; j <= 0; ++j) {
             cerr << setw(w) << j;
             for (int i = -4; i <= 0; ++i) {
-                cerr << setw(w) << m_m->getDistance(err.r + j, err.c + i);
+                cerr << setw(ww) << m_m->getDistance(err.r + j, err.c + i);
             }
             cerr << endl;
         }
@@ -312,13 +313,13 @@ Finder::checkAndReport()
         cerr << "Cost matrix leading up to this point:" << endl;
         cerr << setw(w) << "";
         for (int i = -4; i <= 0; ++i) {
-            cerr << setw(w) << i;
+            cerr << setw(ww) << i;
         }
         cerr << endl;
         for (int j = -4; j <= 0; ++j) {
             cerr << setw(w) << j;
             for (int i = -4; i <= 0; ++i) {
-                cerr << setw(w) << m_m->getPathCost(err.r + j, err.c + i);
+                cerr << setw(ww) << m_m->getPathCost(err.r + j, err.c + i);
             }
             cerr << endl;
         }
