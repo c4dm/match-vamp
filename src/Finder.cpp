@@ -85,7 +85,6 @@ Finder::getExpandDirection(int row, int col)
     } else {
         return Matcher::AdvanceNone;
     }
-
 }
 
 void

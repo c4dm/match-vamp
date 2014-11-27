@@ -220,7 +220,7 @@ public:
      *  @param j the frame number of the other Matcher
      *  @param value the distance metric to set for this location
      */
-    void setDistance(int i, int j, float value);
+    void setDistance(int i, int j, float distance);
     
     /** Retrieves a value from the minimum cost matrix.
      *

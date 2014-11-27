@@ -377,16 +377,16 @@ Matcher::calcAdvance()
 }
 
 void
-Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
+Matcher::updateValue(int i, int j, Advance dir, double value, float distance)
 {
-    float weighted = dMN;
+    float weighted = distance;
     if (dir == AdvanceBoth) {
         weighted *= m_params.diagonalWeight;
     }
     
     if (m_firstPM) {
 
-        m_distance[i][j - m_first[i]] = dMN;
+        setDistance(i, j, distance);
         setPathCost(i, j, dir, value + weighted);
 
     } else {
@@ -406,7 +406,7 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
             m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
         }
 
-        m_otherMatcher->m_distance[j][idx] = dMN;
+        m_otherMatcher->setDistance(j, i, distance);
         m_otherMatcher->setPathCost(j, i, dir, value + weighted);
     }
 }
