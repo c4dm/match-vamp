@@ -237,7 +237,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.name = "Diagonal Weight";
     desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step. The default of 2.0 is good for gross tracking of quite different performances; closer to 1.0 produces a smoother path for performances more similar in tempo";
     desc.minValue = 1.0;
-    desc.maxValue = 3.0;
+    desc.maxValue = 2.0;
     desc.defaultValue = 2.0;
     desc.isQuantized = false;
     desc.unit = "";

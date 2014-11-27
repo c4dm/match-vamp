@@ -140,66 +140,90 @@ Matcher::calcAdvance()
 
     int stop = m_otherMatcher->m_frameCount;
     int index = stop - m_blockSize;
-    if (index < 0)
-        index = 0;
+    if (index < 0) index = 0;
+
     m_first[m_frameCount] = index;
     m_last[m_frameCount] = stop;
 
-    float mn= -1;
-    float mx= -1;
     for ( ; index < stop; index++) {
 
-        float dMN = (float) m_metric.calcDistance
+        float distance = (float) m_metric.calcDistance
             (m_frames[frameIndex],
              m_otherMatcher->m_frames[index % m_blockSize]);
-        
-        if (mx<0)
-            mx = mn = dMN;
-        else if (dMN > mx)
-            mx = dMN;
-        else if (dMN < mn)
-            mn = dMN;
 
-        if ((m_frameCount == 0) && (index == 0))    // first element
-            updateValue(0, 0, AdvanceNone, 0, dMN);
-        else if (m_frameCount == 0)                 // first row
+        if ((m_frameCount == 0) && (index == 0)) { // first element
+
+            updateValue(0, 0, AdvanceNone,
+                        0,
+                        distance);
+
+        } else if (m_frameCount == 0) { // first row
+
             updateValue(0, index, AdvanceOther,
-                        getPathCost(0, index-1), dMN);
-        else if (index == 0)                      // first column
+                        getPathCost(0, index-1),
+                        distance);
+            
+        } else if (index == 0) { // first column
+
             updateValue(m_frameCount, index, AdvanceThis,
-                        getPathCost(m_frameCount - 1, 0), dMN);
-        else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
+                        getPathCost(m_frameCount - 1, 0),
+                        distance);
+            
+        } else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
+            
             // missing value(s) due to cutoff
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
+            
             double min2 = getPathCost(m_frameCount - 1, index);
+
+            cerr << "NOTE: missing value at i = " << m_frameCount << ", j = "
+                 << index << " (first = " << m_firstPM << ")" << endl;
+                
             //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
             //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
-            if (m_first[m_frameCount - 1] == index)
-                updateValue(m_frameCount, index, AdvanceThis, min2, dMN);
-            else {
-                double min1 = getPathCost(m_frameCount - 1, index - 1);
-                if (min1 + dMN <= min2)
-                    updateValue(m_frameCount, index, AdvanceBoth, min1,dMN);
-                else
-                    updateValue(m_frameCount, index, AdvanceThis, min2,dMN);
-            }
-        } else {
-            double min1 = getPathCost(m_frameCount, index-1);
-            double min2 = getPathCost(m_frameCount - 1, index);
-            double min3 = getPathCost(m_frameCount - 1, index-1);
-            if (min1 <= min2) {
-                if (min3 + dMN <= min1)
-                    updateValue(m_frameCount, index, AdvanceBoth, min3,dMN);
-                else
-                    updateValue(m_frameCount, index, AdvanceOther,min1,dMN);
+            if (m_first[m_frameCount - 1] == index) {
+                
+                updateValue(m_frameCount, index, AdvanceThis,
+                            min2, distance);
+                
             } else {
-                if (min3 + dMN <= min2)
-                    updateValue(m_frameCount, index, AdvanceBoth, min3,dMN);
-                else
-                    updateValue(m_frameCount, index, AdvanceThis, min2,dMN);
+
+                double min1 = getPathCost(m_frameCount - 1, index - 1);
+                if (min1 + distance <= min2) {
+                    updateValue(m_frameCount, index, AdvanceBoth,
+                                min1, distance);
+                } else {
+                    updateValue(m_frameCount, index, AdvanceThis,
+                                min2, distance);
+                }
+            }
+
+        } else {
+
+            double min1 = getPathCost(m_frameCount, index - 1);
+            double min2 = getPathCost(m_frameCount - 1, index);
+            double min3 = getPathCost(m_frameCount - 1, index - 1);
+            
+            if (min1 <= min2) {
+                if (min3 + distance <= min1) {
+                    updateValue(m_frameCount, index, AdvanceBoth,
+                                min3, distance);
+                } else {
+                    updateValue(m_frameCount, index, AdvanceOther,
+                                min1, distance);
+                }
+            } else {
+                if (min3 + distance <= min2) {
+                    updateValue(m_frameCount, index, AdvanceBoth,
+                                min3, distance);
+                } else {
+                    updateValue(m_frameCount, index, AdvanceThis,
+                                min2, distance);
+                }
             }
         }
+        
         m_otherMatcher->m_last[index]++;
     } // loop for row (resp. column)
 
@@ -360,6 +384,9 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
 
     } else {
 
+        if (dir == AdvanceThis) dir = AdvanceOther;
+        else if (dir == AdvanceOther) dir = AdvanceThis;
+        
         if (i == 56 && j == 3) {
             cerr << "i = "<< i << ", j = " << j << ", dir = "
                  << advanceToString(dir)

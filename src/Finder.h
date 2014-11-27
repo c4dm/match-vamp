@@ -68,7 +68,7 @@ public:
 protected:
 #ifdef PERFORM_ERROR_CHECKS
     struct ErrorPosition {
-        enum Type { NoError = 0, WrongCost, NoAdvance };
+        enum Type { NoError = 0, WrongCost, WrongAdvance, NoAdvance };
         ErrorPosition() : type(NoError) { }
         Type type;
         int r;

@@ -222,6 +222,17 @@ Finder::checkPathCostMatrix()
             }
 
             if (dir != Matcher::AdvanceNone) {
+                if (m_m->getAdvance(r, c) != dir) {
+                    cerr << "WrongAdvance found" << endl;
+                    err.type = ErrorPosition::WrongAdvance;
+                    err.r = r;
+                    err.c = c;
+                    err.costWas = m_m->getPathCost(r, c);
+                    err.costShouldBe = updateTo;
+                    err.advanceWas = m_m->getAdvance(r, c);
+                    err.advanceShouldBe = dir;
+                    return err;
+                }
                 if (m_m->getPathCost(r, c) != updateTo) {
                     cerr << "WrongCost found" << endl;
                     err.type = ErrorPosition::WrongCost;
