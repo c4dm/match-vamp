@@ -278,6 +278,8 @@ Matcher::calcAdvance()
             (m_frames[frameIndex],
              m_otherMatcher->m_frames[index % m_blockSize]);
 
+        float diagDistance = distance * m_params.diagonalWeight;
+
         if ((m_frameCount == 0) && (index == 0)) { // first element
 
             updateValue(0, 0, AdvanceNone,
@@ -317,7 +319,7 @@ Matcher::calcAdvance()
             } else {
 
                 double min1 = getPathCost(m_frameCount - 1, index - 1);
-                if (min1 + distance <= min2) {
+                if (min1 + diagDistance <= min2 + distance) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min1, distance);
                 } else {
@@ -338,9 +340,13 @@ Matcher::calcAdvance()
                      << " min2 = " << min2 << ", " 
                      << " min3 = " << min3 << endl;
             }
+
+            double cost1 = min1 + distance;
+            double cost2 = min2 + distance;
+            double cost3 = min3 + diagDistance;
             
-            if (min1 <= min2) {
-                if (min3 + distance <= min1) {
+            if (cost1 <= cost2) {
+                if (cost3 <= cost1) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min3, distance);
                 } else {
@@ -348,7 +354,7 @@ Matcher::calcAdvance()
                                 min1, distance);
                 }
             } else {
-                if (min3 + distance <= min2) {
+                if (cost3 <= cost2) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min3, distance);
                 } else {
