@@ -347,10 +347,26 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
     if (m_firstPM) {
 
         m_distance[i][j - m_first[i]] = dMN;
+
+        if (i == 3 && j == 56) {
+            cerr << "i = "<< i << ", j = " << j << ", dir = "
+                 << advanceToString(dir)
+                 << ", dMN = " << dMN << ", diagonalWeight = "
+                 << m_params.diagonalWeight << ", weighted = "
+                 << weighted << ", result = " << value + weighted << endl;
+        }
         
         setPathCost(i, j, dir, value + weighted);
 
     } else {
+
+        if (i == 56 && j == 3) {
+            cerr << "i = "<< i << ", j = " << j << ", dir = "
+                 << advanceToString(dir)
+                 << ", dMN = " << dMN << ", diagonalWeight = "
+                 << m_params.diagonalWeight << ", weighted = "
+                 << weighted << ", result = " << value + weighted << endl;
+        }
 
         int idx = i - m_otherMatcher->m_first[j];
         

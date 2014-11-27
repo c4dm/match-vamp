@@ -222,14 +222,26 @@ Finder::checkPathCostMatrix()
             }
 
             if (dir != Matcher::AdvanceNone) {
-                if (m_m->getPathCost(r, c) != updateTo) {
-                    cerr << "CostError found" << endl;
-                    err.type = ErrorPosition::CostError;
+                if (m_m->getAdvance(r, c) != dir) {
+                    cerr << "WrongAdvance found" << endl;
+                    err.type = ErrorPosition::WrongAdvance;
                     err.r = r;
                     err.c = c;
-                    err.advance = dir;
                     err.costWas = m_m->getPathCost(r, c);
                     err.costShouldBe = updateTo;
+                    err.advanceWas = m_m->getAdvance(r, c);
+                    err.advanceShouldBe = dir;
+                    return err;
+                }
+                if (m_m->getPathCost(r, c) != updateTo) {
+                    cerr << "WrongCost found" << endl;
+                    err.type = ErrorPosition::WrongCost;
+                    err.r = r;
+                    err.c = c;
+                    err.costWas = m_m->getPathCost(r, c);
+                    err.costShouldBe = updateTo;
+                    err.advanceWas = m_m->getAdvance(r, c);
+                    err.advanceShouldBe = dir;
                     return err;
                 }
             } else {
@@ -239,9 +251,10 @@ Finder::checkPathCostMatrix()
                     err.type = ErrorPosition::NoAdvance;
                     err.r = r;
                     err.c = c;
-                    err.advance = dir;
                     err.costWas = m_m->getPathCost(r, c);
                     err.costShouldBe = updateTo;
+                    err.advanceWas = m_m->getAdvance(r, c);
+                    err.advanceShouldBe = dir;
                     return err;
                 }
             }
@@ -267,11 +280,14 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     if (err.type != ErrorPosition::NoError) {
         cerr << "\nWARNING: Checking path-cost matrix returned mismatch:" << endl;
         cerr << "Type: " << err.type << endl;
-        cerr << "At row " << err.r << ", column " << err.c << " advancing "
-             << Matcher::advanceToString(err.advance)
+        cerr << "At row " << err.r << ", column " << err.c
+             << "\nShould be advancing "
+             << Matcher::advanceToString(err.advanceShouldBe)
+             << ", advance in matrix is "
+             << Matcher::advanceToString(err.advanceWas)
              << "\nPrev cost " << err.prevCost
              << " plus distance " << err.distance << " gives "
-             << err.costShouldBe << ", but matrix contains " << err.costWas
+             << err.costShouldBe << ", matrix contains " << err.costWas
              << endl;
         cerr << "Note: diagonal weight = " << m_m->getDiagonalWeight() << endl;
         cerr << endl;

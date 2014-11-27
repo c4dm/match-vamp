@@ -68,16 +68,17 @@ public:
 protected:
 #ifdef PERFORM_ERROR_CHECKS
     struct ErrorPosition {
-        enum Type { NoError = 0, CostError, NoAdvance };
+        enum Type { NoError = 0, WrongCost, WrongAdvance, NoAdvance };
         ErrorPosition() : type(NoError) { }
         Type type;
         int r;
         int c;
         double prevCost;
         float distance;
-        Matcher::Advance advance;
         double costWas;
         double costShouldBe;
+        Matcher::Advance advanceWas;
+        Matcher::Advance advanceShouldBe;
     };
     ErrorPosition checkPathCostMatrix();
 #endif
