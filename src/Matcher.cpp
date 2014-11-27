@@ -306,8 +306,8 @@ Matcher::calcAdvance()
             
             double min2 = getPathCost(m_frameCount - 1, index);
 
-            cerr << "NOTE: missing value at i = " << m_frameCount << ", j = "
-                 << index << " (first = " << m_firstPM << ")" << endl;
+//            cerr << "NOTE: missing value at i = " << m_frameCount << ", j = "
+//                 << index << " (first = " << m_firstPM << ")" << endl;
                 
             //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
             //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
@@ -333,13 +333,6 @@ Matcher::calcAdvance()
             double min1 = getPathCost(m_frameCount, index - 1);
             double min2 = getPathCost(m_frameCount - 1, index);
             double min3 = getPathCost(m_frameCount - 1, index - 1);
-
-            if (m_frameCount == 15 && index == 2) {
-                cerr << "i = "<< m_frameCount << ", j = " << index << ", "
-                     << " min1 = " << min1 << ", " 
-                     << " min2 = " << min2 << ", " 
-                     << " min3 = " << min3 << endl;
-            }
 
             double cost1 = min1 + distance;
             double cost2 = min2 + distance;
@@ -384,29 +377,12 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float dMN)
     if (m_firstPM) {
 
         m_distance[i][j - m_first[i]] = dMN;
-
-        if (i == 3 && j == 56) {
-            cerr << "i = "<< i << ", j = " << j << ", dir = "
-                 << advanceToString(dir)
-                 << ", dMN = " << dMN << ", diagonalWeight = "
-                 << m_params.diagonalWeight << ", weighted = "
-                 << weighted << ", result = " << value + weighted << endl;
-        }
-        
         setPathCost(i, j, dir, value + weighted);
 
     } else {
 
         if (dir == AdvanceThis) dir = AdvanceOther;
         else if (dir == AdvanceOther) dir = AdvanceThis;
-        
-        if (i == 15 && j == 2) {
-            cerr << "i = "<< i << ", j = " << j << ", dir = "
-                 << advanceToString(dir)
-                 << ", dMN = " << dMN << ", diagonalWeight = "
-                 << m_params.diagonalWeight << ", weighted = "
-                 << weighted << ", value = " << value << ", result = " << value + weighted << endl;
-        }
 
         int idx = i - m_otherMatcher->m_first[j];
         
