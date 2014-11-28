@@ -486,7 +486,7 @@ MatchVampPlugin::getOutputDescriptors() const
 
     desc.identifier = "feature_distance";
     desc.name = "Feature Distance";
-    desc.description = "Value of distance metric between features from performances A and B at each point-in-A along the chosen alignment path";
+    desc.description = "Value of distance metric between features at each point-in-A along the chosen alignment path";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = 1;
@@ -497,9 +497,9 @@ MatchVampPlugin::getOutputDescriptors() const
     m_distOutNo = list.size();
     list.push_back(desc);
 
-    desc.identifier = "feature_mag_a";
-    desc.name = "Feature Magnitude A";
-    desc.description = "Magnitude of feature vector for performance A";
+    desc.identifier = "feature_mag";
+    desc.name = "Feature Magnitude";
+    desc.description = "Sum of magnitudes of feature vectors at each point-in-A along the chosen alignment path";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = 1;
@@ -558,23 +558,26 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     f.hasTimestamp = false;
 
     f.values.clear();
-    double mag = 0.0;
+    double mag1 = 0.0;
     for (int j = 0; j < (int)f1.size(); ++j) {
         f.values.push_back(float(f1[j]));
-        mag += f1[j] * f1[j];
+        mag1 += f1[j] * f1[j];
     }
-    mag = sqrt(mag);
+    mag1 = sqrt(mag1);
     returnFeatures[m_aFeaturesOutNo].push_back(f);
 
     f.values.clear();
-    f.values.push_back(mag);
-    returnFeatures[m_featureMagOutNo].push_back(f);
-
-    f.values.clear();
+    double mag2 = 0.0;
     for (int j = 0; j < (int)f2.size(); ++j) {
         f.values.push_back(float(f2[j]));
+        mag2 += f1[j] * f1[j];
     }
+    mag2 = sqrt(mag2);
     returnFeatures[m_bFeaturesOutNo].push_back(f);
+
+    f.values.clear();
+    f.values.push_back(mag1 + mag2);
+    returnFeatures[m_featureMagOutNo].push_back(f);
 
 //    std::cerr << ".";
 //    std::cerr << std::endl;
