@@ -27,6 +27,9 @@
 
 #include <vector>
 #include <algorithm>
+#include <map>
+
+using namespace std;
 
 //static int extant = 0;
 
@@ -66,10 +69,10 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_defaultFeParams(inputSampleRate, m_blockSize)
 {
     if (inputSampleRate < sampleRateMin) {
-        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
+        cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
                   << inputSampleRate << " < min supported rate "
                   << sampleRateMin << ", plugin will refuse to initialise"
-                  << std::endl;
+                  << endl;
     }
 
     if (!m_serialisingMutexInitialised) {
@@ -86,12 +89,12 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_fe1 = 0;
     m_fe2 = 0;
     m_feeder = 0;
-//    std::cerr << "MatchVampPlugin::MatchVampPlugin(" << this << "): extant = " << ++extant << std::endl;
+//    cerr << "MatchVampPlugin::MatchVampPlugin(" << this << "): extant = " << ++extant << endl;
 }
 
 MatchVampPlugin::~MatchVampPlugin()
 {
-//    std::cerr << "MatchVampPlugin::~MatchVampPlugin(" << this << "): extant = " << --extant << std::endl;
+//    cerr << "MatchVampPlugin::~MatchVampPlugin(" << this << "): extant = " << --extant << endl;
 
     delete m_feeder;
     delete m_fe1;
@@ -258,7 +261,7 @@ MatchVampPlugin::getParameterDescriptors() const
 }
 
 float
-MatchVampPlugin::getParameter(std::string name) const
+MatchVampPlugin::getParameter(string name) const
 {
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
@@ -284,7 +287,7 @@ MatchVampPlugin::getParameter(std::string name) const
 }
 
 void
-MatchVampPlugin::setParameter(std::string name, float value)
+MatchVampPlugin::setParameter(string name, float value)
 {
     if (name == "serialise") {
         m_serialise = (value > 0.5);
@@ -337,9 +340,9 @@ bool
 MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 {
     if (m_inputSampleRate < sampleRateMin) {
-        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
+        cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
                   << m_inputSampleRate << " < min supported rate "
-                  << sampleRateMin << std::endl;
+                  << sampleRateMin << endl;
         return false;
     }
     if (channels < getMinChannelCount() ||
@@ -377,6 +380,9 @@ MatchVampPlugin::reset()
     m_lastFrameIn1 = 0;
     m_lastFrameIn2 = 0;
 
+    m_mag1.clear();
+    m_mag2.clear();
+    
     createMatchers();
     m_begin = true;
     m_locked = false;
@@ -497,9 +503,9 @@ MatchVampPlugin::getOutputDescriptors() const
     m_distOutNo = list.size();
     list.push_back(desc);
 
-    desc.identifier = "feature_mag";
-    desc.name = "Feature Magnitude";
-    desc.description = "Sum of magnitudes of feature vectors at each point-in-A along the chosen alignment path";
+    desc.identifier = "confidence";
+    desc.name = "Confidence";
+    desc.description = "Confidence metric for the quality of match at each point-in-A along the chosen alignment path";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = 1;
@@ -507,7 +513,20 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
-    m_featureMagOutNo = list.size();
+    m_confidenceOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "confidence_peaks";
+    desc.name = "Confidence Peaks";
+    desc.description = "Peak locations for the confidence metric";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = 0;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_confPeakOutNo = list.size();
     list.push_back(desc);
 
     return list;
@@ -542,7 +561,7 @@ MatchVampPlugin::process(const float *const *inputBuffers,
         m_begin = false;
     }
     
-//    std::cerr << timestamp.toString();
+//    cerr << timestamp.toString();
 
     if (aboveThreshold(inputBuffers[0])) m_lastFrameIn1 = m_frameNo;
     if (aboveThreshold(inputBuffers[1])) m_lastFrameIn2 = m_frameNo;
@@ -564,6 +583,7 @@ MatchVampPlugin::process(const float *const *inputBuffers,
         mag1 += f1[j] * f1[j];
     }
     mag1 = sqrt(mag1);
+    m_mag1.push_back(float(mag1));
     returnFeatures[m_aFeaturesOutNo].push_back(f);
 
     f.values.clear();
@@ -573,14 +593,11 @@ MatchVampPlugin::process(const float *const *inputBuffers,
         mag2 += f1[j] * f1[j];
     }
     mag2 = sqrt(mag2);
+    m_mag2.push_back(float(mag2));
     returnFeatures[m_bFeaturesOutNo].push_back(f);
 
-    f.values.clear();
-    f.values.push_back(mag1 + mag2);
-    returnFeatures[m_featureMagOutNo].push_back(f);
-
-//    std::cerr << ".";
-//    std::cerr << std::endl;
+//    cerr << ".";
+//    cerr << endl;
 
     ++m_frameNo;
     
@@ -596,18 +613,68 @@ MatchVampPlugin::getRemainingFeatures()
     
     Finder *finder = m_feeder->getFinder();
     finder->setDurations(m_lastFrameIn1, m_lastFrameIn2);
-    std::vector<int> pathx;
-    std::vector<int> pathy;
-    int len = finder->retrievePath(m_smooth, pathx, pathy);
+    vector<int> pathx;
+    vector<int> pathy;
+    int len = finder->retrievePath(false, pathx, pathy); //!!! smooth
 
     int prevx = 0;
     int prevy = 0;
+
+    if (m_smooth) {
+    
+        vector<float> confidence;
+
+        for (int i = 0; i < len; ++i) {
+            int x = pathx[i];
+            int y = pathy[i];
+            if (x != prevx) {
+                double magSum = m_mag1[y] + m_mag2[x];
+                double distance = m_pm1->getDistance(y, x);
+                float c = magSum - distance;
+                confidence.push_back(c);
+            }
+        }
+        
+        if (!confidence.empty()) {
+
+            map<int, int> pinpoints;
+            
+            vector<float> csorted = confidence;
+            sort(csorted.begin(), csorted.end());
+            float thresh = csorted[int(csorted.size() * 0.7)]; // 70th percentile
+            for (int i = 1; i + 1 < int(confidence.size()); ++i) {
+
+                int x = pathx[i];
+                int y = pathy[i];
+
+                if (confidence[i] > thresh &&
+                    confidence[i] > confidence[i-1] &&
+                    confidence[i] >= confidence[i+1]) {
+
+                    pinpoints[x] = y;
+
+                    Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
+                        (x * m_stepSize, lrintf(m_inputSampleRate));
+                    Feature feature;
+                    feature.hasTimestamp = true;
+                    feature.timestamp = m_startTime + xt;
+                    returnFeatures[m_confPeakOutNo].push_back(feature);
+                }
+            }
+
+            finder->smoothWithPinPoints(pinpoints);
+        }
+
+        pathx.clear();
+        pathy.clear();
+        len = finder->retrievePath(false, pathx, pathy); //!!! smooth
+    }    
 
     for (int i = 0; i < len; ++i) {
 
         int x = pathx[i];
         int y = pathy[i];
-
+            
         Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
             (x * m_stepSize, lrintf(m_inputSampleRate));
         Vamp::RealTime yt = Vamp::RealTime::frame2RealTime
@@ -633,9 +700,17 @@ MatchVampPlugin::getRemainingFeatures()
             feature.values.push_back(float(diff.sec + diff.msec()/1000.0));
             returnFeatures[m_abDivOutNo].push_back(feature);
 
+            double magSum = m_mag1[y] + m_mag2[x];
+            double distance = m_pm1->getDistance(y, x);
+
             feature.values.clear();
-            feature.values.push_back(m_pm1->getDistance(y, x));
+            feature.values.push_back(distance);
             returnFeatures[m_distOutNo].push_back(feature);
+
+            feature.values.clear();
+            float c = magSum - distance;
+            feature.values.push_back(c);
+            returnFeatures[m_confidenceOutNo].push_back(feature);
             
             if (i > 0) {
                 int lookback = 100; //!!! arbitrary
@@ -664,7 +739,7 @@ MatchVampPlugin::getRemainingFeatures()
         prevx = x;
         prevy = y;
     }
-
+    
     delete m_feeder;
     delete m_pm1;
     delete m_pm2;
@@ -686,31 +761,31 @@ MatchVampPlugin::getRemainingFeatures()
 
 /*
     for (int i = 0; i < len; ++i) {
-        std::cerr << i << ": [" << pathx[i] << "," << pathy[i] << "]" << std::endl;
+        cerr << i << ": [" << pathx[i] << "," << pathy[i] << "]" << endl;
     }
 
-    std::cerr << std::endl;
-    std::cerr << "File: A" << std::endl;
-    std::cerr << "Marks: -1" << std::endl;
-    std::cerr << "FixedPoints: true 0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "File: B" << std::endl;
-    std::cerr << "Marks: 0" << std::endl;
-    std::cerr << "FixedPoints: true 0" << std::endl;
-    std::cerr << "0.02" << std::endl;
-    std::cerr << "0.02" << std::endl;
+    cerr << endl;
+    cerr << "File: A" << endl;
+    cerr << "Marks: -1" << endl;
+    cerr << "FixedPoints: true 0" << endl;
+    cerr << "0" << endl;
+    cerr << "0" << endl;
+    cerr << "0" << endl;
+    cerr << "0" << endl;
+    cerr << "File: B" << endl;
+    cerr << "Marks: 0" << endl;
+    cerr << "FixedPoints: true 0" << endl;
+    cerr << "0.02" << endl;
+    cerr << "0.02" << endl;
 
-    std::cerr << len << std::endl;
+    cerr << len << endl;
     for (int i = 0; i < len; ++i) {
-        std::cerr << pathx[i] << std::endl;
+        cerr << pathx[i] << endl;
     }
 
-    std::cerr << len << std::endl;
+    cerr << len << endl;
     for (int i = 0; i < len; ++i) {
-        std::cerr << pathy[i] << std::endl;
+        cerr << pathy[i] << endl;
     }
 */
 }

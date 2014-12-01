@@ -88,11 +88,16 @@ Finder::getExpandDirection(int row, int col)
 }
 
 void
-Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2) 
+Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
+{
+    recalculatePathCostMatrix(r1, c1, r2, c2, m_m->getDiagonalWeight());
+}
+
+void
+Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2,
+                                  float diagonalWeight) 
 {
     int prevRowStart = 0, prevRowStop = 0;
-
-    float diagonalWeight = m_m->getDiagonalWeight();
     
     for (int r = r1; r <= r2; r++) {
 
@@ -366,7 +371,7 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
         y = ey;
     }
 
-    recalculatePathCostMatrix(0, 0, y, x);
+//    recalculatePathCostMatrix(0, 0, y, x);
 
 //    cerr << "start: x = " << x << ", y = " << y << endl;
     
@@ -415,6 +420,35 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
         return smoothedLen;
     } else {
         return pathx.size();
+    }
+}
+
+void
+Finder::smoothWithPinPoints(const map<int, int> &pinpoints)
+{
+    cerr << "Pin points are:" << endl;
+
+    typedef map<int, int> PPMap;
+
+    for (PPMap::const_iterator i = pinpoints.begin(); i != pinpoints.end(); ++i) {
+        cerr << "[" << i->first << "," << i->second << "] ";
+    }
+    
+    cerr << endl;
+
+    if (pinpoints.size() < 2) return;
+
+    pair<int, int> prev = *pinpoints.begin();
+
+    for (PPMap::const_iterator i = pinpoints.begin(); i != pinpoints.end(); ++i) {
+        if (i == pinpoints.begin()) continue;
+
+        pair<int, int> curr = *i;
+
+        recalculatePathCostMatrix(prev.second, prev.first,
+                                  curr.second, curr.first, 1.0);
+        
+        prev = curr;
     }
 }
 

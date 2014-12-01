@@ -18,6 +18,7 @@
 #define _FINDER_H_
 
 #include <vector>
+#include <map>
 #include <iostream>
 
 #include "Matcher.h"
@@ -65,6 +66,8 @@ public:
      */
     int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
 
+    void smoothWithPinPoints(const std::map<int, int> &);
+    
 protected:
 #ifdef PERFORM_ERROR_CHECKS
     struct ErrorPosition {
@@ -83,6 +86,9 @@ protected:
     ErrorPosition checkPathCostMatrix();
     void checkAndReport();
 #endif
+
+    void recalculatePathCostMatrix(int r1, int c1, int r2, int c2,
+                                   float diagonalWeight);
     
     Matcher *m_m;
     int m_duration1;

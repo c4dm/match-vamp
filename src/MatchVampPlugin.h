@@ -94,6 +94,9 @@ protected:
     FeatureExtractor::Parameters m_feParams;
     FeatureExtractor::Parameters m_defaultFeParams;
 
+    std::vector<float> m_mag1;
+    std::vector<float> m_mag2;
+    
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
     mutable int m_baOutNo;
@@ -102,7 +105,8 @@ protected:
     mutable int m_aFeaturesOutNo;
     mutable int m_bFeaturesOutNo;
     mutable int m_distOutNo;
-    mutable int m_featureMagOutNo;
+    mutable int m_confidenceOutNo;
+    mutable int m_confPeakOutNo;
 
 #ifdef _WIN32
     static HANDLE m_serialisingMutex;
