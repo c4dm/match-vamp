@@ -78,10 +78,10 @@ public:
     };
 	
     /**
-     * Construct a FeatureExtractor with the given parameters.
+     * Construct a FeatureConditioner with the given parameters.
      *
-     * Note that FeatureExtractor maintains internal frame-to-frame
-     * state: use one FeatureExtractor per audio source, and construct
+     * Note that FeatureConditioner maintains internal frame-to-frame
+     * state: use one FeatureConditioner per audio source, and construct
      * a new one for each new source.
      */
     FeatureConditioner(Parameters parameters) : m_params(parameters) { }
