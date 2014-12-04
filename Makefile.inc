@@ -20,6 +20,7 @@ distclean:	clean
 
 depend:
 	makedepend -Y -fMakefile.inc $(SOURCES) $(HEADERS)
+	
 # DO NOT DELETE
 
 src/DistanceMetric.o: src/DistanceMetric.h
