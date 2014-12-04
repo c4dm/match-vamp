@@ -473,7 +473,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.binCount = 1;
     desc.hasKnownExtents = false;
     desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::VariableSampleRate;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
     m_distOutNo = list.size();
     list.push_back(desc);
@@ -559,6 +559,8 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 
     m_mag1.push_back(magOf(f1));
     m_mag2.push_back(magOf(f2));
+    m_cmag1.push_back(magOf(c1));
+    m_cmag2.push_back(magOf(c2));
 
     FeatureSet returnFeatures;
 
@@ -613,7 +615,7 @@ MatchVampPlugin::getRemainingFeatures()
             int x = pathx[i];
             int y = pathy[i];
             if (x != prevx) {
-                double magSum = m_mag1[y] + m_mag2[x];
+                double magSum = (m_cmag1[y] * m_mag1[y]) + (m_cmag2[x] * m_mag2[x]);
                 double distance = distances[i];
                 float c = magSum - distance;
                 confidence.push_back(c);

@@ -92,6 +92,8 @@ protected:
 
     std::vector<float> m_mag1;
     std::vector<float> m_mag2;
+    std::vector<float> m_cmag1;
+    std::vector<float> m_cmag2;
     
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
