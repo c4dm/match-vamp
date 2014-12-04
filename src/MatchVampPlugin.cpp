@@ -614,12 +614,13 @@ MatchVampPlugin::getRemainingFeatures()
         for (int i = 0; i < len; ++i) {
             int x = pathx[i];
             int y = pathy[i];
-            if (x != prevx) {
-                double magSum = (m_cmag1[y] * m_mag1[y]) + (m_cmag2[x] * m_mag2[x]);
-                double distance = distances[i];
-                float c = magSum - distance;
-                confidence.push_back(c);
 
+            double magSum = (m_cmag1[y] * m_mag1[y]) + (m_cmag2[x] * m_mag2[x]);
+            double distance = distances[i];
+            float c = magSum - distance;
+            confidence.push_back(c);
+
+            if (x != prevx) {
                 Feature f;
                 f.values.push_back(c);
                 returnFeatures[m_confidenceOutNo].push_back(f);
@@ -634,36 +635,33 @@ MatchVampPlugin::getRemainingFeatures()
             }
         }
         
-        if (!confidence.empty()) {
-
-            map<int, int> pinpoints;
+        map<int, int> pinpoints;
             
-            vector<float> csorted = confidence;
-            sort(csorted.begin(), csorted.end());
-            float thresh = csorted[int(csorted.size() * 0.7)]; // 70th percentile
+        vector<float> csorted = confidence;
+        sort(csorted.begin(), csorted.end());
+        float thresh = csorted[int(csorted.size() * 0.7)]; // 70th percentile
 
-            for (int i = 1; i + 1 < int(confidence.size()); ++i) {
+        for (int i = 1; i + 1 < len; ++i) {
 
-                int x = pathx[i];
-                int y = pathy[i];
+            int x = pathx[i];
+            int y = pathy[i];
 
-                if (confidence[i] > thresh &&
-                    confidence[i] > confidence[i-1] &&
-                    confidence[i] >= confidence[i+1]) {
+            if (confidence[i] > thresh &&
+                confidence[i] > confidence[i-1] &&
+                confidence[i] >= confidence[i+1]) {
 
-                    pinpoints[x] = y;
-
-                    Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
-                        (x * m_stepSize, lrintf(m_inputSampleRate));
-                    Feature feature;
-                    feature.hasTimestamp = true;
-                    feature.timestamp = m_startTime + xt;
-                    returnFeatures[m_confPeakOutNo].push_back(feature);
-                }
+                pinpoints[x] = y;
+                
+                Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
+                    (x * m_stepSize, lrintf(m_inputSampleRate));
+                Feature feature;
+                feature.hasTimestamp = true;
+                feature.timestamp = m_startTime + xt;
+                returnFeatures[m_confPeakOutNo].push_back(feature);
             }
-
-            finder->smoothWithPinPoints(pinpoints);
         }
+
+        finder->smoothWithPinPoints(pinpoints);
 
         pathx.clear();
         pathy.clear();
