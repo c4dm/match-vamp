@@ -478,6 +478,19 @@ MatchVampPlugin::getOutputDescriptors() const
     m_distOutNo = list.size();
     list.push_back(desc);
 
+    desc.identifier = "feature_mag";
+    desc.name = "Feature Magnitudes";
+    desc.description = "Sum of magnitudes of feature pairs for each point-in-A along the chosen alignment path";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = 1;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_magOutNo = list.size();
+    list.push_back(desc);
+
     desc.identifier = "confidence";
     desc.name = "Confidence";
     desc.description = "Confidence metric for the quality of match at each point-in-A along the chosen alignment path";
@@ -507,6 +520,17 @@ MatchVampPlugin::getOutputDescriptors() const
     return list;
 }
 
+static double
+magOf(const vector<double> &f)
+{
+    double mag = 0.0;
+    for (int j = 0; j < (int)f.size(); ++j) {
+        mag += f[j] * f[j];
+    }
+    mag = sqrt(mag);
+    return mag;
+}
+
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::process(const float *const *inputBuffers,
                          Vamp::RealTime timestamp)
@@ -528,8 +552,13 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 
     m_pipeline->feedFrequencyDomainAudio(inputBuffers[0], inputBuffers[1]);
 
-    vector<double> f1, f2;
-    m_pipeline->extractConditionedFeatures(f1, f2);
+    vector<double> f1, f2, c1, c2;
+
+    m_pipeline->extractFeatures(f1, f2);
+    m_pipeline->extractConditionedFeatures(c1, c2);    
+
+    m_mag1.push_back(magOf(f1));
+    m_mag2.push_back(magOf(f2));
 
     FeatureSet returnFeatures;
 
@@ -537,23 +566,15 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     f.hasTimestamp = false;
 
     f.values.clear();
-    double mag1 = 0.0;
-    for (int j = 0; j < (int)f1.size(); ++j) {
-        f.values.push_back(float(f1[j]));
-        mag1 += f1[j] * f1[j];
+    for (int j = 0; j < (int)c1.size(); ++j) {
+        f.values.push_back(float(c1[j]));
     }
-    mag1 = sqrt(mag1);
-    m_mag1.push_back(float(mag1));
     returnFeatures[m_aFeaturesOutNo].push_back(f);
 
     f.values.clear();
-    double mag2 = 0.0;
-    for (int j = 0; j < (int)f2.size(); ++j) {
-        f.values.push_back(float(f2[j]));
-        mag2 += f1[j] * f1[j];
+    for (int j = 0; j < (int)c2.size(); ++j) {
+        f.values.push_back(float(c2[j]));
     }
-    mag2 = sqrt(mag2);
-    m_mag2.push_back(float(mag2));
     returnFeatures[m_bFeaturesOutNo].push_back(f);
 
 //    cerr << ".";
@@ -596,6 +617,18 @@ MatchVampPlugin::getRemainingFeatures()
                 double distance = distances[i];
                 float c = magSum - distance;
                 confidence.push_back(c);
+
+                Feature f;
+                f.values.push_back(c);
+                returnFeatures[m_confidenceOutNo].push_back(f);
+
+                f.values.clear();
+                f.values.push_back(magSum);
+                returnFeatures[m_magOutNo].push_back(f);
+
+                f.values.clear();
+                f.values.push_back(distance);
+                returnFeatures[m_distOutNo].push_back(f);
             }
         }
         
@@ -606,6 +639,7 @@ MatchVampPlugin::getRemainingFeatures()
             vector<float> csorted = confidence;
             sort(csorted.begin(), csorted.end());
             float thresh = csorted[int(csorted.size() * 0.7)]; // 70th percentile
+
             for (int i = 1; i + 1 < int(confidence.size()); ++i) {
 
                 int x = pathx[i];
@@ -666,18 +700,6 @@ MatchVampPlugin::getRemainingFeatures()
             feature.values.push_back(float(diff.sec + diff.msec()/1000.0));
             returnFeatures[m_abDivOutNo].push_back(feature);
 
-            double magSum = m_mag1[y] + m_mag2[x];
-            double distance = distances[i];
-
-            feature.values.clear();
-            feature.values.push_back(distance);
-            returnFeatures[m_distOutNo].push_back(feature);
-
-            feature.values.clear();
-            float c = magSum - distance;
-            feature.values.push_back(c);
-            returnFeatures[m_confidenceOutNo].push_back(feature);
-            
             if (i > 0) {
                 int lookback = 100; //!!! arbitrary
                 if (lookback > i) lookback = i;
