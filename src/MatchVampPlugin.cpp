@@ -58,8 +58,8 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_locked(false),
     m_smooth(true),
     m_frameNo(0),
-    m_params(inputSampleRate, defaultStepTime, m_blockSize),
-    m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize),
+    m_params(defaultStepTime),
+    m_defaultParams(defaultStepTime),
     m_feParams(inputSampleRate, m_blockSize),
     m_defaultFeParams(inputSampleRate, m_blockSize),
     m_fcParams(),
@@ -315,7 +315,6 @@ void
 MatchVampPlugin::createMatchers()
 {
     m_params.hopTime = m_stepTime;
-    m_params.fftSize = m_blockSize;
     m_feParams.fftSize = m_blockSize;
 
     m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_params);

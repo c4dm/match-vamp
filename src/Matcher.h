@@ -54,18 +54,13 @@ public:
 
     struct Parameters {
 
-        Parameters(float rate_, double hopTime_, int fftSize_) :
-            sampleRate(rate_),
+        Parameters(double hopTime_) :
             distanceNorm(DistanceMetric::NormaliseDistanceToLogSum),
             hopTime(hopTime_),
-            fftSize(fftSize_),
             blockTime(10.0),
             maxRunCount(3),
             diagonalWeight(2.0)
         {}
-
-        /** Sample rate of audio */
-        float sampleRate;
 
         /** Type of distance metric normalisation */
         DistanceMetric::DistanceNormalisation distanceNorm;
@@ -75,13 +70,6 @@ public:
          *  seconds.
          */
         double hopTime;
-        
-        /** Size of an FFT frame in samples. Note that the data passed
-         *  in to Matcher is already in the frequency domain, so this
-         *  expresses the size of the frame that the caller will be
-         *  providing.
-         */
-        int fftSize;
         
         /** The width of the search band (error margin) around the current
          *  match position, measured in seconds. Strictly speaking the
