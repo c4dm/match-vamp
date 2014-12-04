@@ -58,8 +58,6 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_locked(false),
     m_smooth(true),
     m_frameNo(0),
-    m_lastFrameIn1(0),
-    m_lastFrameIn2(0),
     m_params(inputSampleRate, defaultStepTime, m_blockSize),
     m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize),
     m_feParams(inputSampleRate, m_blockSize),
@@ -83,11 +81,7 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
 #endif
     }
 
-    m_pm1 = 0;
-    m_pm2 = 0;
-    m_fe1 = 0;
-    m_fe2 = 0;
-    m_feeder = 0;
+    m_pipeline = 0;
 //    std::cerr << "MatchVampPlugin::MatchVampPlugin(" << this << "): extant = " << ++extant << std::endl;
 }
 
@@ -95,11 +89,7 @@ MatchVampPlugin::~MatchVampPlugin()
 {
 //    std::cerr << "MatchVampPlugin::~MatchVampPlugin(" << this << "): extant = " << --extant << std::endl;
 
-    delete m_feeder;
-    delete m_fe1;
-    delete m_fe2;
-    delete m_pm1;
-    delete m_pm2;
+    delete m_pipeline;
 
     if (m_locked) {
 #ifdef _WIN32
@@ -327,14 +317,8 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_params.fftSize = m_blockSize;
     m_feParams.fftSize = m_blockSize;
-    m_fe1 = new FeatureExtractor(m_feParams);
-    m_fe2 = new FeatureExtractor(m_feParams);
-    m_fc1 = new FeatureConditioner(m_fcParams);
-    m_fc2 = new FeatureConditioner(m_fcParams);
-    m_pm1 = new Matcher(m_params, 0);
-    m_pm2 = new Matcher(m_params, m_pm1);
-    m_pm1->setOtherMatcher(m_pm2);
-    m_feeder = new MatchFeatureFeeder(m_pm1, m_pm2);
+
+    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_params);
 }
 
 bool
@@ -365,26 +349,9 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 void
 MatchVampPlugin::reset()
 {
-    delete m_feeder;
-    delete m_fe1;
-    delete m_fe2;
-    delete m_fc1;
-    delete m_fc2;
-    delete m_pm1;
-    delete m_pm2;
-
-    m_feeder = 0;
-    m_fe1 = 0;
-    m_fe2 = 0;
-    m_fc1 = 0;
-    m_fc2 = 0;
-    m_pm1 = 0;
-    m_pm2 = 0;
-
+    delete m_pipeline;
+    m_pipeline = 0;
     m_frameNo = 0;
-    m_lastFrameIn1 = 0;
-    m_lastFrameIn2 = 0;
-
     createMatchers();
     m_begin = true;
     m_locked = false;
@@ -495,18 +462,6 @@ MatchVampPlugin::getOutputDescriptors() const
     return list;
 }
 
-bool
-MatchVampPlugin::aboveThreshold(const float *frame)
-{
-    float threshold = 1e-5f;
-    float rms = 0.f;
-    for (int i = 0; i < m_blockSize/2 + 2; ++i) {
-        rms += frame[i] * frame[i];
-    }
-    rms = sqrtf(rms / (m_blockSize/2 + 2));
-    return (rms > threshold);
-}
-
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::process(const float *const *inputBuffers,
                          Vamp::RealTime timestamp)
@@ -526,13 +481,10 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     
 //    std::cerr << timestamp.toString();
 
-    if (aboveThreshold(inputBuffers[0])) m_lastFrameIn1 = m_frameNo;
-    if (aboveThreshold(inputBuffers[1])) m_lastFrameIn2 = m_frameNo;
+    m_pipeline->feedFrequencyDomainAudio(inputBuffers[0], inputBuffers[1]);
 
-    vector<double> f1 = m_fc1->process(m_fe1->process(inputBuffers[0]));
-    vector<double> f2 = m_fc1->process(m_fe2->process(inputBuffers[1]));
-    
-    m_feeder->feed(f1, f2);
+    vector<double> f1, f2;
+    m_pipeline->extractConditionedFeatures(f1, f2);
 
     FeatureSet returnFeatures;
 
@@ -562,12 +514,11 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::getRemainingFeatures()
 {
-    m_feeder->finish();
+    m_pipeline->finish();
 
     FeatureSet returnFeatures;
     
-    Finder *finder = m_feeder->getFinder();
-    finder->setDurations(m_lastFrameIn1, m_lastFrameIn2);
+    Finder *finder = m_pipeline->getFinder();
     std::vector<int> pathx;
     std::vector<int> pathy;
     int len = finder->retrievePath(m_smooth, pathx, pathy);
@@ -633,12 +584,8 @@ MatchVampPlugin::getRemainingFeatures()
         prevy = y;
     }
 
-    delete m_feeder;
-    delete m_pm1;
-    delete m_pm2;
-    m_feeder = 0;
-    m_pm1 = 0;
-    m_pm2 = 0;
+    delete m_pipeline;
+    m_pipeline = 0;
 
     if (m_locked) {
 #ifdef _WIN32
