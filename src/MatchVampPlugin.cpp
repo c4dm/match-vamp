@@ -331,8 +331,8 @@ MatchVampPlugin::createMatchers()
     m_fe2 = new FeatureExtractor(m_feParams);
     m_fc1 = new FeatureConditioner(m_fcParams);
     m_fc2 = new FeatureConditioner(m_fcParams);
-    m_pm1 = new Matcher(m_params, 0, m_fe1->getFeatureSize());
-    m_pm2 = new Matcher(m_params, m_pm1, m_fe2->getFeatureSize());
+    m_pm1 = new Matcher(m_params, 0);
+    m_pm2 = new Matcher(m_params, m_pm1);
     m_pm1->setOtherMatcher(m_pm2);
     m_feeder = new MatchFeatureFeeder(m_pm1, m_pm2);
 }
