@@ -61,12 +61,12 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_locked(false),
     m_smooth(true),
     m_frameNo(0),
-    m_lastFrameIn1(0),
-    m_lastFrameIn2(0),
     m_params(inputSampleRate, defaultStepTime, m_blockSize),
     m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize),
     m_feParams(inputSampleRate, m_blockSize),
-    m_defaultFeParams(inputSampleRate, m_blockSize)
+    m_defaultFeParams(inputSampleRate, m_blockSize),
+    m_fcParams(),
+    m_defaultFcParams()
 {
     if (inputSampleRate < sampleRateMin) {
         cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
@@ -84,23 +84,14 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
 #endif
     }
 
-    m_pm1 = 0;
-    m_pm2 = 0;
-    m_fe1 = 0;
-    m_fe2 = 0;
-    m_feeder = 0;
-//    cerr << "MatchVampPlugin::MatchVampPlugin(" << this << "): extant = " << ++extant << endl;
+    m_pipeline = 0;
 }
 
 MatchVampPlugin::~MatchVampPlugin()
 {
 //    cerr << "MatchVampPlugin::~MatchVampPlugin(" << this << "): extant = " << --extant << endl;
 
-    delete m_feeder;
-    delete m_fe1;
-    delete m_fe2;
-    delete m_pm1;
-    delete m_pm2;
+    delete m_pipeline;
 
     if (m_locked) {
 #ifdef _WIN32
@@ -170,7 +161,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for frequency-domain audio features";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultFeParams.frameNorm;
+    desc.defaultValue = (int)m_defaultFcParams.norm;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -200,7 +191,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to use half-wave rectified spectral difference instead of straight spectrum";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = m_defaultFeParams.useSpectralDifference ? 1 : 0;
+    desc.defaultValue = (int)m_defaultFcParams.order;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -266,11 +257,11 @@ MatchVampPlugin::getParameter(string name) const
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
     } else if (name == "framenorm") {
-        return (int)m_feParams.frameNorm;
+        return (int)m_fcParams.norm;
     } else if (name == "distnorm") {
         return (int)m_params.distanceNorm;
     } else if (name == "usespecdiff") {
-        return m_feParams.useSpectralDifference ? 1.0 : 0.0;
+        return (int)m_fcParams.order;
     } else if (name == "usechroma") {
         return m_feParams.useChromaFrequencyMap ? 1.0 : 0.0;
     } else if (name == "gradientlimit") {
@@ -292,11 +283,11 @@ MatchVampPlugin::setParameter(string name, float value)
     if (name == "serialise") {
         m_serialise = (value > 0.5);
     } else if (name == "framenorm") {
-        m_feParams.frameNorm = (FeatureExtractor::FrameNormalisation)(int(value + 0.1));
+        m_fcParams.norm = (FeatureConditioner::Normalisation)(int(value + 0.1));
     } else if (name == "distnorm") {
         m_params.distanceNorm = (DistanceMetric::DistanceNormalisation)(int(value + 0.1));
     } else if (name == "usespecdiff") {
-        m_feParams.useSpectralDifference = (value > 0.5);
+        m_fcParams.order = (FeatureConditioner::OutputOrder)(int(value + 0.1));
     } else if (name == "usechroma") {
         m_feParams.useChromaFrequencyMap = (value > 0.5);
     } else if (name == "gradientlimit") {
@@ -328,12 +319,8 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_params.fftSize = m_blockSize;
     m_feParams.fftSize = m_blockSize;
-    m_fe1 = new FeatureExtractor(m_feParams);
-    m_fe2 = new FeatureExtractor(m_feParams);
-    m_pm1 = new Matcher(m_params, 0, m_fe1->getFeatureSize());
-    m_pm2 = new Matcher(m_params, m_pm1, m_fe2->getFeatureSize());
-    m_pm1->setOtherMatcher(m_pm2);
-    m_feeder = new MatchFeatureFeeder(m_pm1, m_pm2);
+
+    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_params);
 }
 
 bool
@@ -364,21 +351,9 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 void
 MatchVampPlugin::reset()
 {
-    delete m_feeder;
-    delete m_fe1;
-    delete m_fe2;
-    delete m_pm1;
-    delete m_pm2;
-
-    m_feeder = 0;
-    m_fe1 = 0;
-    m_fe2 = 0;
-    m_pm1 = 0;
-    m_pm2 = 0;
-
+    delete m_pipeline;
+    m_pipeline = 0;
     m_frameNo = 0;
-    m_lastFrameIn1 = 0;
-    m_lastFrameIn2 = 0;
 
     m_mag1.clear();
     m_mag2.clear();
@@ -532,18 +507,6 @@ MatchVampPlugin::getOutputDescriptors() const
     return list;
 }
 
-bool
-MatchVampPlugin::aboveThreshold(const float *frame)
-{
-    float threshold = 1e-5f;
-    float rms = 0.f;
-    for (int i = 0; i < m_blockSize/2 + 2; ++i) {
-        rms += frame[i] * frame[i];
-    }
-    rms = sqrtf(rms / (m_blockSize/2 + 2));
-    return (rms > threshold);
-}
-
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::process(const float *const *inputBuffers,
                          Vamp::RealTime timestamp)
@@ -563,13 +526,10 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     
 //    cerr << timestamp.toString();
 
-    if (aboveThreshold(inputBuffers[0])) m_lastFrameIn1 = m_frameNo;
-    if (aboveThreshold(inputBuffers[1])) m_lastFrameIn2 = m_frameNo;
+    m_pipeline->feedFrequencyDomainAudio(inputBuffers[0], inputBuffers[1]);
 
-    vector<double> f1 = m_fe1->process(inputBuffers[0]);
-    vector<double> f2 = m_fe2->process(inputBuffers[1]);
-    
-    m_feeder->feed(f1, f2);
+    vector<double> f1, f2;
+    m_pipeline->extractConditionedFeatures(f1, f2);
 
     FeatureSet returnFeatures;
 
@@ -607,12 +567,11 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 MatchVampPlugin::FeatureSet
 MatchVampPlugin::getRemainingFeatures()
 {
-    m_feeder->finish();
+    m_pipeline->finish();
 
     FeatureSet returnFeatures;
     
-    Finder *finder = m_feeder->getFinder();
-    finder->setDurations(m_lastFrameIn1, m_lastFrameIn2);
+    Finder *finder = m_pipeline->getFinder();
     vector<int> pathx;
     vector<int> pathy;
     int len = finder->retrievePath(false, pathx, pathy); //!!! smooth
@@ -629,7 +588,8 @@ MatchVampPlugin::getRemainingFeatures()
             int y = pathy[i];
             if (x != prevx) {
                 double magSum = m_mag1[y] + m_mag2[x];
-                double distance = m_pm1->getDistance(y, x);
+//                double distance = m_pm1->getDistance(y, x);
+                double distance = 0;///!!!
                 float c = magSum - distance;
                 confidence.push_back(c);
             }
@@ -701,7 +661,8 @@ MatchVampPlugin::getRemainingFeatures()
             returnFeatures[m_abDivOutNo].push_back(feature);
 
             double magSum = m_mag1[y] + m_mag2[x];
-            double distance = m_pm1->getDistance(y, x);
+//            double distance = m_pm1->getDistance(y, x);
+                double distance = 0;///!!!
 
             feature.values.clear();
             feature.values.push_back(distance);
@@ -739,13 +700,9 @@ MatchVampPlugin::getRemainingFeatures()
         prevx = x;
         prevy = y;
     }
-    
-    delete m_feeder;
-    delete m_pm1;
-    delete m_pm2;
-    m_feeder = 0;
-    m_pm1 = 0;
-    m_pm2 = 0;
+
+    delete m_pipeline;
+    m_pipeline = 0;
 
     if (m_locked) {
 #ifdef _WIN32

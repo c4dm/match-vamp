@@ -25,12 +25,9 @@
 using namespace std;
 
 FeatureExtractor::FeatureExtractor(Parameters parameters) :
-    m_params(parameters),
-    m_ltAverage(0)
+    m_params(parameters)
 {
     m_featureSize = getFeatureSizeFor(parameters);
-    m_prevFrame = vector<double>(m_featureSize, 0.0);
-
     makeFreqMap();
 }
 
@@ -107,15 +104,12 @@ FeatureExtractor::process(const vector<double> &real, const vector<double> &imag
 {
     vector<double> frame(m_featureSize, 0.0);
     
-    double rms = 0;
     for (int i = 0; i <= m_params.fftSize/2; i++) {
         double mag = real[i] * real[i] + imag[i] * imag[i];
-        rms += mag;
         frame[m_freqMap[i]] += mag;
     }
-    rms = sqrt(rms / (m_params.fftSize/2));
 
-    return postProcess(frame, rms);
+    return frame;
 }
 
 vector<double>
@@ -123,61 +117,11 @@ FeatureExtractor::process(const float *cframe)
 {
     vector<double> frame(m_featureSize, 0.0);
     
-    double rms = 0;
     for (int i = 0; i <= m_params.fftSize/2; i++) {
         double mag = cframe[i*2] * cframe[i*2] + cframe[i*2+1] * cframe[i*2+1];
-        rms += mag;
         frame[m_freqMap[i]] += mag;
     }
-    rms = sqrt(rms / (m_params.fftSize/2));
 
-    return postProcess(frame, rms);
+    return frame;
 }
 
-vector<double>
-FeatureExtractor::postProcess(const vector<double> &frame, double rms)
-{
-    vector<double> feature(m_featureSize, 0.0);
-
-    double totalEnergy = 0;
-    if (m_params.useSpectralDifference) {
-        for (int i = 0; i < m_featureSize; i++) {
-            totalEnergy += frame[i];
-            if (frame[i] > m_prevFrame[i]) {
-                feature[i] = frame[i] - m_prevFrame[i];
-            } else {
-                feature[i] = 0;
-            }
-        }
-    } else {
-        for (int i = 0; i < m_featureSize; i++) {
-            feature[i] = frame[i];
-            totalEnergy += feature[i];
-        }
-    }
-
-    if (m_ltAverage == 0) {
-	m_ltAverage = totalEnergy;
-    } else {
-	double decay = m_params.decay;
-        m_ltAverage = m_ltAverage * decay + totalEnergy * (1.0 - decay);
-    }
-
-    if (rms <= m_params.silenceThreshold) {
-        for (int i = 0; i < m_featureSize; i++) {
-            feature[i] = 0;
-	}
-    } else if (m_params.frameNorm == NormaliseFrameToSum1) {
-        for (int i = 0; i < m_featureSize; i++) { 
-            feature[i] /= totalEnergy;
-	}
-    } else if (m_params.frameNorm == NormaliseFrameToLTAverage) {
-        for (int i = 0; i < m_featureSize; i++) {
-            feature[i] /= m_ltAverage;
-	}
-    }
-
-    m_prevFrame = frame;
-    return feature;
-}
-    
