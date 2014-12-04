@@ -25,13 +25,12 @@ using namespace std;
 
 //#define DEBUG_MATCHER 1
 
-Matcher::Matcher(Parameters parameters, Matcher *p, int m_featureSize_) :
+Matcher::Matcher(Parameters parameters, Matcher *p) :
     m_params(parameters),
-    m_featureSize(m_featureSize_),
     m_metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher::Matcher(" << m_params.sampleRate << ", " << p << ", " << m_featureSize << ")" << endl;
+    cerr << "Matcher::Matcher(" << m_params.sampleRate << ", " << p << ")" << endl;
 #endif
 
     m_otherMatcher = p;	// the first matcher will need this to be set later
@@ -60,8 +59,7 @@ Matcher::init()
 {
     if (m_initialised) return;
 
-    m_frames = vector<vector<double> >
-        (m_blockSize, vector<double>(m_featureSize, -1.0));
+    m_frames = vector<vector<double> >(m_blockSize);
 
     m_distXSize = m_blockSize * 2;
 

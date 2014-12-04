@@ -119,11 +119,8 @@ public:
      *  this one is going to be matched.  Some information is shared
      *  between the two matchers (currently one possesses the distance
      *  matrix and optimal path matrix).
-     *  
-     *  @param featureSize Number of values in each of the feature
-     *  vectors that will be provided.
      */
-    Matcher(Parameters parameters, Matcher *p, int featureSize);
+    Matcher(Parameters parameters, Matcher *p);
 
     /** Destructor for Matcher.
      */
@@ -165,8 +162,8 @@ public:
      *  updating the optimal path matrix using the dynamic time
      *  warping algorithm.
      *
-     *  The supplied feature must be of the size that was passed as
-     *  featureSize to the constructor.
+     *  The supplied features must always be of the same size (within
+     *  any pair of Matcher objects).
      */
     void consumeFeatureVector(std::vector<double> feature);
     
@@ -296,9 +293,6 @@ protected:
      *  without a frame of the other matcher being processed.
      */
     int m_runCount;
-
-    /** The number of values in a feature vector. */
-    int m_featureSize;
 
     /** A block of previously seen feature frames is stored in this
      *  structure for calculation of the distance matrix as the new

@@ -25,10 +25,7 @@
 #include <pthread.h>
 #endif
 
-#include "Matcher.h"
-#include "FeatureExtractor.h"
-
-class MatchFeatureFeeder;
+#include "MatchPipeline.h"
 
 class MatchVampPlugin : public Vamp::Plugin
 {
@@ -69,11 +66,7 @@ protected:
     void createMatchers();
     bool aboveThreshold(const float *);
 
-    Matcher *m_pm1;
-    Matcher *m_pm2;
-    FeatureExtractor *m_fe1;
-    FeatureExtractor *m_fe2;
-    MatchFeatureFeeder *m_feeder;
+    MatchPipeline *m_pipeline;
 
     Vamp::RealTime m_startTime;
     int m_stepSize;
@@ -93,6 +86,9 @@ protected:
 
     FeatureExtractor::Parameters m_feParams;
     FeatureExtractor::Parameters m_defaultFeParams;
+
+    FeatureConditioner::Parameters m_fcParams;
+    FeatureConditioner::Parameters m_defaultFcParams;
 
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
