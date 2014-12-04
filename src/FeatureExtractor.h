@@ -25,49 +25,23 @@
  * the frequency data to map higher frequencies into a linear scale. A
  * chroma mapping is also available.
  *
- * Note that FeatureExtractor maintains internal frame-to-frame state:
- * use one FeatureExtractor per audio source, and construct a new one
- * for each new source.
+ * Note that FeatureExtractor may maintain internal frame-to-frame
+ * state: use one FeatureExtractor per audio source, and construct a
+ * new one for each new source.
  */
 class FeatureExtractor
 {
 public:
-    enum FrameNormalisation {
-
-        /** Do not normalise frames */
-        NoFrameNormalisation,
-        
-        /** Normalise each frame to have a sum of 1 */
-        NormaliseFrameToSum1,
-        
-        /** Normalise each frame by the long-term average of the
-         *  summed energy */
-        NormaliseFrameToLTAverage,
-    };
-
     struct Parameters {
 
         Parameters(float rate_, int fftSize_) :
             sampleRate(rate_),
-            frameNorm(NormaliseFrameToSum1),
-            useSpectralDifference(true),
             useChromaFrequencyMap(false),
-            fftSize(fftSize_),
-            silenceThreshold(0.01),
-            decay(0.99)
+            fftSize(fftSize_)
         {}
 
         /** Sample rate of audio */
         float sampleRate;
-
-        /** Type of audio frame normalisation */
-        FrameNormalisation frameNorm;
-
-        /** Flag indicating whether or not the half-wave rectified
-         *  spectral difference should be used in calculating the
-         *  distance metric for pairs of audio frames, instead of the
-         *  straight spectrum values. */
-        bool useSpectralDifference;
 
         /** Flag indicating whether to use a chroma frequency map (12
          *  bins) instead of the default warped spectrogram */
@@ -82,12 +56,6 @@ public:
          *  in is already in the frequency domain, so this expresses
          *  the size of the frame that the caller will be providing. */
         int fftSize;
-
-        /** RMS level below which frame is considered silent */
-        double silenceThreshold;
-
-        /** Frame-to-frame decay factor in calculating long-term average */
-        double decay;
     };
 
     /**
@@ -117,12 +85,8 @@ public:
      * have at least params.fftSize/2+1 elements each.
      *
      * Operates by mapping the frequency bins into a part-linear
-     * part-logarithmic array, then (optionally) computing the
-     * half-wave rectified spectral difference from the previous
-     * frame, then (optionally) normalising to a sum of 1.
-     *
-     * Return value is the frame (post-processed, with warping,
-     * rectification, and normalisation as appropriate).
+     * part-logarithmic array, unless useChromaFrequencyMap is true in
+     * which case they are mapped into chroma bins.
      */
     std::vector<double> process(const std::vector<double> &real,
                                 const std::vector<double> &imag);
@@ -133,12 +97,8 @@ public:
      * must have at least 2 * (params.fftSize/2 + 1) elements.
      *
      * Operates by mapping the frequency bins into a part-linear
-     * part-logarithmic array, then (optionally) computing the
-     * half-wave rectified spectral difference from the previous
-     * frame, then (optionally) normalising to a sum of 1.
-     *
-     * Return value is the frame (post-processed, with warping,
-     * rectification, and normalisation as appropriate).
+     * part-logarithmic array, unless useChromaFrequencyMap is true in
+     * which case they are mapped into chroma bins.
      */
     std::vector<double> process(const float *carray);
     
@@ -157,14 +117,8 @@ protected:
     /** Creates a map of FFT frequency bins to semitone chroma bins. */
     void makeChromaFrequencyMap();
 
-    std::vector<double> postProcess(const std::vector<double> &, double rms);
-    
     /** Configuration parameters */
     Parameters m_params;
-    
-    /** Long term average frame energy (in frequency domain
-     *  representation). */
-    double m_ltAverage;
 
     /** A mapping function for mapping FFT bins to final frequency
      *  bins.  The mapping is linear (1-1) until the resolution
@@ -179,11 +133,6 @@ protected:
 
     /** The size of a returned feature. */
     int m_featureSize;
-
-    /** The most recent frame; used for calculating the frame to frame
-     *  spectral difference. This is therefore frequency warped but
-     *  not yet normalised. */
-    std::vector<double> m_prevFrame;
 };
 
 #endif

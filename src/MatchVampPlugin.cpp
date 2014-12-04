@@ -63,7 +63,9 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_params(inputSampleRate, defaultStepTime, m_blockSize),
     m_defaultParams(inputSampleRate, defaultStepTime, m_blockSize),
     m_feParams(inputSampleRate, m_blockSize),
-    m_defaultFeParams(inputSampleRate, m_blockSize)
+    m_defaultFeParams(inputSampleRate, m_blockSize),
+    m_fcParams(),
+    m_defaultFcParams()
 {
     if (inputSampleRate < sampleRateMin) {
         std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
@@ -167,7 +169,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for frequency-domain audio features";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultFeParams.frameNorm;
+    desc.defaultValue = (int)m_defaultFcParams.norm;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -197,7 +199,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to use half-wave rectified spectral difference instead of straight spectrum";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = m_defaultFeParams.useSpectralDifference ? 1 : 0;
+    desc.defaultValue = (int)m_defaultFcParams.order;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -263,11 +265,11 @@ MatchVampPlugin::getParameter(std::string name) const
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
     } else if (name == "framenorm") {
-        return (int)m_feParams.frameNorm;
+        return (int)m_fcParams.norm;
     } else if (name == "distnorm") {
         return (int)m_params.distanceNorm;
     } else if (name == "usespecdiff") {
-        return m_feParams.useSpectralDifference ? 1.0 : 0.0;
+        return (int)m_fcParams.order;
     } else if (name == "usechroma") {
         return m_feParams.useChromaFrequencyMap ? 1.0 : 0.0;
     } else if (name == "gradientlimit") {
@@ -289,11 +291,11 @@ MatchVampPlugin::setParameter(std::string name, float value)
     if (name == "serialise") {
         m_serialise = (value > 0.5);
     } else if (name == "framenorm") {
-        m_feParams.frameNorm = (FeatureExtractor::FrameNormalisation)(int(value + 0.1));
+        m_fcParams.norm = (FeatureConditioner::Normalisation)(int(value + 0.1));
     } else if (name == "distnorm") {
         m_params.distanceNorm = (DistanceMetric::DistanceNormalisation)(int(value + 0.1));
     } else if (name == "usespecdiff") {
-        m_feParams.useSpectralDifference = (value > 0.5);
+        m_fcParams.order = (FeatureConditioner::OutputOrder)(int(value + 0.1));
     } else if (name == "usechroma") {
         m_feParams.useChromaFrequencyMap = (value > 0.5);
     } else if (name == "gradientlimit") {
@@ -327,6 +329,8 @@ MatchVampPlugin::createMatchers()
     m_feParams.fftSize = m_blockSize;
     m_fe1 = new FeatureExtractor(m_feParams);
     m_fe2 = new FeatureExtractor(m_feParams);
+    m_fc1 = new FeatureConditioner(m_fcParams);
+    m_fc2 = new FeatureConditioner(m_fcParams);
     m_pm1 = new Matcher(m_params, 0, m_fe1->getFeatureSize());
     m_pm2 = new Matcher(m_params, m_pm1, m_fe2->getFeatureSize());
     m_pm1->setOtherMatcher(m_pm2);
@@ -364,12 +368,16 @@ MatchVampPlugin::reset()
     delete m_feeder;
     delete m_fe1;
     delete m_fe2;
+    delete m_fc1;
+    delete m_fc2;
     delete m_pm1;
     delete m_pm2;
 
     m_feeder = 0;
     m_fe1 = 0;
     m_fe2 = 0;
+    m_fc1 = 0;
+    m_fc2 = 0;
     m_pm1 = 0;
     m_pm2 = 0;
 
@@ -521,8 +529,8 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     if (aboveThreshold(inputBuffers[0])) m_lastFrameIn1 = m_frameNo;
     if (aboveThreshold(inputBuffers[1])) m_lastFrameIn2 = m_frameNo;
 
-    vector<double> f1 = m_fe1->process(inputBuffers[0]);
-    vector<double> f2 = m_fe2->process(inputBuffers[1]);
+    vector<double> f1 = m_fc1->process(m_fe1->process(inputBuffers[0]));
+    vector<double> f2 = m_fc1->process(m_fe2->process(inputBuffers[1]));
     
     m_feeder->feed(f1, f2);
 

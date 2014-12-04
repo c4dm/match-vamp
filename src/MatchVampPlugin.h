@@ -27,6 +27,7 @@
 
 #include "Matcher.h"
 #include "FeatureExtractor.h"
+#include "FeatureConditioner.h"
 
 class MatchFeatureFeeder;
 
@@ -73,6 +74,8 @@ protected:
     Matcher *m_pm2;
     FeatureExtractor *m_fe1;
     FeatureExtractor *m_fe2;
+    FeatureConditioner *m_fc1;
+    FeatureConditioner *m_fc2;
     MatchFeatureFeeder *m_feeder;
 
     Vamp::RealTime m_startTime;
@@ -93,6 +96,9 @@ protected:
 
     FeatureExtractor::Parameters m_feParams;
     FeatureExtractor::Parameters m_defaultFeParams;
+
+    FeatureConditioner::Parameters m_fcParams;
+    FeatureConditioner::Parameters m_defaultFcParams;
 
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
