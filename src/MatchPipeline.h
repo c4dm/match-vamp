@@ -61,7 +61,7 @@ public:
      * the pipeline.
      */
     void feedFeatures(const vector<double> &f1, const vector<double> &f2);
-
+    
     /**
      * Feed in data at the third pipeline stage. The vectors represent
      * conditioned feature frames from two different sources. They
@@ -69,6 +69,19 @@ public:
      * matchers.
      */
     void feedConditionedFeatures(const vector<double> &f1, const vector<double> &f2);
+
+    /**
+     * If a frame was just fed in at the first or second pipeline
+     * stage, it can be retrieved from the second stage here. That is,
+     * if you provided frequency-domain audio, extractFeatures will
+     * give you back the FeatureExtractor's features.
+     */
+    void extractFeatures(vector<double> &f1, vector<double> &f2);
+
+    /**
+     * Retrieve the conditioned features from the third pipeline stage.
+     */
+    void extractConditionedFeatures(vector<double> &f1, vector<double> &f2);
 
     /**
      * Indicate that both inputs have come to an end.
@@ -88,6 +101,10 @@ private:
     int m_lastFrameIn1;
     int m_lastFrameIn2;
     int m_frameNo;
+    vector<double> m_f1;
+    vector<double> m_f2;
+    vector<double> m_c1;
+    vector<double> m_c2;
     bool aboveThreshold(const vector<double> &f);
 };
 

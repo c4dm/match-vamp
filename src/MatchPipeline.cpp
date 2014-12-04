@@ -45,18 +45,38 @@ MatchPipeline::feedFrequencyDomainAudio(const float *arr1, const float *arr2)
 void
 MatchPipeline::feedFeatures(const vector<double> &f1, const vector<double> &f2)
 {
+    m_f1 = f1;
+    m_f2 = f2;
+
     feedConditionedFeatures(m_fc1.process(f1), m_fc2.process(f2));
 }
 
 void
-MatchPipeline::feedConditionedFeatures(const vector<double> &f1, const vector<double> &f2)
+MatchPipeline::feedConditionedFeatures(const vector<double> &c1, const vector<double> &c2)
 {
-    m_feeder.feed(f1, f2);
+    m_c1 = c1;
+    m_c2 = c2;
+    
+    m_feeder.feed(c1, c2);
 
-    if (aboveThreshold(f1)) m_lastFrameIn1 = m_frameNo;
-    if (aboveThreshold(f2)) m_lastFrameIn2 = m_frameNo;
+    if (aboveThreshold(c1)) m_lastFrameIn1 = m_frameNo;
+    if (aboveThreshold(c2)) m_lastFrameIn2 = m_frameNo;
 
     ++m_frameNo;
+}
+
+void
+MatchPipeline::extractFeatures(vector<double> &f1, vector<double> &f2)
+{
+    f1 = m_f1;
+    f2 = m_f2;
+}
+
+void
+MatchPipeline::extractConditionedFeatures(vector<double> &c1, vector<double> &c2)
+{
+    c1 = m_c1;
+    c2 = m_c2;
 }
 
 bool
