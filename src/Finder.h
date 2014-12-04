@@ -58,13 +58,13 @@ public:
      * Track back after all of the matchers have been fed in order to
      * obtain the lowest cost path available. Path x and y coordinate
      * pairs are returned in corresponding elements of pathx and
-     * pathy. Return value is the length of the returned path: only
-     * this many elements from pathx and pathy are valid (any
-     * subsequent ones may be spurious).
-     *
-     * @param smooth whether to smooth the path before returning it
+     * pathy, and the corresponding elements of the returned distance
+     * vector contain the distance between the pair of features
+     * selected at each step in the path.
      */
-    int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
+    void retrievePath(std::vector<int> &pathx,
+                      std::vector<int> &pathy,
+                      std::vector<float> &distances);
 
     void smoothWithPinPoints(const std::map<int, int> &);
     

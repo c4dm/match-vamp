@@ -574,11 +574,16 @@ MatchVampPlugin::getRemainingFeatures()
     Finder *finder = m_pipeline->getFinder();
     vector<int> pathx;
     vector<int> pathy;
-    int len = finder->retrievePath(false, pathx, pathy); //!!! smooth
+    vector<float> distances;
+    finder->retrievePath(pathx, pathy, distances);
 
     int prevx = 0;
     int prevy = 0;
+    int len = pathx.size();
 
+//!!!
+//  m_smooth = true;
+    
     if (m_smooth) {
     
         vector<float> confidence;
@@ -588,8 +593,7 @@ MatchVampPlugin::getRemainingFeatures()
             int y = pathy[i];
             if (x != prevx) {
                 double magSum = m_mag1[y] + m_mag2[x];
-//                double distance = m_pm1->getDistance(y, x);
-                double distance = 0;///!!!
+                double distance = distances[i];
                 float c = magSum - distance;
                 confidence.push_back(c);
             }
@@ -627,7 +631,9 @@ MatchVampPlugin::getRemainingFeatures()
 
         pathx.clear();
         pathy.clear();
-        len = finder->retrievePath(false, pathx, pathy); //!!! smooth
+        distances.clear();
+        finder->retrievePath(pathx, pathy, distances);
+        len = pathx.size();
     }    
 
     for (int i = 0; i < len; ++i) {
@@ -661,8 +667,7 @@ MatchVampPlugin::getRemainingFeatures()
             returnFeatures[m_abDivOutNo].push_back(feature);
 
             double magSum = m_mag1[y] + m_mag2[x];
-//            double distance = m_pm1->getDistance(y, x);
-                double distance = 0;///!!!
+            double distance = distances[i];
 
             feature.values.clear();
             feature.values.push_back(distance);

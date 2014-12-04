@@ -332,11 +332,14 @@ Finder::checkAndReport()
 }
 #endif
 
-int
-Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
+void
+Finder::retrievePath(vector<int> &pathx,
+                     vector<int> &pathy,
+                     vector<float> &distances)
 {
     pathx.clear();
     pathy.clear();
+    distances.clear();
 
 #ifdef PERFORM_ERROR_CHECKS
     checkAndReport();
@@ -346,7 +349,7 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     int ey = m_m->getFrameCount() - 1;
 
     if (ex < 0 || ey < 0) {
-        return 0;
+        return;
     }
     
     int x = ex;
@@ -381,6 +384,7 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
         
         pathx.push_back(x);
         pathy.push_back(y);
+        distances.push_back(m_m->getDistance(y, x));
 
         switch (m_m->getAdvance(y, x)) {
         case Matcher::AdvanceThis:
@@ -414,13 +418,7 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     
     reverse(pathx.begin(), pathx.end());
     reverse(pathy.begin(), pathy.end());
-
-    if (smooth) {
-        int smoothedLen = Path().smooth(pathx, pathy, pathx.size());
-        return smoothedLen;
-    } else {
-        return pathx.size();
-    }
+    reverse(distances.begin(), distances.end());
 }
 
 void
