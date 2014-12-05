@@ -100,6 +100,8 @@ protected:
     mutable int m_baOutNo;
     mutable int m_abDivOutNo;
     mutable int m_abRatioOutNo;
+    mutable int m_aRFeaturesOutNo;
+    mutable int m_bRFeaturesOutNo;
     mutable int m_aFeaturesOutNo;
     mutable int m_bFeaturesOutNo;
     mutable int m_magOutNo;

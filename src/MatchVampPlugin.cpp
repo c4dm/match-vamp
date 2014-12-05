@@ -29,6 +29,8 @@
 #include <algorithm>
 #include <map>
 
+#include <cstdio>
+
 using namespace std;
 
 //static int extant = 0;
@@ -439,8 +441,34 @@ MatchVampPlugin::getOutputDescriptors() const
     int featureSize = FeatureExtractor(m_feParams).getFeatureSize();
     
     desc.identifier = "a_features";
-    desc.name = "A Features";
+    desc.name = "Raw A Features";
     desc.description = "Spectral features extracted from performance A";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = featureSize;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_aRFeaturesOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "b_features";
+    desc.name = "Raw B Features";
+    desc.description = "Spectral features extracted from performance B";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = featureSize;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_bRFeaturesOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "cond_a_features";
+    desc.name = "Conditioned A Features";
+    desc.description = "Conditioned spectral features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = featureSize;
@@ -451,9 +479,9 @@ MatchVampPlugin::getOutputDescriptors() const
     m_aFeaturesOutNo = list.size();
     list.push_back(desc);
 
-    desc.identifier = "b_features";
-    desc.name = "B Features";
-    desc.description = "Spectral features extracted from performance B";
+    desc.identifier = "cond_b_features";
+    desc.name = "Conditioned B Features";
+    desc.description = "Conditioned spectral features extracted from performance B";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = featureSize;
@@ -567,6 +595,18 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     f.hasTimestamp = false;
 
     f.values.clear();
+    for (int j = 0; j < (int)f1.size(); ++j) {
+        f.values.push_back(float(f1[j]));
+    }
+    returnFeatures[m_aRFeaturesOutNo].push_back(f);
+
+    f.values.clear();
+    for (int j = 0; j < (int)f2.size(); ++j) {
+        f.values.push_back(float(f2[j]));
+    }
+    returnFeatures[m_bRFeaturesOutNo].push_back(f);
+
+    f.values.clear();
     for (int j = 0; j < (int)c1.size(); ++j) {
         f.values.push_back(float(c1[j]));
     }
@@ -614,9 +654,9 @@ MatchVampPlugin::getRemainingFeatures()
             int x = pathx[i];
             int y = pathy[i];
 
-            double magSum = (m_cmag1[y] * m_mag1[y]) + (m_cmag2[x] * m_mag2[x]);
+            double magSum = m_mag1[x] + m_mag2[y];
             double distance = distances[i];
-            float c = magSum - distance;
+            float c = magSum - distance * magSum;
             confidence.push_back(c);
 
             if (x != prevx) {
@@ -632,6 +672,9 @@ MatchVampPlugin::getRemainingFeatures()
                 f.values.push_back(distance);
                 returnFeatures[m_distOutNo].push_back(f);
             }
+
+            prevx = x;
+            prevy = y;
         }
         
         map<int, int> pinpoints;
