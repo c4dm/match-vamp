@@ -24,17 +24,27 @@ depend:
 # DO NOT DELETE
 
 src/DistanceMetric.o: src/DistanceMetric.h
+src/FeatureConditioner.o: src/FeatureConditioner.h
 src/Path.o: src/Path.h
 src/MatchFeatureFeeder.o: src/MatchFeatureFeeder.h src/Matcher.h
 src/MatchFeatureFeeder.o: src/DistanceMetric.h src/Finder.h
 src/FeatureExtractor.o: src/FeatureExtractor.h
 src/Finder.o: src/Finder.h src/Matcher.h src/DistanceMetric.h src/Path.h
+src/Finder.o: src/MedianFilter.h
 src/Matcher.o: src/Matcher.h src/DistanceMetric.h
-src/MatchVampPlugin.o: src/MatchVampPlugin.h src/Matcher.h
-src/MatchVampPlugin.o: src/DistanceMetric.h src/FeatureExtractor.h
-src/MatchVampPlugin.o: src/MatchFeatureFeeder.h src/Finder.h src/Path.h
+src/MatchPipeline.o: src/MatchPipeline.h src/Matcher.h src/DistanceMetric.h
+src/MatchPipeline.o: src/Finder.h src/FeatureExtractor.h
+src/MatchPipeline.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
+src/MatchVampPlugin.o: src/MatchVampPlugin.h src/MatchPipeline.h
+src/MatchVampPlugin.o: src/Matcher.h src/DistanceMetric.h src/Finder.h
+src/MatchVampPlugin.o: src/FeatureExtractor.h src/FeatureConditioner.h
+src/MatchVampPlugin.o: src/MatchFeatureFeeder.h
 src/MatchFeatureFeeder.o: src/Matcher.h src/DistanceMetric.h src/Finder.h
 src/Finder.o: src/Matcher.h src/DistanceMetric.h
 src/Matcher.o: src/DistanceMetric.h
-src/MatchVampPlugin.o: src/Matcher.h src/DistanceMetric.h
-src/MatchVampPlugin.o: src/FeatureExtractor.h
+src/MatchPipeline.o: src/Matcher.h src/DistanceMetric.h src/Finder.h
+src/MatchPipeline.o: src/FeatureExtractor.h src/FeatureConditioner.h
+src/MatchPipeline.o: src/MatchFeatureFeeder.h
+src/MatchVampPlugin.o: src/MatchPipeline.h src/Matcher.h src/DistanceMetric.h
+src/MatchVampPlugin.o: src/Finder.h src/FeatureExtractor.h
+src/MatchVampPlugin.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h

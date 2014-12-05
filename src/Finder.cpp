@@ -98,6 +98,9 @@ void
 Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2,
                                   float diagonalWeight) 
 {
+    cerr << "recalculatePathCostMatrix: (" << r1 << "," << c1 << ") -> ("
+         << r2 << "," << c2 << ")" << endl;
+    
     int prevRowStart = 0, prevRowStop = 0;
     
     for (int r = r1; r <= r2; r++) {
@@ -545,28 +548,37 @@ Finder::smooth(const vector<double> &mag1, const vector<double> &mag2)
     int ex, ey;
     getEndPoint(ex, ey);
     
-    pair<int, int> prev = *pinpoints.begin();
+    pair<int, int> prev(0, 0);
 
     for (map<int, int>::const_iterator i = pinpoints.begin();
          i != pinpoints.end(); ++i) {
 
         if (i == pinpoints.begin()) continue;
 
+        map<int, int>::const_iterator j = i;
+        ++j;
+        if (j != pinpoints.end() && i->second == j->second) {
+            // skip this one
+            continue;
+        }
+        
         pair<int, int> curr = *i;
 
         if (curr.first > ex || curr.second > ey) {
-
-            recalculatePathCostMatrix(prev.second, prev.first,
-                                      ey, ex, 1.0);
-
-        } else {
-        
-            recalculatePathCostMatrix(prev.second, prev.first,
-                                      curr.second, curr.first, 1.0);
+            curr = pair<int, int>(ex, ey);
         }
+
+        recalculatePathCostMatrix(prev.second, prev.first,
+                                  curr.second, curr.first,
+                                  1.0);
         
         prev = curr;
     }
+
+    recalculatePathCostMatrix(prev.second, prev.first,
+                              m_m->getFrameCount() - 1,
+                              m_m->getOtherFrameCount() - 1,
+                              1.0);
 }
 
 
