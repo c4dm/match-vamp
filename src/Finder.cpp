@@ -342,7 +342,7 @@ Finder::retrievePath(vector<int> &pathx,
     distances.clear();
 
 #ifdef PERFORM_ERROR_CHECKS
-    checkAndReport();
+//    checkAndReport();
 #endif
 
     int ex = m_m->getOtherFrameCount() - 1;
