@@ -48,9 +48,13 @@ public:
 	OutputFeatures,
 
 	/** Output the half-wave rectified difference between the
-	 * previous and current features instead of the straight
-	 * feature values. */
+	 *  previous and current features instead of the straight
+	 *  feature values. */
 	OutputRectifiedDerivative,
+
+	/** Output the difference between the previous and current
+	 *  features instead of the straight feature values. */
+	OutputDerivative,
     };
 
     struct Parameters {
@@ -78,10 +82,10 @@ public:
     };
 	
     /**
-     * Construct a FeatureExtractor with the given parameters.
+     * Construct a FeatureConditioner with the given parameters.
      *
-     * Note that FeatureExtractor maintains internal frame-to-frame
-     * state: use one FeatureExtractor per audio source, and construct
+     * Note that FeatureConditioner maintains internal frame-to-frame
+     * state: use one FeatureConditioner per audio source, and construct
      * a new one for each new source.
      */
     FeatureConditioner(Parameters parameters) : m_params(parameters) { }
