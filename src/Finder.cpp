@@ -308,7 +308,13 @@ Finder::checkAndReport()
         for (int j = -4; j <= 0; ++j) {
             cerr << setw(w) << j;
             for (int i = -4; i <= 0; ++i) {
-                cerr << setw(ww) << m_m->getDistance(err.r + j, err.c + i);
+                int r = err.r + j;
+                int c = err.c + i;
+                float dist = 0.f;
+                if (r >= 0 && c >= 0) {
+                    dist = m_m->getDistance(r, c);
+                }
+                cerr << setw(ww) << dist;
             }
             cerr << endl;
         }
@@ -323,7 +329,13 @@ Finder::checkAndReport()
         for (int j = -4; j <= 0; ++j) {
             cerr << setw(w) << j;
             for (int i = -4; i <= 0; ++i) {
-                cerr << setw(ww) << m_m->getPathCost(err.r + j, err.c + i);
+                int r = err.r + j;
+                int c = err.c + i;
+                double cost = 0.0;
+                if (r >= 0 && c >= 0) {
+                    cost = m_m->getPathCost(r, c);
+                }
+                cerr << setw(ww) << cost;
             }
             cerr << endl;
         }
@@ -333,18 +345,8 @@ Finder::checkAndReport()
 #endif
 
 void
-Finder::retrievePath(vector<int> &pathx,
-                     vector<int> &pathy,
-                     vector<float> &distances)
+Finder::getEndPoint(int &x, int &y)
 {
-    pathx.clear();
-    pathy.clear();
-    distances.clear();
-
-#ifdef PERFORM_ERROR_CHECKS
-//    checkAndReport();
-#endif
-
     int ex = m_m->getOtherFrameCount() - 1;
     int ey = m_m->getFrameCount() - 1;
 
@@ -352,8 +354,8 @@ Finder::retrievePath(vector<int> &pathx,
         return;
     }
     
-    int x = ex;
-    int y = ey;
+    x = ex;
+    y = ey;
 
     if (m_duration2 > 0 && m_duration2 < m_m->getOtherFrameCount()) {
         x = m_duration2 - 1;
@@ -373,10 +375,25 @@ Finder::retrievePath(vector<int> &pathx,
         x = ex;
         y = ey;
     }
+}
 
-//    recalculatePathCostMatrix(0, 0, y, x);
+void
+Finder::retrievePath(vector<int> &pathx,
+                     vector<int> &pathy,
+                     vector<float> &distances)
+{
+    pathx.clear();
+    pathy.clear();
+    distances.clear();
+
+#ifdef PERFORM_ERROR_CHECKS
+    checkAndReport();
+#endif
 
 //    cerr << "start: x = " << x << ", y = " << y << endl;
+
+    int x, y;
+    getEndPoint(x, y);
     
     while (m_m->isAvailable(y, x) && (x > 0 || y > 0)) {
 
@@ -436,6 +453,9 @@ Finder::smoothWithPinPoints(const map<int, int> &pinpoints)
 
     if (pinpoints.size() < 2) return;
 
+    int ex, ey;
+    getEndPoint(ex, ey);
+    
     pair<int, int> prev = *pinpoints.begin();
 
     for (PPMap::const_iterator i = pinpoints.begin(); i != pinpoints.end(); ++i) {
@@ -443,8 +463,16 @@ Finder::smoothWithPinPoints(const map<int, int> &pinpoints)
 
         pair<int, int> curr = *i;
 
-        recalculatePathCostMatrix(prev.second, prev.first,
-                                  curr.second, curr.first, 1.0);
+        if (curr.first > ex || curr.second > ey) {
+
+            recalculatePathCostMatrix(prev.second, prev.first,
+                                      ey, ex, 1.0);
+
+        } else {
+        
+            recalculatePathCostMatrix(prev.second, prev.first,
+                                      curr.second, curr.first, 1.0);
+        }
         
         prev = curr;
     }

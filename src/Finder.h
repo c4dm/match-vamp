@@ -89,6 +89,8 @@ protected:
 
     void recalculatePathCostMatrix(int r1, int c1, int r2, int c2,
                                    float diagonalWeight);
+
+    void getEndPoint(int &x, int &y);
     
     Matcher *m_m;
     int m_duration1;
