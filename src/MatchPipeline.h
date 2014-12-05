@@ -74,10 +74,20 @@ public:
      * If a frame was just fed in at the first or second pipeline
      * stage, it can be retrieved from the second stage here. That is,
      * if you provided frequency-domain audio, extractFeatures will
-     * give you back the FeatureExtractor's features.
+     * give you back the FeatureExtractor's features; if you provided
+     * features, extractFeatures will simply give you those back. If
+     * you provided conditioned features, the return from this
+     * function is undefined.
      */
     void extractFeatures(vector<double> &f1, vector<double> &f2);
 
+    /**
+     * If a frame was just fed in at the first or second pipeline
+     * stage, you can obtain the magnitudes of its features for both
+     * inputs here.
+     */
+    void extractFeatureMagnitudes(double &mag1, double &mag2);
+    
     /**
      * Retrieve the conditioned features from the third pipeline stage.
      */

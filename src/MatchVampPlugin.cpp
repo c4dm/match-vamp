@@ -19,8 +19,6 @@
 #include "Matcher.h"
 #include "MatchFeatureFeeder.h"
 #include "FeatureExtractor.h"
-#include "Path.h"
-#include "MedianFilter.h"
 
 #include <vamp/vamp.h>
 #include <vamp-sdk/PluginAdapter.h>
@@ -518,7 +516,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.sampleRate = outRate;
     m_magOutNo = list.size();
     list.push_back(desc);
-
+/*
     desc.identifier = "confidence";
     desc.name = "Confidence";
     desc.description = "Confidence metric for the quality of match at each point-in-A along the chosen alignment path";
@@ -544,19 +542,8 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.sampleRate = outRate;
     m_confPeakOutNo = list.size();
     list.push_back(desc);
-
+*/
     return list;
-}
-
-static float
-magOf(const vector<double> &f)
-{
-    double mag = 0.0;
-    for (int j = 0; j < (int)f.size(); ++j) {
-        mag += f[j] * f[j];
-    }
-    mag = sqrt(mag);
-    return float(mag);
 }
 
 MatchVampPlugin::FeatureSet
@@ -585,10 +572,10 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     m_pipeline->extractFeatures(f1, f2);
     m_pipeline->extractConditionedFeatures(c1, c2);    
 
-    m_mag1.push_back(magOf(f1));
-    m_mag2.push_back(magOf(f2));
-    m_cmag1.push_back(magOf(c1));
-    m_cmag2.push_back(magOf(c2));
+    double m1, m2;
+    m_pipeline->extractFeatureMagnitudes(m1, m2);
+    m_mag1.push_back(m1);
+    m_mag2.push_back(m2);
 
     FeatureSet returnFeatures;
 
@@ -635,6 +622,11 @@ MatchVampPlugin::getRemainingFeatures()
     FeatureSet returnFeatures;
     
     Finder *finder = m_pipeline->getFinder();
+
+    if (m_smooth) {
+        finder->smooth(m_mag1, m_mag2);
+    }
+
     vector<int> pathx;
     vector<int> pathy;
     vector<float> distances;
@@ -643,100 +635,6 @@ MatchVampPlugin::getRemainingFeatures()
     int prevx = 0;
     int prevy = 0;
     int len = pathx.size();
-
-//!!!
-//  m_smooth = true;
-    
-    if (m_smooth) {
-    
-        vector<float> confidence;
-
-        for (int i = 0; i < len; ++i) {
-            int x = pathx[i];
-            int y = pathy[i];
-
-            float magSum = m_mag1[x] + m_mag2[y];
-            float distance = distances[i];
-            float c = magSum - distance * magSum;
-            confidence.push_back(c);
-
-            if (x != prevx) {
-                Feature f;
-                f.values.push_back(magSum);
-                returnFeatures[m_magOutNo].push_back(f);
-
-                f.values.clear();
-                f.values.push_back(distance);
-                returnFeatures[m_distOutNo].push_back(f);
-            }
-
-            prevx = x;
-            prevy = y;
-        }
-
-        confidence = MedianFilter<float>::filter(3, confidence);
-        vector<float> filtered = MedianFilter<float>::filter(50, confidence);
-        for (int i = 0; i < len; ++i) {
-            confidence[i] -= filtered[i];
-            if (confidence[i] < 0.f) {
-                confidence[i] = 0.f;
-            }
-        }
-        vector<float> deriv;
-        deriv.resize(len, 0.f);
-        for (int i = 1; i < len; ++i) {
-            deriv[i] = confidence[i] - confidence[i-1];
-        }
-        vector<int> inflections;
-        for (int i = 1; i < len; ++i) {
-            if (deriv[i-1] > 0 && deriv[i] < 0) {
-                inflections.push_back(i);
-            }
-        }
-        
-        for (int i = 0; i < len; ++i) {
-
-            int x = pathx[i];
-            int y = pathy[i];
-
-            if (x != prevx) {
-                Feature f;
-                float c = confidence[i];
-                f.values.push_back(c);
-                returnFeatures[m_confidenceOutNo].push_back(f);
-            }
-
-            prevx = x;
-            prevy = y;
-        }
-
-        map<int, int> pinpoints;
-            
-        for (int ii = 0; ii < int(inflections.size()); ++ii) {
-
-            int i = inflections[ii];
-            
-            int x = pathx[i];
-            int y = pathy[i];
-
-            pinpoints[x] = y;
-                
-            Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
-                (x * m_stepSize, lrintf(m_inputSampleRate));
-            Feature feature;
-            feature.hasTimestamp = true;
-            feature.timestamp = m_startTime + xt;
-            returnFeatures[m_confPeakOutNo].push_back(feature);
-        }
-
-        finder->smoothWithPinPoints(pinpoints);
-
-        pathx.clear();
-        pathy.clear();
-        distances.clear();
-        finder->retrievePath(pathx, pathy, distances);
-        len = pathx.size();
-    }    
 
     for (int i = 0; i < len; ++i) {
 

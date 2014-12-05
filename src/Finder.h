@@ -55,6 +55,14 @@ public:
     void recalculatePathCostMatrix(int r1, int c1, int r2, int c2);
 
     /**
+     * Recalculate a rectangle of the path cost matrix using the given
+     * diagonal weight instead of the weight obtained from the Matcher
+     * parameters.
+     */
+    void recalculatePathCostMatrix(int r1, int c1, int r2, int c2,
+                                   float diagonalWeight);
+
+    /**
      * Track back after all of the matchers have been fed in order to
      * obtain the lowest cost path available. Path x and y coordinate
      * pairs are returned in corresponding elements of pathx and
@@ -66,7 +74,21 @@ public:
                       std::vector<int> &pathy,
                       std::vector<float> &distances);
 
-    void smoothWithPinPoints(const std::map<int, int> &);
+    /**
+     * Using the provided magnitude arrays for the first and second
+     * inputs as an indication of salience, smooth the cost matrix by
+     * recalculating with locally adaptive diagonal weights in order
+     * to obtain a smoother path that retains the original locations
+     * for the most salient points. Subsequent calls to retrievePath
+     * will retrieve the smoothed version. The original can be
+     * restored with a call to recalculatePathCostMatrix().
+     *
+     * Note that this is quite separate from Path::smooth() which
+     * smooths a path without trying to maintain locations for salient
+     * points. That function will achieve a smoother path, but may
+     * smooth out significant locations such as onsets.
+     */
+    void smooth(const vector<double> &mag1, const vector<double> &mag2);
     
 protected:
 #ifdef PERFORM_ERROR_CHECKS
@@ -86,9 +108,6 @@ protected:
     ErrorPosition checkPathCostMatrix();
     void checkAndReport();
 #endif
-
-    void recalculatePathCostMatrix(int r1, int c1, int r2, int c2,
-                                   float diagonalWeight);
 
     void getEndPoint(int &x, int &y);
     

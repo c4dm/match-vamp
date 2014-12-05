@@ -17,6 +17,7 @@
 #include "Finder.h"
 
 #include "Path.h"
+#include "MedianFilter.h"
 
 #include <algorithm>
 #include <iomanip>
@@ -439,16 +440,104 @@ Finder::retrievePath(vector<int> &pathx,
 }
 
 void
-Finder::smoothWithPinPoints(const map<int, int> &pinpoints)
+Finder::smooth(const vector<double> &mag1, const vector<double> &mag2)
 {
+    if (m_m->getDiagonalWeight() <= 1.0) {
+        cerr << "Finder::smooth: Diagonal weight is already "
+             << m_m->getDiagonalWeight() << ", adaptive smoothing will have "
+             << "no effect, skipping it" << endl;
+        return;
+    }
+
+    vector<double> confidence;
+
+    vector<int> pathx, pathy;
+    vector<float> distances;
+    retrievePath(pathx, pathy, distances);
+
+    int len = pathx.size();
+    
+    for (int i = 0; i < len; ++i) {
+
+        int x = pathx[i];
+        int y = pathy[i];
+
+        double magSum = mag1[x] + mag2[y];
+        double distance = distances[i];
+        double c = magSum - distance * magSum;
+        confidence.push_back(c);
+
+        /*
+        if (x != prevx) {
+            Feature f;
+            f.values.push_back(magSum);
+            returnFeatures[m_magOutNo].push_back(f);
+            
+            f.values.clear();
+            f.values.push_back(distance);
+            returnFeatures[m_distOutNo].push_back(f);
+        }
+        
+        prevx = x;
+        prevy = y;
+        */
+    }
+
+    confidence = MedianFilter<double>::filter(3, confidence);
+    vector<double> filtered = MedianFilter<double>::filter(50, confidence);
+    for (int i = 0; i < len; ++i) {
+        confidence[i] -= filtered[i];
+        if (confidence[i] < 0.f) {
+            confidence[i] = 0.f;
+        }
+    }
+    vector<double> deriv;
+    deriv.resize(len, 0.f);
+    for (int i = 1; i < len; ++i) {
+        deriv[i] = confidence[i] - confidence[i-1];
+    }
+    vector<int> inflections;
+    for (int i = 1; i < len; ++i) {
+        if (deriv[i-1] > 0 && deriv[i] < 0) {
+            inflections.push_back(i);
+        }
+    }
+        
+    /*    
+    for (int i = 0; i < len; ++i) {
+        
+        int x = pathx[i];
+        int y = pathy[i];
+
+        if (x != prevx) {
+            Feature f;
+            double c = confidence[i];
+            f.values.push_back(c);
+            returnFeatures[m_confidenceOutNo].push_back(f);
+        }
+        
+        prevx = x;
+        prevy = y;
+    }
+    */
+    
+    map<int, int> pinpoints;
+            
+    for (int ii = 0; ii < int(inflections.size()); ++ii) {
+
+        int i = inflections[ii];
+            
+        int x = pathx[i];
+        int y = pathy[i];
+
+        pinpoints[x] = y;
+    }
+
     cerr << "Pin points are:" << endl;
-
-    typedef map<int, int> PPMap;
-
-    for (PPMap::const_iterator i = pinpoints.begin(); i != pinpoints.end(); ++i) {
+    for (map<int, int>::const_iterator i = pinpoints.begin();
+         i != pinpoints.end(); ++i) {
         cerr << "[" << i->first << "," << i->second << "] ";
     }
-    
     cerr << endl;
 
     if (pinpoints.size() < 2) return;
@@ -458,7 +547,9 @@ Finder::smoothWithPinPoints(const map<int, int> &pinpoints)
     
     pair<int, int> prev = *pinpoints.begin();
 
-    for (PPMap::const_iterator i = pinpoints.begin(); i != pinpoints.end(); ++i) {
+    for (map<int, int>::const_iterator i = pinpoints.begin();
+         i != pinpoints.end(); ++i) {
+
         if (i == pinpoints.begin()) continue;
 
         pair<int, int> curr = *i;

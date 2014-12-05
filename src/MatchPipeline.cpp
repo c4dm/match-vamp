@@ -72,6 +72,23 @@ MatchPipeline::extractFeatures(vector<double> &f1, vector<double> &f2)
     f2 = m_f2;
 }
 
+static double
+magOf(const vector<double> &f)
+{
+    double mag = 0.0;
+    for (int j = 0; j < (int)f.size(); ++j) {
+        mag += f[j] * f[j];
+    }
+    return sqrt(mag);
+}
+
+void
+MatchPipeline::extractFeatureMagnitudes(double &mag1, double &mag2)
+{
+    mag1 = magOf(m_f1);
+    mag2 = magOf(m_f2);
+}
+
 void
 MatchPipeline::extractConditionedFeatures(vector<double> &c1, vector<double> &c2)
 {

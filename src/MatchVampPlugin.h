@@ -90,10 +90,8 @@ protected:
     FeatureConditioner::Parameters m_fcParams;
     FeatureConditioner::Parameters m_defaultFcParams;
 
-    std::vector<float> m_mag1;
-    std::vector<float> m_mag2;
-    std::vector<float> m_cmag1;
-    std::vector<float> m_cmag2;
+    std::vector<double> m_mag1;
+    std::vector<double> m_mag2;
     
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
@@ -106,9 +104,11 @@ protected:
     mutable int m_bFeaturesOutNo;
     mutable int m_magOutNo;
     mutable int m_distOutNo;
+/*
     mutable int m_confidenceOutNo;
     mutable int m_confPeakOutNo;
-
+*/
+    
 #ifdef _WIN32
     static HANDLE m_serialisingMutex;
 #else 
