@@ -37,7 +37,10 @@ FeatureConditioner::process(const vector<double> &feature)
     vector<double> out(size, 0.0);
 
     double totalEnergy = 0;
-    if (m_params.order == OutputRectifiedDerivative) {
+
+    switch (m_params.order) {
+
+    case OutputRectifiedDerivative:
         for (int i = 0; i < size; i++) {
             totalEnergy += feature[i];
             if (feature[i] > m_prev[i]) {
@@ -46,11 +49,21 @@ FeatureConditioner::process(const vector<double> &feature)
                 out[i] = 0;
             }
         }
-    } else {
+        break;
+
+    case OutputDerivative:
         for (int i = 0; i < size; i++) {
-            out[i] = feature[i];
-            totalEnergy += out[i];
+            totalEnergy += feature[i];
+            out[i] = feature[i] - m_prev[i];
         }
+        break;
+        
+    case OutputFeatures:
+        for (int i = 0; i < size; i++) {
+            totalEnergy += feature[i];
+            out[i] = feature[i];
+        }
+        break;
     }
 
     if (m_ltAverage == 0) {

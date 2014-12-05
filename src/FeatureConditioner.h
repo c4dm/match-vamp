@@ -48,9 +48,13 @@ public:
 	OutputFeatures,
 
 	/** Output the half-wave rectified difference between the
-	 * previous and current features instead of the straight
-	 * feature values. */
+	 *  previous and current features instead of the straight
+	 *  feature values. */
 	OutputRectifiedDerivative,
+
+	/** Output the difference between the previous and current
+	 *  features instead of the straight feature values. */
+	OutputDerivative,
     };
 
     struct Parameters {
