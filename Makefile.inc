@@ -6,7 +6,7 @@ CC		?= gcc
 
 CXXFLAGS	:= -Isrc $(CXXFLAGS)
 
-TEST_LDFLAGS := $(LDFLAGS) -lboost_unit_test_framework
+TEST_LDFLAGS	+= -lboost_unit_test_framework
 
 HEADERS		:= $(wildcard src/*.h)
 SOURCES		:= $(wildcard src/*.cpp)
@@ -22,8 +22,8 @@ all:		$(PLUGIN) $(TESTS)
 $(PLUGIN):	$(OBJECTS)
 		$(CXX) -o $@ $^ $(LDFLAGS) $(PLUGIN_LDFLAGS)
 
-test/%:	test/%.o
-		$(CXX) -o $@ $^ $(TEST_LDFLAGS)
+test/%:	test/%.o $(OBJECTS)
+		$(CXX) -o $@ $^ $(LDFLAGS) $(TEST_LDFLAGS)
 
 clean:		
 		rm -f $(OBJECTS) $(TEST_OBJECTS) $(TESTS)
