@@ -18,8 +18,9 @@
 
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
-using std::vector;
+using namespace std;
 
 double
 DistanceMetric::calcDistance(const vector<double> &f1,
@@ -49,7 +50,7 @@ DistanceMetric::calcDistance(const vector<double> &f1,
     //	double weight = (5 + Math.log(f1[freqMapSize] + f2[freqMapSize]))/10.0;
 
     double weight = (8 + log(sum)) / 10.0;
-
+    
     if (weight < 0) weight = 0;
     else if (weight > 1) weight = 1;
 

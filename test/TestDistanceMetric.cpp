@@ -33,6 +33,27 @@ BOOST_AUTO_TEST_CASE(nonorm)
 	e0 = getTestFeature(0);
 
     BOOST_CHECK_EQUAL(dm.calcDistance(e0, e0), 0.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e1, e0), 6.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e0, e1), 6.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e1, e1), 0.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e1, e2), 6.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e0, e2), 12.0);
+}
+
+BOOST_AUTO_TEST_CASE(sum)
+{
+    DistanceMetric dm(DistanceMetric::NormaliseDistanceToSum);
+    vector<double>
+	e1 = getTestFeature(1),
+	e2 = getTestFeature(2),
+	e0 = getTestFeature(0);
+
+    BOOST_CHECK_EQUAL(dm.calcDistance(e0, e0), 0.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e1, e0), 1.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e0, e1), 1.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e1, e1), 0.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e1, e2), 1.0/3.0);
+    BOOST_CHECK_EQUAL(dm.calcDistance(e0, e2), 1.0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
