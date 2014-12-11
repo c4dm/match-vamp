@@ -2,7 +2,8 @@
 #CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror -Wfloat-conversion
 CXXFLAGS	+= -fPIC -g -Wall -Werror -DPERFORM_ERROR_CHECKS=1
 
-LDFLAGS		+= -shared -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -Wl,-Bsymbolic -Wl,-z,defs -lpthread -Wl,--version-script=vamp-plugin.map
+LDFLAGS		+=
+PLUGIN_LDFLAGS	+= -shared -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -Wl,-Bsymbolic -Wl,-z,defs -lpthread -Wl,--version-script=vamp-plugin.map
 
 include Makefile.inc
 

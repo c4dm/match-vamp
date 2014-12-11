@@ -4,3 +4,4 @@ syntax: glob
 *.dylib
 *.so
 *.o
+*.orig
