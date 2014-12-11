@@ -76,8 +76,8 @@ public:
 	/** Silence threshold. If non-zero, any feature whose total
 	 *  energy (simply the sum of feature values) is below that
 	 *  threshold will be rounded down to all zeros. Note that
-	 *  this refers to the energy of the feature, not its
-	 *  derivative even if that is what is being returned. */
+	 *  this refers to the energy of the pre-norm feature, not of
+	 *  its derivative even if that is what is being returned. */
 	double silenceThreshold;
 
         /** Frame-to-frame decay factor in calculating long-term average */
