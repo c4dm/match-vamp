@@ -72,7 +72,9 @@ BOOST_AUTO_TEST_CASE(chroma)
 	// bins are distinct but their output chroma are not
 	//
 	// * one bin of value 450 (= 15^2 + 15^2), if the input bins
-	// are not distinct
+	// are not distinct (the feature extractor sums energies
+	// rather than magnitudes so as to integrate energy for a
+	// partial in the face of spectral leakage)
 	// 
 	// The bin corresponding to each input frequency is that of
 	// its semitone value (with C=0), except that input bin
@@ -140,7 +142,9 @@ BOOST_AUTO_TEST_CASE(nonchroma)
 	// bins are distinct but their output bins are not
 	//
 	// * one bin of value 450 (= 15^2 + 15^2), if the input bins
-	// are not distinct
+	// are not distinct (the feature extractor sums energies
+	// rather than magnitudes so as to integrate energy for a
+	// partial in the face of spectral leakage)
 	//
 	// The first 34 input bins (i.e. up to and including bin 33,
 	// 733Hz, MIDI pitch 77.something) are mapped linearly, those
