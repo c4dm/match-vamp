@@ -47,11 +47,6 @@ public:
          *  bins) instead of the default warped spectrogram */
         bool useChromaFrequencyMap;
 
-        /** Spacing of audio frames (determines the amount of overlap or
-         *  skip between frames). This value is expressed in
-         *  seconds. */
-        double hopTime;
-
         /** Size of an FFT frame in samples. Note that the data passed
          *  in is already in the frequency domain, so this expresses
          *  the size of the frame that the caller will be providing. */
