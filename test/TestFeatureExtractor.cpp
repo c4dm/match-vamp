@@ -35,6 +35,19 @@ static int bin2warped(int bin, int rate, int sz)
 
 BOOST_AUTO_TEST_SUITE(TestFeatureExtractor)
 
+void checkAlternateProcessType(FeatureExtractor &fe, vector<double> expected,
+			       vector<double> real, vector<double> imag)
+{
+    vector<float> in;
+    for (int i = 0; i < (int)real.size(); ++i) {
+	in.push_back(float(real[i]));
+	in.push_back(float(imag[i]));
+    }
+    vector<double> alt = fe.process(&in[0]);
+    BOOST_CHECK_EQUAL_COLLECTIONS(alt.begin(), alt.end(),
+				  expected.begin(), expected.end());
+}
+
 BOOST_AUTO_TEST_CASE(chroma)
 {
     int szs[] = { 1024, 2048, 4000 };
@@ -71,6 +84,8 @@ BOOST_AUTO_TEST_CASE(chroma)
 		imag[hs-bin-1] += 5.0;
 	
 		vector<double> out = fe.process(real, imag);
+
+		checkAlternateProcessType(fe, out, real, imag);
 
 		// We expect to find all bins are 0 except for:
 		// 
@@ -145,6 +160,8 @@ BOOST_AUTO_TEST_CASE(nonchroma)
 	imag[hs-bin-1] += 5.0;
 
 	vector<double> out = fe.process(real, imag);
+
+	checkAlternateProcessType(fe, out, real, imag);
 
 	// We expect to find all bins are 0 except for:
 	// 

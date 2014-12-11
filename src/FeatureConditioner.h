@@ -52,8 +52,9 @@ public:
 	 *  feature values. */
 	OutputRectifiedDerivative,
 
-	/** Output the difference between the previous and current
-	 *  features instead of the straight feature values. */
+	/** Output the absolute difference between the previous and
+	 *  current features instead of the straight feature
+	 *  values. */
 	OutputDerivative,
     };
 
@@ -74,7 +75,9 @@ public:
 
 	/** Silence threshold. If non-zero, any feature whose total
 	 *  energy (simply the sum of feature values) is below that
-	 *  threshold will be rounded down to all zeros. */
+	 *  threshold will be rounded down to all zeros. Note that
+	 *  this refers to the energy of the feature, not its
+	 *  derivative even if that is what is being returned. */
 	double silenceThreshold;
 
         /** Frame-to-frame decay factor in calculating long-term average */

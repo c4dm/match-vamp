@@ -16,6 +16,7 @@
 #include "FeatureConditioner.h"
 
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -54,7 +55,7 @@ FeatureConditioner::process(const vector<double> &feature)
     case OutputDerivative:
         for (int i = 0; i < size; i++) {
             totalEnergy += feature[i];
-            out[i] = feature[i] - m_prev[i];
+            out[i] = fabs(feature[i] - m_prev[i]);
         }
         break;
         
