@@ -154,6 +154,13 @@ Matcher::setDistance(int i, int j, float distance)
 }
 
 double
+Matcher::getNormalisedPathCost(int i, int j)
+{
+    // normalised for path length. 1+ prevents division by zero here
+    return getPathCost(i, j) / (1 + i + j);
+}
+
+double
 Matcher::getPathCost(int i, int j)
 {
     if (m_firstPM) {

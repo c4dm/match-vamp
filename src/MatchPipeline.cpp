@@ -97,6 +97,12 @@ MatchPipeline::finish()
     getFinder()->setDurations(m_lastFrameIn1, m_lastFrameIn2);
 }
 
+MatchFeatureFeeder *
+MatchPipeline::getFeeder()
+{
+    return &m_feeder;
+}
+
 Finder *
 MatchPipeline::getFinder()
 {

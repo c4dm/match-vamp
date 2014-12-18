@@ -47,7 +47,19 @@ public:
      * Indicate that both inputs have come to an end.
      */
     void finish();
-    
+
+    /**
+     * Return the forward path, that is, the estimate of the
+     * lowest-cost path that was generated (possibly in real-time)
+     * while initially tracking the inputs. This is the path that is
+     * used to determine the shape of the search zone within which the
+     * eventual reverse path will be sought by the Finder.
+     */
+    void retrieveForwardPath(std::vector<int> &pathx, std::vector<int> &pathy) {
+        pathx = m_fpx;
+        pathy = m_fpy;
+    }
+
     Finder *getFinder() { return m_finder; }
 
 protected:
@@ -61,6 +73,9 @@ protected:
 
     std::queue<std::vector<double> > m_q1;
     std::queue<std::vector<double> > m_q2;
+
+    vector<int> m_fpx;
+    vector<int> m_fpy;
 };
 
 #endif

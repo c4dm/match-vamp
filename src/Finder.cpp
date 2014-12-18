@@ -54,7 +54,7 @@ Finder::getExpandDirection(int row, int col)
         rowRange.second = row+1;	// don't cheat by looking at future :)
     }
     for (int index = rowRange.first; index < rowRange.second; index++) {
-        double tmp = m_m->getPathCost(index, col);
+        double tmp = m_m->getNormalisedPathCost(index, col);
         if (tmp < min) {
             min = tmp;
             bestRow = index;
@@ -66,7 +66,7 @@ Finder::getExpandDirection(int row, int col)
         colRange.second = col+1;	// don't cheat by looking at future :)
     }
     for (int index = colRange.first; index < colRange.second; index++) {
-        double tmp = m_m->getPathCost(row, index);
+        double tmp = m_m->getNormalisedPathCost(row, index);
         if (tmp < min) {
             min = tmp;
             bestCol = index;
@@ -74,6 +74,8 @@ Finder::getExpandDirection(int row, int col)
         }
     }
 
+//    cerr << "at [" << row << "," << col << "] (cost " << m_m->getPathCost(row, col) << ") blocksize = " << m_m->getBlockSize() << " best is [" << bestRow << "," << bestCol << "] (cost " << min << ")" << endl;
+    
     if (bestRow == row) {
         if (bestCol == col) {
             return Matcher::AdvanceBoth;

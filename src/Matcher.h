@@ -224,6 +224,16 @@ public:
      *  @param value the cost of the minimum cost path to set for this location
      */
     void setPathCost(int i, int j, Advance dir, double value);
+    
+    /** Retrieves a value from the minimum cost matrix, normalised for
+     *  path length.
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return the cost of the minimum cost path to this location,
+     *     normalised by the Manhattan distance from 0,0 to i,j
+     */
+    double getNormalisedPathCost(int i, int j);
 
     /** Retrieves an advance direction from the matrix.
      * 

@@ -88,6 +88,7 @@ public:
      */
     void finish();
 
+    MatchFeatureFeeder *getFeeder();
     Finder *getFinder();
     
 private:
