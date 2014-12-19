@@ -91,7 +91,8 @@ public:
      * state: use one FeatureConditioner per audio source, and construct
      * a new one for each new source.
      */
-    FeatureConditioner(Parameters parameters) : m_params(parameters) { }
+    FeatureConditioner(Parameters parameters) :
+        m_params(parameters), m_ltAverage(0.0) { }
 
     /**
      * Process the given feature and return the conditioned feature.

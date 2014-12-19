@@ -67,7 +67,7 @@ FeatureConditioner::process(const vector<double> &feature)
         break;
     }
 
-    if (m_ltAverage == 0) {
+    if (m_ltAverage == 0.0) {
 	m_ltAverage = totalEnergy;
     } else {
 	double decay = m_params.decay;
