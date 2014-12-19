@@ -204,6 +204,15 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.quantizeStep = 1;
     list.push_back(desc);
 
+    desc.identifier = "silencethreshold";
+    desc.name = "Silence Threshold";
+    desc.description = "Total frame energy threshold below which a feature will be regarded as silent";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = m_defaultFcParams.silenceThreshold;
+    desc.isQuantized = false;
+    list.push_back(desc);
+    
     desc.identifier = "gradientlimit";
     desc.name = "Gradient Limit";
     desc.description = "Limit of number of frames that will be accepted from one source without a frame from the other source being accepted";
@@ -270,6 +279,8 @@ MatchVampPlugin::getParameter(std::string name) const
         return (float)m_params.blockTime;
     } else if (name == "smooth") {
         return m_smooth ? 1.0 : 0.0;
+    } else if (name == "silencethreshold") {
+        return m_fcParams.silenceThreshold;
     }
     
     return 0.0;
@@ -296,6 +307,8 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_params.blockTime = value;
     } else if (name == "smooth") {
         m_smooth = (value > 0.5);
+    } else if (name == "silencethreshold") {
+        m_fcParams.silenceThreshold = value;
     }
 }
 
