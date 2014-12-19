@@ -56,7 +56,7 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_serialise(false),
     m_begin(true),
     m_locked(false),
-    m_smooth(true),
+    m_smooth(false),
     m_frameNo(0),
     m_params(defaultStepTime),
     m_defaultParams(defaultStepTime),
@@ -239,17 +239,17 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step. The default of 2.0 is good for gross tracking of quite different performances; closer to 1.0 produces a smoother path for performances more similar in tempo";
     desc.minValue = 1.0;
     desc.maxValue = 2.0;
-    desc.defaultValue = 2.0;
+    desc.defaultValue = (float)m_defaultParams.diagonalWeight;
     desc.isQuantized = false;
     desc.unit = "";
     list.push_back(desc);
     
     desc.identifier = "smooth";
     desc.name = "Smooth Path";
-    desc.description = "Smooth the path by replacing steps with diagonals";
+    desc.description = "Smooth the path by replacing steps with diagonals. (This was enabled by default in earlier versions of the MATCH plugin, but the default now is to produce an un-smoothed path.)";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = 1;
+    desc.defaultValue = 0;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.unit = "";
