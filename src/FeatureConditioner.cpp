@@ -20,6 +20,20 @@
 
 using namespace std;
 
+//#define DEBUG_FEATURE_CONDITIONER 1
+
+FeatureConditioner::FeatureConditioner(Parameters parameters) :
+    m_params(parameters),
+    m_ltAverage(0.0)
+{
+#ifdef DEBUG_FEATURE_CONDITIONER
+    cerr << "*** FeatureConditioner: norm = " << parameters.norm
+         << ", order = " << parameters.order
+         << ", silenceThreshold = " << parameters.silenceThreshold
+         << ", decay = " << parameters.decay << endl;
+#endif
+}
+
 vector<double>
 FeatureConditioner::process(const vector<double> &feature)
 {

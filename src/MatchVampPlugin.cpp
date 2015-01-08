@@ -446,7 +446,7 @@ MatchVampPlugin::getOutputDescriptors() const
     int featureSize = FeatureExtractor(m_feParams).getFeatureSize();
     
     desc.identifier = "a_features";
-    desc.name = "A Features";
+    desc.name = "Raw A Features";
     desc.description = "Spectral features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
@@ -459,7 +459,7 @@ MatchVampPlugin::getOutputDescriptors() const
     list.push_back(desc);
 
     desc.identifier = "b_features";
-    desc.name = "B Features";
+    desc.name = "Raw B Features";
     desc.description = "Spectral features extracted from performance B";
     desc.unit = "";
     desc.hasFixedBinCount = true;
@@ -469,6 +469,32 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
     m_bFeaturesOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "a_cfeatures";
+    desc.name = "Conditioned A Features";
+    desc.description = "Spectral features extracted from performance A, after normalisation and conditioning";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = featureSize;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_caFeaturesOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "b_cfeatures";
+    desc.name = "Conditioned B Features";
+    desc.description = "Spectral features extracted from performance B, after norrmalisation and conditioning";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = featureSize;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_cbFeaturesOutNo = list.size();
     list.push_back(desc);
 
     return list;
@@ -495,10 +521,13 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 
     m_pipeline->feedFrequencyDomainAudio(inputBuffers[0], inputBuffers[1]);
 
-    vector<double> f1, f2;
-    m_pipeline->extractConditionedFeatures(f1, f2);
-
     FeatureSet returnFeatures;
+
+    vector<double> f1, f2;
+    m_pipeline->extractFeatures(f1, f2);
+
+    vector<double> cf1, cf2;
+    m_pipeline->extractConditionedFeatures(cf1, cf2);
 
     Feature f;
     f.hasTimestamp = false;
@@ -514,6 +543,18 @@ MatchVampPlugin::process(const float *const *inputBuffers,
         f.values.push_back(float(f2[j]));
     }
     returnFeatures[m_bFeaturesOutNo].push_back(f);
+
+    f.values.clear();
+    for (int j = 0; j < (int)cf1.size(); ++j) {
+        f.values.push_back(float(cf1[j]));
+    }
+    returnFeatures[m_caFeaturesOutNo].push_back(f);
+
+    f.values.clear();
+    for (int j = 0; j < (int)cf2.size(); ++j) {
+        f.values.push_back(float(cf2[j]));
+    }
+    returnFeatures[m_cbFeaturesOutNo].push_back(f);
 
 //    std::cerr << ".";
 //    std::cerr << std::endl;

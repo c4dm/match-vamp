@@ -22,6 +22,16 @@
 
 using namespace std;
 
+//#define DEBUG_DISTANCE_METRIC 1
+
+DistanceMetric::DistanceMetric(DistanceNormalisation norm) :
+    m_norm(norm)
+{
+#ifdef DEBUG_DISTANCE_METRIC
+    cerr << "*** DistanceMetric: norm = " << m_norm << endl;
+#endif
+}
+
 double
 DistanceMetric::calcDistance(const vector<double> &f1,
 			     const vector<double> &f2)

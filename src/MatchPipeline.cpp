@@ -15,6 +15,8 @@
 
 #include "MatchPipeline.h"
 
+//#define DEBUG_MATCH_PIPELINE 1
+
 MatchPipeline::MatchPipeline(FeatureExtractor::Parameters feParams,
 			     FeatureConditioner::Parameters fcParams,
 			     Matcher::Parameters matchParams) :
@@ -48,6 +50,16 @@ MatchPipeline::feedFeatures(const vector<double> &f1, const vector<double> &f2)
     m_f1 = f1;
     m_f2 = f2;
 
+#ifdef DEBUG_MATCH_PIPELINE
+    if (m_lastFrameIn1 == 1) {
+        cerr << "features 1 -> ";
+        for (int i = 0; i < (int) m_f1.size(); ++i) {
+            cerr << m_f1[i] << " ";
+        }
+        cerr << endl;
+    }
+#endif
+    
     feedConditionedFeatures(m_fc1.process(f1), m_fc2.process(f2));
 }
 
@@ -56,12 +68,27 @@ MatchPipeline::feedConditionedFeatures(const vector<double> &c1, const vector<do
 {
     m_c1 = c1;
     m_c2 = c2;
+
+#ifdef DEBUG_MATCH_PIPELINE
+    if (m_lastFrameIn1 == 1) {
+        cerr << "conditioned features 1 -> ";
+        for (int i = 0; i < (int) m_c1.size(); ++i) {
+            cerr << m_c1[i] << " ";
+        }
+        cerr << endl;
+    }
+#endif
     
     m_feeder.feed(c1, c2);
 
     if (aboveThreshold(c1)) m_lastFrameIn1 = m_frameNo;
     if (aboveThreshold(c2)) m_lastFrameIn2 = m_frameNo;
 
+#ifdef DEBUG_MATCH_PIPELINE
+    cerr << "last frames are " << m_lastFrameIn1 << ", " << m_lastFrameIn2
+         << endl;
+#endif
+    
     ++m_frameNo;
 }
 
@@ -82,11 +109,20 @@ MatchPipeline::extractConditionedFeatures(vector<double> &c1, vector<double> &c2
 bool
 MatchPipeline::aboveThreshold(const vector<double> &f)
 {
+    // This threshold is used only to determine when either of the
+    // input streams has ended -- the last frame for a stream is
+    // considered to be the last one that was above the
+    // threshold. This is different from the silence threshold in
+    // FeatureConditioner.
     double threshold = 1e-4f;
     double sum = 0.f;
     for (int i = 0; i < int(f.size()); ++i) {
         sum += f[i] * f[i];
     }
+#ifdef DEBUG_MATCH_PIPELINE
+    cerr << "aboveThreshold: sum " << sum << ", threshold " << threshold
+         << ", returning " << (sum >= threshold) << endl;
+#endif
     return (sum >= threshold);
 }
 

@@ -23,6 +23,9 @@
 
 using namespace std;
 
+//#define DEBUG_FINDER 1
+//#define PERFORM_ERROR_CHECKS 1
+
 Finder::Finder(Matcher *pm)
 {
     m_m = pm;
@@ -37,6 +40,9 @@ Finder::~Finder()
 void
 Finder::setDurations(int d1, int d2)
 {
+#ifdef DEBUG_FINDER
+    cerr << "*** setDurations: " << d1 << ", " << d2 << endl;
+#endif
     m_duration1 = d1;
     m_duration2 = d2;
 }
@@ -349,14 +355,17 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     int x = ex;
     int y = ey;
 
+#ifdef DEBUG_FINDER
+    cerr << "*** retrievePath: smooth = " << smooth << endl;
+    cerr << "*** retrievePath: before: x = " << x << ", y = " << y << endl;
+#endif
+
     if (m_duration2 > 0 && m_duration2 < m_m->getOtherFrameCount()) {
         x = m_duration2 - 1;
     }
     if (m_duration1 > 0 && m_duration1 < m_m->getFrameCount()) {
         y = m_duration1 - 1;
     }
-    
-//    cerr << "before: x = " << x << ", y = " << y << endl;
 
     if (!m_m->isAvailable(y, x)) {
         // Path did not pass through the expected end point --
@@ -370,7 +379,9 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 
     recalculatePathCostMatrix(0, 0, y, x);
 
-//    cerr << "start: x = " << x << ", y = " << y << endl;
+#ifdef DEBUG_FINDER
+    cerr << "*** retrievePath: start: x = " << x << ", y = " << y << endl;
+#endif
     
     while (m_m->isAvailable(y, x) && (x > 0 || y > 0)) {
 

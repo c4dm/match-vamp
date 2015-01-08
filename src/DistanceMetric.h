@@ -36,7 +36,7 @@ public:
         NormaliseDistanceToLogSum,
     };
 
-    DistanceMetric(DistanceNormalisation norm) : m_norm(norm) { }
+    DistanceMetric(DistanceNormalisation norm);
     
     /** Calculates the Manhattan distance between two vectors, with an
      *  optional normalisation by the combined values in the
