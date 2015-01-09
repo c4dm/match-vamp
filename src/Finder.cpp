@@ -24,6 +24,9 @@
 
 using namespace std;
 
+//#define DEBUG_FINDER 1
+//#define PERFORM_ERROR_CHECKS 1
+
 Finder::Finder(Matcher *pm)
 {
     m_m = pm;
@@ -38,6 +41,9 @@ Finder::~Finder()
 void
 Finder::setDurations(int d1, int d2)
 {
+#ifdef DEBUG_FINDER
+    cerr << "*** setDurations: " << d1 << ", " << d2 << endl;
+#endif
     m_duration1 = d1;
     m_duration2 = d2;
 }
@@ -55,7 +61,7 @@ Finder::getExpandDirection(int row, int col)
         rowRange.second = row+1;	// don't cheat by looking at future :)
     }
     for (int index = rowRange.first; index < rowRange.second; index++) {
-        double tmp = m_m->getPathCost(index, col);
+        double tmp = m_m->getNormalisedPathCost(index, col);
         if (tmp < min) {
             min = tmp;
             bestRow = index;
@@ -67,7 +73,7 @@ Finder::getExpandDirection(int row, int col)
         colRange.second = col+1;	// don't cheat by looking at future :)
     }
     for (int index = colRange.first; index < colRange.second; index++) {
-        double tmp = m_m->getPathCost(row, index);
+        double tmp = m_m->getNormalisedPathCost(row, index);
         if (tmp < min) {
             min = tmp;
             bestCol = index;
@@ -75,6 +81,8 @@ Finder::getExpandDirection(int row, int col)
         }
     }
 
+//    cerr << "at [" << row << "," << col << "] (cost " << m_m->getPathCost(row, col) << ") blocksize = " << m_m->getBlockSize() << " best is [" << bestRow << "," << bestCol << "] (cost " << min << ")" << endl;
+    
     if (bestRow == row) {
         if (bestCol == col) {
             return Matcher::AdvanceBoth;
@@ -361,14 +369,17 @@ Finder::getEndPoint(int &x, int &y)
     x = ex;
     y = ey;
 
+#ifdef DEBUG_FINDER
+    cerr << "*** retrievePath: smooth = " << smooth << endl;
+    cerr << "*** retrievePath: before: x = " << x << ", y = " << y << endl;
+#endif
+
     if (m_duration2 > 0 && m_duration2 < m_m->getOtherFrameCount()) {
         x = m_duration2 - 1;
     }
     if (m_duration1 > 0 && m_duration1 < m_m->getFrameCount()) {
         y = m_duration1 - 1;
     }
-    
-//    cerr << "before: x = " << x << ", y = " << y << endl;
 
     if (!m_m->isAvailable(y, x)) {
         // Path did not pass through the expected end point --
@@ -379,6 +390,10 @@ Finder::getEndPoint(int &x, int &y)
         x = ex;
         y = ey;
     }
+
+#ifdef DEBUG_FINDER
+    cerr << "*** retrievePath: start: x = " << x << ", y = " << y << endl;
+#endif
 }
 
 void
@@ -393,8 +408,6 @@ Finder::retrievePath(vector<int> &pathx,
 #ifdef PERFORM_ERROR_CHECKS
     checkAndReport();
 #endif
-
-//    cerr << "start: x = " << x << ", y = " << y << endl;
 
     int x, y;
     getEndPoint(x, y);

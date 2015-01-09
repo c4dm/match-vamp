@@ -4,3 +4,7 @@ syntax: glob
 *.dylib
 *.so
 *.o
+*.orig
+re:^test/TestDistanceMetric$
+re:^test/TestFeatureConditioner$
+re:^test/TestFeatureExtractor$

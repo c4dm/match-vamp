@@ -30,9 +30,13 @@ Matcher::Matcher(Parameters parameters, Matcher *p) :
     m_metric(parameters.distanceNorm)
 {
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher::Matcher(" << m_params.sampleRate << ", " << p << ")" << endl;
+    cerr << "*** Matcher: distanceNorm = " << parameters.distanceNorm
+         << ", hopTime = " << parameters.hopTime
+         << ", blockTime = " << parameters.blockTime
+         << ", maxRunCount = " << parameters.maxRunCount
+         << ", diagonalWeight = " << parameters.diagonalWeight << endl;
 #endif
-
+    
     m_otherMatcher = p;	// the first matcher will need this to be set later
     m_firstPM = (!p);
     m_frameCount = 0;
@@ -151,6 +155,13 @@ Matcher::setDistance(int i, int j, float distance)
     } else {
         m_otherMatcher->setDistance(j, i, distance);
     }
+}
+
+double
+Matcher::getNormalisedPathCost(int i, int j)
+{
+    // normalised for path length. 1+ prevents division by zero here
+    return getPathCost(i, j) / (1 + i + j);
 }
 
 double

@@ -21,13 +21,24 @@
 
 /**
  * Convert frequency-domain audio frames into features suitable for
- * MATCH alignment calculation. The default feature is a warping of
- * the frequency data to map higher frequencies into a linear scale. A
- * chroma mapping is also available.
+ * MATCH alignment calculation.
  *
- * Note that FeatureExtractor may maintain internal frame-to-frame
- * state: use one FeatureExtractor per audio source, and construct a
- * new one for each new source.
+ * The default feature is a warping of the frequency data to map FFT
+ * frequency bins into feature bins. The mapping is linear (1-1) until
+ * the resolution reaches 2 points per semitone, then logarithmic with
+ * a semitone resolution.  e.g. for 44.1kHz sampling rate and fftSize
+ * of 2048 (46ms), bin spacing is 21.5Hz, which is mapped linearly for
+ * bins 0-34 (0 to 732Hz), and logarithmically for the remaining bins
+ * (midi notes 79 to 127, bins 35 to 83), where all energy above note
+ * 127 is mapped into the final bin.
+ *
+ * Alternatively a chroma mapping is also available. This produces a
+ * 13-bin feature by mapping all FFT bins into bin 0 until the
+ * resolution reaches 1 point per semitone, then mapping each
+ * subsequent bin into its corresponding semitone in the remaining 12
+ * bins (where bin 1 is C).  e.g. e.g. for 44.1kHz sampling rate and
+ * fftSize of 2048 (46ms), frequencies up to 361 Hz go to bin 0,
+ * subsequent frequencies to the chroma bins.
  */
 class FeatureExtractor
 {
@@ -46,11 +57,6 @@ public:
         /** Flag indicating whether to use a chroma frequency map (12
          *  bins) instead of the default warped spectrogram */
         bool useChromaFrequencyMap;
-
-        /** Spacing of audio frames (determines the amount of overlap or
-         *  skip between frames). This value is expressed in
-         *  seconds. */
-        double hopTime;
 
         /** Size of an FFT frame in samples. Note that the data passed
          *  in is already in the frequency domain, so this expresses

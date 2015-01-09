@@ -60,7 +60,7 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_serialise(false),
     m_begin(true),
     m_locked(false),
-    m_smooth(true),
+    m_smooth(false),
     m_frameNo(0),
     m_params(defaultStepTime),
     m_defaultParams(defaultStepTime),
@@ -131,7 +131,7 @@ MatchVampPlugin::getMaker() const
 int
 MatchVampPlugin::getPluginVersion() const
 {
-    return 2;
+    return 3;
 }
 
 string
@@ -207,6 +207,15 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.quantizeStep = 1;
     list.push_back(desc);
 
+    desc.identifier = "silencethreshold";
+    desc.name = "Silence Threshold";
+    desc.description = "Total frame energy threshold below which a feature will be regarded as silent";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = (float)m_defaultFcParams.silenceThreshold;
+    desc.isQuantized = false;
+    list.push_back(desc);
+    
     desc.identifier = "gradientlimit";
     desc.name = "Gradient Limit";
     desc.description = "Limit of number of frames that will be accepted from one source without a frame from the other source being accepted";
@@ -233,17 +242,17 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step. The default of 2.0 is good for gross tracking of quite different performances; closer to 1.0 produces a smoother path for performances more similar in tempo";
     desc.minValue = 1.0;
     desc.maxValue = 2.0;
-    desc.defaultValue = 2.0;
+    desc.defaultValue = (float)m_defaultParams.diagonalWeight;
     desc.isQuantized = false;
     desc.unit = "";
     list.push_back(desc);
     
     desc.identifier = "smooth";
     desc.name = "Smooth Path";
-    desc.description = "Smooth the path by replacing steps with diagonals";
+    desc.description = "Smooth the path by replacing steps with diagonals. (This was enabled by default in earlier versions of the MATCH plugin, but the default now is to produce an un-smoothed path.)";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = 1;
+    desc.defaultValue = 0;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.unit = "";
@@ -273,6 +282,8 @@ MatchVampPlugin::getParameter(string name) const
         return (float)m_params.blockTime;
     } else if (name == "smooth") {
         return m_smooth ? 1.0 : 0.0;
+    } else if (name == "silencethreshold") {
+        return (float)m_fcParams.silenceThreshold;
     }
     
     return 0.0;
@@ -299,6 +310,8 @@ MatchVampPlugin::setParameter(string name, float value)
         m_params.blockTime = value;
     } else if (name == "smooth") {
         m_smooth = (value > 0.5);
+    } else if (name == "silencethreshold") {
+        m_fcParams.silenceThreshold = value;
     }
 }
 
@@ -449,7 +462,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
-    m_aRFeaturesOutNo = list.size();
+    m_aFeaturesOutNo = list.size();
     list.push_back(desc);
 
     desc.identifier = "b_features";
@@ -462,33 +475,33 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
-    m_bRFeaturesOutNo = list.size();
-    list.push_back(desc);
-
-    desc.identifier = "cond_a_features";
-    desc.name = "Conditioned A Features";
-    desc.description = "Conditioned spectral features extracted from performance A";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = featureSize;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::FixedSampleRate;
-    desc.sampleRate = outRate;
-    m_aFeaturesOutNo = list.size();
-    list.push_back(desc);
-
-    desc.identifier = "cond_b_features";
-    desc.name = "Conditioned B Features";
-    desc.description = "Conditioned spectral features extracted from performance B";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = featureSize;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::FixedSampleRate;
-    desc.sampleRate = outRate;
     m_bFeaturesOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "a_cfeatures";
+    desc.name = "Conditioned A Features";
+    desc.description = "Spectral features extracted from performance A, after normalisation and conditioning";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = featureSize;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_caFeaturesOutNo = list.size();
+    list.push_back(desc);
+
+    desc.identifier = "b_cfeatures";
+    desc.name = "Conditioned B Features";
+    desc.description = "Spectral features extracted from performance B, after norrmalisation and conditioning";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = featureSize;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = outRate;
+    m_cbFeaturesOutNo = list.size();
     list.push_back(desc);
 
     desc.identifier = "feature_distance";
@@ -543,6 +556,7 @@ MatchVampPlugin::getOutputDescriptors() const
     m_confPeakOutNo = list.size();
     list.push_back(desc);
 */
+
     return list;
 }
 
@@ -567,10 +581,6 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 
     m_pipeline->feedFrequencyDomainAudio(inputBuffers[0], inputBuffers[1]);
 
-    vector<double> f1, f2, c1, c2;
-
-    m_pipeline->extractFeatures(f1, f2);
-    m_pipeline->extractConditionedFeatures(c1, c2);    
 
     double m1, m2;
     m_pipeline->extractFeatureMagnitudes(m1, m2);
@@ -579,6 +589,12 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 
     FeatureSet returnFeatures;
 
+    vector<double> f1, f2;
+    m_pipeline->extractFeatures(f1, f2);
+
+    vector<double> cf1, cf2;
+    m_pipeline->extractConditionedFeatures(cf1, cf2);
+
     Feature f;
     f.hasTimestamp = false;
 
@@ -586,28 +602,28 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     for (int j = 0; j < (int)f1.size(); ++j) {
         f.values.push_back(float(f1[j]));
     }
-    returnFeatures[m_aRFeaturesOutNo].push_back(f);
+    returnFeatures[m_aFeaturesOutNo].push_back(f);
 
     f.values.clear();
     for (int j = 0; j < (int)f2.size(); ++j) {
         f.values.push_back(float(f2[j]));
     }
-    returnFeatures[m_bRFeaturesOutNo].push_back(f);
-
-    f.values.clear();
-    for (int j = 0; j < (int)c1.size(); ++j) {
-        f.values.push_back(float(c1[j]));
-    }
-    returnFeatures[m_aFeaturesOutNo].push_back(f);
-
-    f.values.clear();
-    for (int j = 0; j < (int)c2.size(); ++j) {
-        f.values.push_back(float(c2[j]));
-    }
     returnFeatures[m_bFeaturesOutNo].push_back(f);
 
-//    cerr << ".";
-//    cerr << endl;
+    f.values.clear();
+    for (int j = 0; j < (int)cf1.size(); ++j) {
+        f.values.push_back(float(cf1[j]));
+    }
+    returnFeatures[m_caFeaturesOutNo].push_back(f);
+
+    f.values.clear();
+    for (int j = 0; j < (int)cf2.size(); ++j) {
+        f.values.push_back(float(cf2[j]));
+    }
+    returnFeatures[m_cbFeaturesOutNo].push_back(f);
+
+//    std::cerr << ".";
+//    std::cerr << std::endl;
 
     ++m_frameNo;
     

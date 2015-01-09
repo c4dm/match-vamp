@@ -98,17 +98,17 @@ protected:
     mutable int m_baOutNo;
     mutable int m_abDivOutNo;
     mutable int m_abRatioOutNo;
-    mutable int m_aRFeaturesOutNo;
-    mutable int m_bRFeaturesOutNo;
     mutable int m_aFeaturesOutNo;
     mutable int m_bFeaturesOutNo;
+    mutable int m_caFeaturesOutNo;
+    mutable int m_cbFeaturesOutNo;
     mutable int m_magOutNo;
     mutable int m_distOutNo;
 /*
     mutable int m_confidenceOutNo;
     mutable int m_confPeakOutNo;
 */
-    
+
 #ifdef _WIN32
     static HANDLE m_serialisingMutex;
 #else 

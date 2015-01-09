@@ -91,6 +91,9 @@ MatchFeatureFeeder::feedBlock()
             break;
         }
     }
+
+    m_fpx.push_back(m_pm2->getFrameCount());
+    m_fpy.push_back(m_pm1->getFrameCount());
 }
 
 void

@@ -52,8 +52,9 @@ public:
 	 *  feature values. */
 	OutputRectifiedDerivative,
 
-	/** Output the difference between the previous and current
-	 *  features instead of the straight feature values. */
+	/** Output the absolute difference between the previous and
+	 *  current features instead of the straight feature
+	 *  values. */
 	OutputDerivative,
     };
 
@@ -62,7 +63,7 @@ public:
 	Parameters() :
 	    norm(NormaliseToSum1),
 	    order(OutputRectifiedDerivative),
-	    silenceThreshold(0.01),
+	    silenceThreshold(0.0),
 	    decay(0.99)
 	{}
 
@@ -74,7 +75,9 @@ public:
 
 	/** Silence threshold. If non-zero, any feature whose total
 	 *  energy (simply the sum of feature values) is below that
-	 *  threshold will be rounded down to all zeros. */
+	 *  threshold will be rounded down to all zeros. Note that
+	 *  this refers to the energy of the pre-norm feature, not of
+	 *  its derivative even if that is what is being returned. */
 	double silenceThreshold;
 
         /** Frame-to-frame decay factor in calculating long-term average */
@@ -88,10 +91,7 @@ public:
      * state: use one FeatureConditioner per audio source, and construct
      * a new one for each new source.
      */
-    FeatureConditioner(Parameters parameters) :
-        m_params(parameters),
-        m_ltAverage(0.0)
-    { }
+    FeatureConditioner(Parameters parameters);
 
     /**
      * Process the given feature and return the conditioned feature.

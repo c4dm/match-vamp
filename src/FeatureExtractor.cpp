@@ -24,11 +24,19 @@
 
 using namespace std;
 
+//#define DEBUG_FEATURE_EXTRACTOR 1
+
 FeatureExtractor::FeatureExtractor(Parameters parameters) :
     m_params(parameters)
 {
     m_featureSize = getFeatureSizeFor(parameters);
     makeFreqMap();
+
+#ifdef DEBUG_FEATURE_EXTRACTOR
+    cerr << "*** FeatureExtractor: sampleRate = " << parameters.sampleRate
+         << ", useChromaFrequencyMap = " << parameters.useChromaFrequencyMap
+         << ", fftSize = " << parameters.fftSize << endl;
+#endif
 }
 
 int
@@ -47,12 +55,12 @@ FeatureExtractor::makeFreqMap()
     m_freqMap = vector<int>(m_params.fftSize / 2 + 1, 0);
 
     if (m_params.useChromaFrequencyMap) {
-#ifdef DEBUG_MATCHER
+#ifdef DEBUG_FEATURE_EXTRACTOR
         cerr << "makeFreqMap: calling makeChromaFrequencyMap" << endl;
 #endif
         makeChromaFrequencyMap();
     } else {
-#ifdef DEBUG_MATCHER
+#ifdef DEBUG_FEATURE_EXTRACTOR
         cerr << "makeFreqMap: calling makeStandardFrequencyMap" << endl;
 #endif
         makeStandardFrequencyMap();

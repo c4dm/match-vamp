@@ -16,8 +16,23 @@
 #include "FeatureConditioner.h"
 
 #include <iostream>
+#include <cmath>
 
 using namespace std;
+
+//#define DEBUG_FEATURE_CONDITIONER 1
+
+FeatureConditioner::FeatureConditioner(Parameters parameters) :
+    m_params(parameters),
+    m_ltAverage(0.0)
+{
+#ifdef DEBUG_FEATURE_CONDITIONER
+    cerr << "*** FeatureConditioner: norm = " << parameters.norm
+         << ", order = " << parameters.order
+         << ", silenceThreshold = " << parameters.silenceThreshold
+         << ", decay = " << parameters.decay << endl;
+#endif
+}
 
 vector<double>
 FeatureConditioner::process(const vector<double> &feature)
@@ -54,7 +69,7 @@ FeatureConditioner::process(const vector<double> &feature)
     case OutputDerivative:
         for (int i = 0; i < size; i++) {
             totalEnergy += feature[i];
-            out[i] = feature[i] - m_prev[i];
+            out[i] = fabs(feature[i] - m_prev[i]);
         }
         break;
         
@@ -66,7 +81,7 @@ FeatureConditioner::process(const vector<double> &feature)
         break;
     }
 
-    if (m_ltAverage == 0) {
+    if (m_ltAverage == 0.0) {
 	m_ltAverage = totalEnergy;
     } else {
 	double decay = m_params.decay;
