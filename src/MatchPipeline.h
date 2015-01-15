@@ -38,6 +38,7 @@ public:
      */
     MatchPipeline(FeatureExtractor::Parameters feParams,
 		  FeatureConditioner::Parameters fcParams,
+                  DistanceMetric::Parameters dParams,
 		  Matcher::Parameters matchParams);
 
     ~MatchPipeline();

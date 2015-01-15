@@ -36,7 +36,26 @@ public:
         NormaliseDistanceToLogSum,
     };
 
-    DistanceMetric(DistanceNormalisation norm);
+    struct Parameters {
+
+        Parameters() :
+            norm(NormaliseDistanceToSum),
+            silencePenalty(1.0)
+        {}
+
+        /** Normalisation for distance metrics. */
+        DistanceNormalisation norm;
+
+        /** Penalty to be added (after normalisation) to each distance
+         *  calculation in which one of the features is silent
+         *  (exactly all zeros, for example having been clamped to
+         *  silence by FeatureConditioner) but the other is
+         *  not. Use 0.0 for "classic MATCH" behaviour.
+         */
+        double silencePenalty;
+    };
+    
+    DistanceMetric(Parameters params);
     
     /** Calculates the Manhattan distance between two vectors, with an
      *  optional normalisation by the combined values in the
@@ -52,7 +71,7 @@ public:
 			const std::vector<double> &f2);
     
 private:
-    DistanceNormalisation m_norm;
+    Parameters m_params;
 };
 
 #endif

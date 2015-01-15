@@ -19,13 +19,14 @@
 
 MatchPipeline::MatchPipeline(FeatureExtractor::Parameters feParams,
 			     FeatureConditioner::Parameters fcParams,
+                             DistanceMetric::Parameters dParams,
 			     Matcher::Parameters matchParams) :
     m_fe1(feParams),
     m_fe2(feParams),
     m_fc1(fcParams),
     m_fc2(fcParams),
-    m_pm1(matchParams, 0),
-    m_pm2(matchParams, &m_pm1),
+    m_pm1(matchParams, dParams, 0),
+    m_pm2(matchParams, dParams, &m_pm1),
     m_feeder(&m_pm1, &m_pm2),
     m_lastFrameIn1(0),
     m_lastFrameIn2(0),
