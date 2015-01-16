@@ -25,13 +25,13 @@ using namespace std;
 
 //#define DEBUG_MATCHER 1
 
-Matcher::Matcher(Parameters parameters, Matcher *p) :
+Matcher::Matcher(Parameters parameters, DistanceMetric::Parameters dparams,
+                 Matcher *p) :
     m_params(parameters),
-    m_metric(parameters.distanceNorm)
+    m_metric(dparams)
 {
 #ifdef DEBUG_MATCHER
-    cerr << "*** Matcher: distanceNorm = " << parameters.distanceNorm
-         << ", hopTime = " << parameters.hopTime
+    cerr << "*** Matcher: hopTime = " << parameters.hopTime
          << ", blockTime = " << parameters.blockTime
          << ", maxRunCount = " << parameters.maxRunCount
          << ", diagonalWeight = " << parameters.diagonalWeight << endl;

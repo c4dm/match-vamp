@@ -55,15 +55,11 @@ public:
     struct Parameters {
 
         Parameters(double hopTime_) :
-            distanceNorm(DistanceMetric::NormaliseDistanceToLogSum),
             hopTime(hopTime_),
             blockTime(10.0),
             maxRunCount(3),
             diagonalWeight(2.0)
         {}
-
-        /** Type of distance metric normalisation */
-        DistanceMetric::DistanceNormalisation distanceNorm;
 
         /** Spacing of audio frames (determines the amount of overlap or
          *  skip between frames). This value is expressed in
@@ -108,7 +104,7 @@ public:
      *  between the two matchers (currently one possesses the distance
      *  matrix and optimal path matrix).
      */
-    Matcher(Parameters parameters, Matcher *p);
+    Matcher(Parameters params, DistanceMetric::Parameters dparams, Matcher *p);
 
     /** Destructor for Matcher.
      */

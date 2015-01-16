@@ -24,11 +24,12 @@ using namespace std;
 
 //#define DEBUG_DISTANCE_METRIC 1
 
-DistanceMetric::DistanceMetric(DistanceNormalisation norm) :
-    m_norm(norm)
+DistanceMetric::DistanceMetric(Parameters params) :
+    m_params(params)
 {
 #ifdef DEBUG_DISTANCE_METRIC
-    cerr << "*** DistanceMetric: norm = " << m_norm << endl;
+    cerr << "*** DistanceMetric: norm = " << m_params.norm
+         << endl;
 #endif
 }
 
@@ -37,6 +38,8 @@ DistanceMetric::calcDistance(const vector<double> &f1,
 			     const vector<double> &f2)
 {
     double d = 0;
+    double sum1 = 0;
+    double sum2 = 0;
     double sum = 0;
 
     int featureSize = f1.size();
@@ -44,26 +47,41 @@ DistanceMetric::calcDistance(const vector<double> &f1,
     
     for (int i = 0; i < featureSize; i++) {
         d += fabs(f1[i] - f2[i]);
-        sum += fabs(f1[i]) + fabs(f2[i]);
+        sum1 += fabs(f1[i]);
+        sum2 += fabs(f2[i]);
     }
 
-    if (sum == 0)
+    sum = sum1 + sum2;
+
+    if (sum == 0) {
         return 0;
-    if (m_norm == NormaliseDistanceToSum)
-        return d / sum; // 0 <= d/sum <= 2
-    if (m_norm != NormaliseDistanceToLogSum)
-        return d;
+    }
 
-    // note if this were to be restored, it would have to use
-    // totalEnergies vector instead of f1[freqMapSize] which used to
-    // store the total energy:
-    //	double weight = (5 + Math.log(f1[freqMapSize] + f2[freqMapSize]))/10.0;
+    double distance = 0;
 
-    double weight = (8 + log(sum)) / 10.0;
+    if (m_params.norm == NormaliseDistanceToSum) {
+
+        distance = d / sum; // 0 <= d/sum <= 2
+
+    } else if (m_params.norm == NormaliseDistanceToLogSum) {
+
+        // note if this were to be restored, it would have to use
+        // totalEnergies vector instead of f1[freqMapSize] which used to
+        // store the total energy:
+        //	double weight = (5 + Math.log(f1[freqMapSize] + f2[freqMapSize]))/10.0;
+
+        double weight = (8 + log(sum)) / 10.0;
     
-    if (weight < 0) weight = 0;
-    else if (weight > 1) weight = 1;
+        if (weight < 0) weight = 0;
+        else if (weight > 1) weight = 1;
 
-    return d / sum * weight;
+        distance = d / sum * weight;
+
+    } else {
+
+        distance = d;
+    }
+    
+    return distance;
 }
 

@@ -63,7 +63,9 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_feParams(inputSampleRate, m_blockSize),
     m_defaultFeParams(inputSampleRate, m_blockSize),
     m_fcParams(),
-    m_defaultFcParams()
+    m_defaultFcParams(),
+    m_dParams(),
+    m_defaultDParams()
 {
     if (inputSampleRate < sampleRateMin) {
         std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
@@ -174,7 +176,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for distance metric";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultParams.distanceNorm;
+    desc.defaultValue = (int)m_defaultDParams.norm;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -266,7 +268,7 @@ MatchVampPlugin::getParameter(std::string name) const
     } else if (name == "framenorm") {
         return (int)m_fcParams.norm;
     } else if (name == "distnorm") {
-        return (int)m_params.distanceNorm;
+        return (int)m_dParams.norm;
     } else if (name == "usespecdiff") {
         return (int)m_fcParams.order;
     } else if (name == "usechroma") {
@@ -294,7 +296,7 @@ MatchVampPlugin::setParameter(std::string name, float value)
     } else if (name == "framenorm") {
         m_fcParams.norm = (FeatureConditioner::Normalisation)(int(value + 0.1));
     } else if (name == "distnorm") {
-        m_params.distanceNorm = (DistanceMetric::DistanceNormalisation)(int(value + 0.1));
+        m_dParams.norm = (DistanceMetric::DistanceNormalisation)(int(value + 0.1));
     } else if (name == "usespecdiff") {
         m_fcParams.order = (FeatureConditioner::OutputOrder)(int(value + 0.1));
     } else if (name == "usechroma") {
@@ -330,7 +332,7 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_feParams.fftSize = m_blockSize;
 
-    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_params);
+    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params);
 }
 
 bool

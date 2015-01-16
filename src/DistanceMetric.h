@@ -36,7 +36,17 @@ public:
         NormaliseDistanceToLogSum,
     };
 
-    DistanceMetric(DistanceNormalisation norm);
+    struct Parameters {
+
+        Parameters() :
+            norm(NormaliseDistanceToSum)
+        {}
+
+        /** Normalisation for distance metrics. */
+        DistanceNormalisation norm;
+    };
+    
+    DistanceMetric(Parameters params);
     
     /** Calculates the Manhattan distance between two vectors, with an
      *  optional normalisation by the combined values in the
@@ -52,7 +62,7 @@ public:
 			const std::vector<double> &f2);
     
 private:
-    DistanceNormalisation m_norm;
+    Parameters m_params;
 };
 
 #endif

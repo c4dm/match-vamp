@@ -26,7 +26,9 @@ BOOST_AUTO_TEST_SUITE(TestDistanceMetric)
 
 BOOST_AUTO_TEST_CASE(nonorm)
 {
-    DistanceMetric dm(DistanceMetric::NoDistanceNormalisation);
+    DistanceMetric::Parameters params;
+    params.norm = DistanceMetric::NoDistanceNormalisation;
+    DistanceMetric dm(params);
     vector<double>
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
@@ -42,7 +44,9 @@ BOOST_AUTO_TEST_CASE(nonorm)
 
 BOOST_AUTO_TEST_CASE(sum)
 {
-    DistanceMetric dm(DistanceMetric::NormaliseDistanceToSum);
+    DistanceMetric::Parameters params;
+    params.norm = DistanceMetric::NormaliseDistanceToSum;
+    DistanceMetric dm(params);
     vector<double>
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),

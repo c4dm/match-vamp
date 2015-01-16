@@ -90,6 +90,9 @@ protected:
     FeatureConditioner::Parameters m_fcParams;
     FeatureConditioner::Parameters m_defaultFcParams;
 
+    DistanceMetric::Parameters m_dParams;
+    DistanceMetric::Parameters m_defaultDParams;
+
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
     mutable int m_baOutNo;
