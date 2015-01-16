@@ -38,21 +38,20 @@ DistanceMetric::calcDistance(const vector<double> &f1,
 			     const vector<double> &f2)
 {
     double d = 0;
-    double sum1 = 0;
-    double sum2 = 0;
     double sum = 0;
 
     int featureSize = f1.size();
     assert(int(f2.size()) == featureSize);
-    
+
     for (int i = 0; i < featureSize; i++) {
         d += fabs(f1[i] - f2[i]);
-        sum1 += fabs(f1[i]);
-        sum2 += fabs(f2[i]);
+        sum += fabs(f1[i]) + fabs(f2[i]);
     }
 
-    sum = sum1 + sum2;
-
+    double noise = 1e-3 * featureSize;
+    d += noise;
+    sum += noise;
+    
     if (sum == 0) {
         return 0;
     }
