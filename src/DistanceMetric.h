@@ -39,7 +39,7 @@ public:
     struct Parameters {
 
         Parameters() :
-            norm(NormaliseDistanceToSum)
+            norm(NormaliseDistanceToLogSum)
         {}
 
         /** Normalisation for distance metrics. */
