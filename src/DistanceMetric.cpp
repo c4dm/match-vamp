@@ -49,8 +49,10 @@ DistanceMetric::calcDistance(const vector<double> &f1,
     }
 
     double noise = 1e-3 * featureSize;
-    d += noise;
-    sum += noise;
+    if (m_params.noise == AddNoise) {
+        d += noise;
+        sum += noise;
+    }
     
     if (sum == 0) {
         return 0;
