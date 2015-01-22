@@ -14,7 +14,7 @@ using namespace std;
 
 static int freq2mid(double freq)
 {
-    return round(57.0 + 12.0 * log(freq / 220.) / log(2.));
+    return int(round(57.0 + 12.0 * log(freq / 220.) / log(2.)));
 }
 
 static int freq2chroma(double freq)
