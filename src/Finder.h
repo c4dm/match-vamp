@@ -37,7 +37,23 @@ public:
      * duration of each input will be considered.
      */
     void setDurations(int d1, int d2);
-    
+
+    /**
+     * Find the location and cost of the cheapest path cost within the
+     * final row and column of the search area, given that the area
+     * extends as far as the point at (row, col). This is used by
+     * getExpandDirection and can also be used, for example, to
+     * determine the current best estimate alignment for a frame we
+     * have just reached.
+     */
+    void getBestEdgeCost(int row, int col,
+                         int &bestRow, int &bestCol,
+                         double &bestCost);
+
+    /**
+     * Calculate which direction to expand the search area in, given
+     * that so far it extends as far as the point at (row, col).
+     */
     Matcher::Advance getExpandDirection(int row, int col);
     
     /** Calculates a rectangle of the path cost matrix so that the
@@ -84,9 +100,10 @@ protected:
     void checkAndReport();
 #endif
     
-    Matcher *m_m;
+    Matcher *m_m;   // I do not own this
+    
     int m_duration1;
     int m_duration2;
-}; // class Finder
+};
 
 #endif

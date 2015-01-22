@@ -67,9 +67,10 @@ protected:
     void feed1();
     void feed2();
 
-    Finder *m_finder;
-    Matcher *m_pm1;
-    Matcher *m_pm2;
+    Finder *m_finder; // I own this, and it refers to m_pm1 and m_pm2
+    
+    Matcher *m_pm1;   // I do not own this
+    Matcher *m_pm2;   // I do not own this
 
     std::queue<std::vector<double> > m_q1;
     std::queue<std::vector<double> > m_q2;

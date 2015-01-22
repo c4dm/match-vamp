@@ -47,13 +47,15 @@ Finder::setDurations(int d1, int d2)
     m_duration2 = d2;
 }
 
-Matcher::Advance
-Finder::getExpandDirection(int row, int col)
+void
+Finder::getBestEdgeCost(int row, int col,
+                        int &bestRow, int &bestCol,
+                        double &min)
 {
-    double min = m_m->getPathCost(row, col);
+    min = m_m->getPathCost(row, col);
     
-    int bestRow = row;
-    int bestCol = col;
+    bestRow = row;
+    bestCol = col;
 
     pair<int, int> rowRange = m_m->getRowRange(col);
     if (rowRange.second > row+1) {
@@ -79,8 +81,30 @@ Finder::getExpandDirection(int row, int col)
             bestRow = row;
         }
     }
+}
 
-//    cerr << "at [" << row << "," << col << "] (cost " << m_m->getPathCost(row, col) << ") blocksize = " << m_m->getBlockSize() << " best is [" << bestRow << "," << bestCol << "] (cost " << min << ")" << endl;
+Matcher::Advance
+Finder::getExpandDirection(int row, int col)
+{
+    // To determine which direction to expand the search area in, we
+    // look at the path costs along the leading edges of the search
+    // area (the final row and column within the area). We find the
+    // lowest path cost within the final row, and the lowest within
+    // the final column, and we compare them. If the row is cheaper
+    // then we expand by adding another row next to it; if the column
+    // is cheaper then we expand by adding another column next to
+    // it. (The overall lowest path cost across the row and column
+    // represents the best alignment we have within the entire search
+    // area given the data available and the assumption that the piece
+    // is not ending yet.)
+
+    int bestRow = row;
+    int bestCol = col;
+    double bestCost = -1;
+
+    getBestEdgeCost(row, col, bestRow, bestCol, bestCost);
+
+//    cerr << "at [" << row << "," << col << "] (cost " << m_m->getPathCost(row, col) << ") blocksize = " << m_m->getBlockSize() << " best is [" << bestRow << "," << bestCol << "] (cost " << bestCost << ")" << endl;
     
     if (bestRow == row) {
         if (bestCol == col) {
