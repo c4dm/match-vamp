@@ -38,6 +38,12 @@ Finder::~Finder()
 }
 
 void
+Finder::setMatcher(Matcher *pm)
+{
+    m_m = pm;
+}
+
+void
 Finder::setDurations(int d1, int d2)
 {
 #ifdef DEBUG_FINDER
@@ -46,6 +52,45 @@ Finder::setDurations(int d1, int d2)
     m_duration1 = d1;
     m_duration2 = d2;
 }
+
+bool
+Finder::getBestRowCost(int row, int &bestCol, double &min)
+{
+    if (!m_m->isRowAvailable(row)) {
+        cerr << "row not available: " << row << endl;
+        return false;
+    }
+    pair<int, int> colRange = m_m->getColRange(row);
+    if (colRange.first >= colRange.second) {
+        cerr << "row " << row << " has invalid col range " << colRange.first
+             << " -> " << colRange.second << endl;
+        return false;
+    }
+    for (int index = colRange.first; index < colRange.second; index++) {
+        double tmp = m_m->getNormalisedPathCost(row, index);
+        if (index == colRange.first || tmp < min) {
+            min = tmp;
+            bestCol = index;
+        }
+    }
+    return true;
+}    
+
+bool
+Finder::getBestColCost(int col, int &bestRow, double &min)
+{
+    if (!m_m->isColAvailable(col)) return false;
+    pair<int, int> rowRange = m_m->getRowRange(col);
+    if (rowRange.first >= rowRange.second) return false;
+    for (int index = rowRange.first; index < rowRange.second; index++) {
+        double tmp = m_m->getNormalisedPathCost(index, col);
+        if (index == rowRange.first || tmp < min) {
+            min = tmp;
+            bestRow = index;
+        }
+    }
+    return true;
+}    
 
 void
 Finder::getBestEdgeCost(int row, int col,

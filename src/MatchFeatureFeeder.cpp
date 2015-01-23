@@ -30,6 +30,14 @@ MatchFeatureFeeder::~MatchFeatureFeeder()
 }
 
 void
+MatchFeatureFeeder::setMatchers(Matcher *m1, Matcher *m2)
+{
+    m_pm1 = m1;
+    m_pm2 = m2;
+    m_finder->setMatcher(m_pm1);
+}
+
+void
 MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 {
     // We maintain two FIFO queues of feature vectors, one per input

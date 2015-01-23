@@ -28,6 +28,8 @@ public:
     MatchFeatureFeeder(Matcher *m1, Matcher *m2);
     ~MatchFeatureFeeder();
 
+    void setMatchers(Matcher *m1, Matcher *m2);
+    
     /**
      * Feed the two supplied feature vectors to feeders 1 and 2
      * respectively (depending on their advance status). Matchers must

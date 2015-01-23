@@ -76,6 +76,26 @@ Matcher::init()
 }
 
 bool
+Matcher::isRowAvailable(int i)
+{
+    if (i < 0 || i >= int(m_first.size())) return false;
+
+    for (int j = m_first[i]; j < int(m_first[i] + m_bestPathCost[i].size()); ++j) {
+        if (isAvailable(i, j)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool
+Matcher::isColAvailable(int i)
+{
+    return m_otherMatcher->isRowAvailable(i);
+}
+
+bool
 Matcher::isInRange(int i, int j)
 {
     if (m_firstPM) {

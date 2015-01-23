@@ -29,6 +29,8 @@ public:
 
     ~Finder();
 
+    void setMatcher(Matcher *pm);
+    
     /**
      * Tell the finder that one or both files ends sooner than it
      * thought, i.e. that some of the trailing features are silence or
@@ -38,6 +40,21 @@ public:
      */
     void setDurations(int d1, int d2);
 
+    /**
+     * Find the location and cost of the column with the cheapest path
+     * cost within the given row. If the row is out of range, return
+     * false and leave the bestCol and bestCost variables unchanged.
+     */
+    bool getBestRowCost(int row, int &bestCol, double &bestCost);
+
+    /**
+     * Find the location and cost of the row with the cheapest path
+     * cost within the given column. If the column is out of range,
+     * return false and leave the bestRow and bestCost variables
+     * unchanged.
+     */
+    bool getBestColCost(int col, int &bestRow, double &bestCost);
+    
     /**
      * Find the location and cost of the cheapest path cost within the
      * final row and column of the search area, given that the area
