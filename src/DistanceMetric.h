@@ -36,14 +36,26 @@ public:
         NormaliseDistanceToLogSum,
     };
 
+    enum NoiseAddition {
+
+        /** Don't add noise. */
+        NoNoise,
+
+        /** Add a constant noise term. This can help avoid
+         *  mis-tracking when one file contains a lot of silence. */
+        AddNoise,
+    };
+    
     struct Parameters {
 
         Parameters() :
-            norm(NormaliseDistanceToLogSum)
+            norm(NormaliseDistanceToLogSum),
+            noise(AddNoise)
         {}
 
         /** Normalisation for distance metrics. */
         DistanceNormalisation norm;
+        NoiseAddition noise;
     };
     
     DistanceMetric(Parameters params);
