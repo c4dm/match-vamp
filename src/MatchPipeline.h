@@ -89,8 +89,20 @@ public:
      */
     void finish();
 
-    MatchFeatureFeeder *getFeeder();
-    Finder *getFinder();
+    /**
+     * Retrieve the final path. Only valid once all the features have
+     * been supplied and finish() has been called.
+     *
+     * See Finder::retrievePath for more details.
+     */
+    int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
+
+    /**
+     * Retrieve the forward path resulting from the online search.
+     *
+     * See MatchFeatureFeeder::retrieveForwardPath for more details.
+     */
+    void retrieveForwardPath(std::vector<int> &pathx, std::vector<int> &pathy);
     
 private:
     FeatureExtractor m_fe1;

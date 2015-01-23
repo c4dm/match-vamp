@@ -29,6 +29,22 @@ MatchFeatureFeeder::~MatchFeatureFeeder()
     delete m_finder;
 }
 
+MatchFeatureFeeder::MatchFeatureFeeder(const MatchFeatureFeeder &other) :
+    m_pm1(other.m_pm1), m_pm2(other.m_pm2)
+{
+    //!!! This is gross. Finder should probably not be heap allocated at all
+    m_finder = new Finder(*other.m_finder);
+}
+
+MatchFeatureFeeder &
+MatchFeatureFeeder::operator=(const MatchFeatureFeeder &other)
+{
+    m_pm1 = other.m_pm1;
+    m_pm2 = other.m_pm2;
+    m_finder = new Finder(*other.m_finder);
+    return *this;
+}
+
 void
 MatchFeatureFeeder::setMatchers(Matcher *m1, Matcher *m2)
 {

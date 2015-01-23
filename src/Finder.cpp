@@ -40,6 +40,7 @@ Finder::~Finder()
 void
 Finder::setMatcher(Matcher *pm)
 {
+    cerr << "Finder::setMatcher: finder " << this << ", matcher " << pm << endl;
     m_m = pm;
 }
 
@@ -56,6 +57,7 @@ Finder::setDurations(int d1, int d2)
 bool
 Finder::getBestRowCost(int row, int &bestCol, double &min)
 {
+    cerr << "Finder " << this << "::getBestRowCost(" << row << ")" << endl;
     if (!m_m->isRowAvailable(row)) {
         cerr << "row not available: " << row << endl;
         return false;
@@ -147,6 +149,8 @@ Finder::getExpandDirection(int row, int col)
     int bestCol = col;
     double bestCost = -1;
 
+//    cerr << "Finder " << this << "::getExpandDirection: ";
+    
     getBestEdgeCost(row, col, bestRow, bestCol, bestCost);
 
 //    cerr << "at [" << row << "," << col << "] (cost " << m_m->getPathCost(row, col) << ") blocksize = " << m_m->getBlockSize() << " best is [" << bestRow << "," << bestCol << "] (cost " << bestCost << ")" << endl;

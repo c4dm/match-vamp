@@ -28,6 +28,9 @@ public:
     MatchFeatureFeeder(Matcher *m1, Matcher *m2);
     ~MatchFeatureFeeder();
 
+    MatchFeatureFeeder(const MatchFeatureFeeder &other);
+    MatchFeatureFeeder &operator=(const MatchFeatureFeeder &other);
+    
     void setMatchers(Matcher *m1, Matcher *m2);
     
     /**

@@ -587,10 +587,9 @@ MatchVampPlugin::getRemainingFeatures()
 
     FeatureSet returnFeatures;
     
-    Finder *finder = m_pipeline->getFinder();
     std::vector<int> pathx;
     std::vector<int> pathy;
-    int len = finder->retrievePath(m_smooth, pathx, pathy);
+    int len = m_pipeline->retrievePath(m_smooth, pathx, pathy);
 
     int prevx = 0;
     int prevy = 0;

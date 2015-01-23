@@ -131,21 +131,19 @@ void
 MatchPipeline::finish()
 {
     m_feeder.finish();
-    getFinder()->setDurations(m_lastFrameIn1, m_lastFrameIn2);
+    m_feeder.getFinder()->setDurations(m_lastFrameIn1, m_lastFrameIn2);
 }
 
-MatchFeatureFeeder *
-MatchPipeline::getFeeder()
+int
+MatchPipeline::retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy)
 {
-    return &m_feeder;
+    return m_feeder.getFinder()->retrievePath(smooth, pathx, pathy);
 }
 
-Finder *
-MatchPipeline::getFinder()
-{
-    return m_feeder.getFinder();
+void
+MatchPipeline::retrieveForwardPath(std::vector<int> &pathx, std::vector<int> &pathy) {
+    return m_feeder.retrieveForwardPath(pathx, pathy);
 }
-
 
 
 
