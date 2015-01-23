@@ -211,7 +211,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Total frame energy threshold below which a feature will be regarded as silent";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = m_defaultFcParams.silenceThreshold;
+    desc.defaultValue = (float)m_defaultFcParams.silenceThreshold;
     desc.isQuantized = false;
     list.push_back(desc);
 
@@ -292,7 +292,7 @@ MatchVampPlugin::getParameter(std::string name) const
     } else if (name == "smooth") {
         return m_smooth ? 1.0 : 0.0;
     } else if (name == "silencethreshold") {
-        return m_fcParams.silenceThreshold;
+        return (float)m_fcParams.silenceThreshold;
     } else if (name == "noise") {
         return m_dParams.noise;
     }
