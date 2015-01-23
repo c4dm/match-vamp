@@ -63,7 +63,7 @@ public:
 	Parameters() :
 	    norm(NormaliseToSum1),
 	    order(OutputRectifiedDerivative),
-	    silenceThreshold(0.0),
+	    silenceThreshold(0.01),
 	    decay(0.99)
 	{}
 
