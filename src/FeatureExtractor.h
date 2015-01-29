@@ -48,7 +48,8 @@ public:
         Parameters(float rate_, int fftSize_) :
             sampleRate(rate_),
             useChromaFrequencyMap(false),
-            fftSize(fftSize_)
+            fftSize(fftSize_),
+            referenceFrequency(440.0)
         {}
 
         /** Sample rate of audio */
@@ -62,6 +63,9 @@ public:
          *  in is already in the frequency domain, so this expresses
          *  the size of the frame that the caller will be providing. */
         int fftSize;
+
+        /** Frequency of concert A */
+        double referenceFrequency;
     };
 
     /**

@@ -70,12 +70,11 @@ FeatureExtractor::makeFreqMap()
 void
 FeatureExtractor::makeStandardFrequencyMap()
 {
+    double refFreq = m_params.referenceFrequency;
     double binWidth = m_params.sampleRate / m_params.fftSize;
     int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
-    int crossoverMidi = lrint(log(crossoverBin*binWidth/440.0)/
+    int crossoverMidi = lrint(log(crossoverBin * binWidth / refFreq)/
                               log(2.0) * 12 + 69);
-
-    // freq = 440 * Math.pow(2, (midi-69)/12.0) / binWidth;
     
     int i = 0;
     while (i <= crossoverBin) {
@@ -84,7 +83,7 @@ FeatureExtractor::makeStandardFrequencyMap()
     }
 
     while (i <= m_params.fftSize/2) {
-        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
+        double midi = log(i * binWidth / refFreq) / log(2.0) * 12 + 69;
         if (midi > 127) midi = 127;
         int target = crossoverBin + lrint(midi) - crossoverMidi;
         if (target >= m_featureSize) target = m_featureSize - 1;
@@ -95,6 +94,7 @@ FeatureExtractor::makeStandardFrequencyMap()
 void
 FeatureExtractor::makeChromaFrequencyMap()
 {
+    double refFreq = m_params.referenceFrequency;
     double binWidth = m_params.sampleRate / m_params.fftSize;
     int crossoverBin = (int)(1 / (pow(2, 1/12.0) - 1));
     int i = 0;
@@ -102,7 +102,7 @@ FeatureExtractor::makeChromaFrequencyMap()
         m_freqMap[i++] = 0;
     }
     while (i <= m_params.fftSize/2) {
-        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
+        double midi = log(i * binWidth / refFreq) / log(2.0) * 12 + 69;
         m_freqMap[i++] = (lrint(midi)) % 12 + 1;
     }
 }
