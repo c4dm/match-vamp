@@ -78,14 +78,13 @@ protected:
     bool m_smooth;
 
     int m_frameNo;
-    int m_lastFrameIn1;
-    int m_lastFrameIn2;
     
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
 
     FeatureExtractor::Parameters m_feParams;
     FeatureExtractor::Parameters m_defaultFeParams;
+    double m_secondReferenceFrequency;
 
     FeatureConditioner::Parameters m_fcParams;
     FeatureConditioner::Parameters m_defaultFcParams;

@@ -62,6 +62,7 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_defaultParams(defaultStepTime),
     m_feParams(inputSampleRate, m_blockSize),
     m_defaultFeParams(inputSampleRate, m_blockSize),
+    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
     m_fcParams(),
     m_defaultFcParams(),
     m_dParams(),
@@ -282,6 +283,26 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.unit = "";
     list.push_back(desc);
 
+    desc.identifier = "freq1";
+    desc.name = "Tuning Frequency of First Input";
+    desc.description = "Tuning frequency (concert A) for the reference audio.";
+    desc.minValue = 220.0;
+    desc.maxValue = 880.0;
+    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+
+    desc.identifier = "freq2";
+    desc.name = "Tuning Frequency of Second Input";
+    desc.description = "Tuning frequency (concert A) for the other audio.";
+    desc.minValue = 220.0;
+    desc.maxValue = 880.0;
+    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+    
     return list;
 }
 
@@ -312,6 +333,10 @@ MatchVampPlugin::getParameter(std::string name) const
         return (int)m_dParams.metric;
     } else if (name == "noise") {
         return m_dParams.noise;
+    } else if (name == "freq1") {
+        return (float)m_feParams.referenceFrequency;
+    } else if (name == "freq2") {
+        return (float)m_secondReferenceFrequency;
     }
     
     return 0.0;
@@ -344,6 +369,10 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_dParams.metric = (DistanceMetric::Metric)(int(value + 0.1));
     } else if (name == "noise") {
         m_dParams.noise = (DistanceMetric::NoiseAddition)(int(value + 0.1));
+    } else if (name == "freq1") {
+        m_feParams.referenceFrequency = value;
+    } else if (name == "freq2") {
+        m_secondReferenceFrequency = value;
     }
 }
 
@@ -365,7 +394,8 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_feParams.fftSize = m_blockSize;
 
-    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params);
+    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params,
+                                   m_secondReferenceFrequency);
 }
 
 bool
