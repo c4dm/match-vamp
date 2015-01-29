@@ -35,11 +35,18 @@ public:
      *      -> Features
      *          -> Conditioned features
      *              -> Matcher
+     *
+     * Only one set of FeatureExtractor::Parameters is provided; this
+     * contains a single reference frequency, but it's possible the
+     * two input streams may have different tuning frequencies. A
+     * separate frequency for the second input can be provided here as
+     * an optional parameter if needed.
      */
     MatchPipeline(FeatureExtractor::Parameters feParams,
 		  FeatureConditioner::Parameters fcParams,
                   DistanceMetric::Parameters dParams,
-		  Matcher::Parameters matchParams);
+		  Matcher::Parameters matchParams,
+                  double secondReferenceFrequency = 0.0);
 
     ~MatchPipeline();
 
