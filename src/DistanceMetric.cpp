@@ -62,13 +62,21 @@ DistanceMetric::calcDistance(const vector<double> &f1,
         if (d > 1.0) d = 1.0;
         
         return d; // normalisation param ignored
+
     }
 
-    // Euclidean
-    
-    for (int i = 0; i < featureSize; i++) {
-        d += fabs(f1[i] - f2[i]);
-        sum += fabs(f1[i]) + fabs(f2[i]);
+    if (m_params.metric == Manhattan) {
+        for (int i = 0; i < featureSize; i++) {
+            d += fabs(f1[i] - f2[i]);
+            sum += fabs(f1[i]) + fabs(f2[i]);
+        }
+    } else {
+        // Euclidean
+        for (int i = 0; i < featureSize; i++) {
+            d += (f1[i] - f2[i]) * (f1[i] - f2[i]);
+            sum += fabs(f1[i]) + fabs(f2[i]);
+        }
+        d = sqrt(d);
     }
 
     double noise = 1e-3 * featureSize;

@@ -219,11 +219,12 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.name = "Distance metric";
     desc.description = "Metric for distance calculations.";
     desc.minValue = 0;
-    desc.maxValue = 1;
+    desc.maxValue = 2;
     desc.defaultValue = (int)m_defaultDParams.metric;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
+    desc.valueNames.push_back("Manhattan");
     desc.valueNames.push_back("Euclidean");
     desc.valueNames.push_back("Cosine");
     list.push_back(desc);
