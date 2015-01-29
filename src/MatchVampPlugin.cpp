@@ -147,49 +147,46 @@ MatchVampPlugin::getParameterDescriptors() const
 
     ParameterDescriptor desc;
 
-    desc.identifier = "serialise";
-    desc.name = "Serialise Plugin Invocations";
-    desc.description = "Reduce potential memory load at the expense of multiprocessor performance by serialising multi-threaded plugin runs";
+    desc.identifier = "freq1";
+    desc.name = "Tuning frequency of first input";
+    desc.description = "Tuning frequency (concert A) for the reference audio.";
+    desc.minValue = 220.0;
+    desc.maxValue = 880.0;
+    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+
+    desc.identifier = "freq2";
+    desc.name = "Tuning frequency of second input";
+    desc.description = "Tuning frequency (concert A) for the other audio.";
+    desc.minValue = 220.0;
+    desc.maxValue = 880.0;
+    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+
+    desc.unit = "";
+    
+    desc.identifier = "usechroma";
+    desc.name = "Feature type";
+    desc.description = "Whether to use warped spectrogram or chroma frequency map";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = 0;
+    desc.defaultValue = m_defaultFeParams.useChromaFrequencyMap ? 1 : 0;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
+    desc.valueNames.clear();
+    desc.valueNames.push_back("Spectral");
+    desc.valueNames.push_back("Chroma");
     list.push_back(desc);
 
-    desc.identifier = "framenorm";
-    desc.name = "Frame Normalisation";
-    desc.description = "Type of normalisation to use for frequency-domain audio features";
-    desc.minValue = 0;
-    desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultFcParams.norm;
-    desc.isQuantized = true;
-    desc.quantizeStep = 1;
-    desc.valueNames.clear();
-    desc.valueNames.push_back("None");
-    desc.valueNames.push_back("Sum To 1");
-    desc.valueNames.push_back("Long-Term Average");
-    list.push_back(desc);
-    desc.valueNames.clear();
-
-    desc.identifier = "distnorm";
-    desc.name = "Distance Normalisation";
-    desc.description = "Type of normalisation to use for distance metric";
-    desc.minValue = 0;
-    desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultDParams.norm;
-    desc.isQuantized = true;
-    desc.quantizeStep = 1;
-    desc.valueNames.clear();
-    desc.valueNames.push_back("None");
-    desc.valueNames.push_back("Sum of Frames");
-    desc.valueNames.push_back("Log Sum of Frames");
-    list.push_back(desc);
     desc.valueNames.clear();
 
     desc.identifier = "usespecdiff";
-    desc.name = "Use Spectral Difference";
-    desc.description = "Whether to use half-wave rectified spectral difference instead of straight spectrum";
+    desc.name = "Use feature difference";
+    desc.description = "Whether to use half-wave rectified feature-to-feature difference instead of straight spectral or chroma feature";
     desc.minValue = 0;
     desc.maxValue = 1;
     desc.defaultValue = (int)m_defaultFcParams.order;
@@ -197,24 +194,20 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.quantizeStep = 1;
     list.push_back(desc);
 
-    desc.identifier = "usechroma";
-    desc.name = "Use Chroma Frequency Map";
-    desc.description = "Whether to use a chroma frequency map instead of the default warped spectrogram";
+    desc.identifier = "framenorm";
+    desc.name = "Frame normalisation";
+    desc.description = "Type of normalisation to use for features";
     desc.minValue = 0;
-    desc.maxValue = 1;
-    desc.defaultValue = m_defaultFeParams.useChromaFrequencyMap ? 1 : 0;
+    desc.maxValue = 2;
+    desc.defaultValue = (int)m_defaultFcParams.norm;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
+    desc.valueNames.clear();
+    desc.valueNames.push_back("None");
+    desc.valueNames.push_back("Sum to 1");
+    desc.valueNames.push_back("Long-term average");
     list.push_back(desc);
-
-    desc.identifier = "silencethreshold";
-    desc.name = "Silence Threshold";
-    desc.description = "Total frame energy threshold below which a feature will be regarded as silent";
-    desc.minValue = 0;
-    desc.maxValue = 1;
-    desc.defaultValue = m_defaultFcParams.silenceThreshold;
-    desc.isQuantized = false;
-    list.push_back(desc);
+    desc.valueNames.clear();
 
     desc.identifier = "metric";
     desc.name = "Distance metric";
@@ -231,8 +224,32 @@ MatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
     desc.valueNames.clear();
 
+    desc.identifier = "distnorm";
+    desc.name = "Distance normalisation";
+    desc.description = "Type of normalisation to use for distance metric";
+    desc.minValue = 0;
+    desc.maxValue = 2;
+    desc.defaultValue = (int)m_defaultDParams.norm;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    desc.valueNames.clear();
+    desc.valueNames.push_back("None");
+    desc.valueNames.push_back("Sum of frames");
+    desc.valueNames.push_back("Log sum of frames");
+    list.push_back(desc);
+    desc.valueNames.clear();
+
+    desc.identifier = "silencethreshold";
+    desc.name = "Silence threshold";
+    desc.description = "Total frame energy threshold below which a feature will be regarded as silent";
+    desc.minValue = 0;
+    desc.maxValue = 0.1;
+    desc.defaultValue = m_defaultFcParams.silenceThreshold;
+    desc.isQuantized = false;
+    list.push_back(desc);
+
     desc.identifier = "noise";
-    desc.name = "Mix in Noise";
+    desc.name = "Add noise";
     desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio.";
     desc.minValue = 0;
     desc.maxValue = 1;
@@ -242,7 +259,7 @@ MatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
     
     desc.identifier = "gradientlimit";
-    desc.name = "Gradient Limit";
+    desc.name = "Gradient limit";
     desc.description = "Limit of number of frames that will be accepted from one source without a frame from the other source being accepted";
     desc.minValue = 1;
     desc.maxValue = 10;
@@ -252,7 +269,7 @@ MatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
 
     desc.identifier = "zonewidth";
-    desc.name = "Search Zone Width";
+    desc.name = "Search zone width";
     desc.description = "Width of the search zone (error margin) either side of the ongoing match position, in seconds";
     desc.minValue = 1;
     desc.maxValue = 60;
@@ -263,7 +280,7 @@ MatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
 
     desc.identifier = "diagonalweight";
-    desc.name = "Diagonal Weight";
+    desc.name = "Diagonal weight";
     desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step. The default of 2.0 is good for gross tracking of quite different performances; closer to 1.0 produces a smoother path for performances more similar in tempo";
     desc.minValue = 1.0;
     desc.maxValue = 2.0;
@@ -273,7 +290,7 @@ MatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
     
     desc.identifier = "smooth";
-    desc.name = "Smooth Path";
+    desc.name = "Use path smoothing";
     desc.description = "Smooth the path by replacing steps with diagonals. (This was enabled by default in earlier versions of the MATCH plugin, but the default now is to produce an un-smoothed path.)";
     desc.minValue = 0;
     desc.maxValue = 1;
@@ -283,24 +300,14 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.unit = "";
     list.push_back(desc);
 
-    desc.identifier = "freq1";
-    desc.name = "Tuning Frequency of First Input";
-    desc.description = "Tuning frequency (concert A) for the reference audio.";
-    desc.minValue = 220.0;
-    desc.maxValue = 880.0;
-    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
-    desc.isQuantized = false;
-    desc.unit = "Hz";
-    list.push_back(desc);
-
-    desc.identifier = "freq2";
-    desc.name = "Tuning Frequency of Second Input";
-    desc.description = "Tuning frequency (concert A) for the other audio.";
-    desc.minValue = 220.0;
-    desc.maxValue = 880.0;
-    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
-    desc.isQuantized = false;
-    desc.unit = "Hz";
+    desc.identifier = "serialise";
+    desc.name = "Serialise plugin invocations";
+    desc.description = "Reduce potential memory load at the expense of multiprocessor performance by serialising multi-threaded plugin runs";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = 0;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
     list.push_back(desc);
     
     return list;
