@@ -22,6 +22,23 @@
 class DistanceMetric
 {
 public:
+    enum Metric {
+
+        /** Calculate the Manhattan distance between feature
+         *  vectors. If the vectors contain energy, as the default
+         *  MATCH feature does, this could be considered as a squared
+         *  Euclidean distance metric. */
+        Manhattan,
+
+        /** Calculate the Euclidean distance between feature vectors. */
+        Euclidean,
+
+        /** Calculate the cosine distance between feature vectors. The
+         *  normalisation setting will be ignored as the result is
+         *  already magnitude-independent. */
+        Cosine,
+    };
+
     enum DistanceNormalisation {
             
         /** Do not normalise distance metrics */
@@ -35,7 +52,7 @@ public:
          *  of the sum of the frames. */
         NormaliseDistanceToLogSum,
     };
-
+    
     enum NoiseAddition {
 
         /** Don't add noise. */
@@ -49,22 +66,22 @@ public:
     struct Parameters {
 
         Parameters() :
+            metric(Manhattan),
             norm(NormaliseDistanceToLogSum),
             noise(AddNoise)
         {}
 
-        /** Normalisation for distance metrics. */
+        Metric metric;
         DistanceNormalisation norm;
         NoiseAddition noise;
     };
     
     DistanceMetric(Parameters params);
     
-    /** Calculates the Manhattan distance between two vectors, with an
-     *  optional normalisation by the combined values in the
-     *  vectors. Since the vectors contain energy, this could be
-     *  considered as a squared Euclidean distance metric. Note that
-     *  normalisation assumes the values are all non-negative.
+    /** Calculates the distance in some metric between two vectors,
+     *  with an optional normalisation by the combined values in the
+     *  vectors. Note that normalisation assumes the values are all
+     *  non-negative.
      *
      *  @param f1 one of the vectors involved in the distance calculation
      *  @param f2 one of the vectors involved in the distance calculation
