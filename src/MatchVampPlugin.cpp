@@ -215,6 +215,20 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.isQuantized = false;
     list.push_back(desc);
 
+    desc.identifier = "metric";
+    desc.name = "Distance metric";
+    desc.description = "Metric for distance calculations.";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = (int)m_defaultDParams.metric;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    desc.valueNames.clear();
+    desc.valueNames.push_back("Euclidean");
+    desc.valueNames.push_back("Cosine");
+    list.push_back(desc);
+    desc.valueNames.clear();
+
     desc.identifier = "noise";
     desc.name = "Mix in Noise";
     desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio.";
@@ -293,6 +307,8 @@ MatchVampPlugin::getParameter(std::string name) const
         return m_smooth ? 1.0 : 0.0;
     } else if (name == "silencethreshold") {
         return m_fcParams.silenceThreshold;
+    } else if (name == "metric") {
+        return (int)m_dParams.metric;
     } else if (name == "noise") {
         return m_dParams.noise;
     }
@@ -323,6 +339,8 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_smooth = (value > 0.5);
     } else if (name == "silencethreshold") {
         m_fcParams.silenceThreshold = value;
+    } else if (name == "metric") {
+        m_dParams.metric = (DistanceMetric::Metric)(int(value + 0.1));
     } else if (name == "noise") {
         m_dParams.noise = (DistanceMetric::NoiseAddition)(int(value + 0.1));
     }

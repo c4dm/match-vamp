@@ -22,6 +22,17 @@
 class DistanceMetric
 {
 public:
+    enum Metric {
+
+        /** Calculate the Euclidean distance between feature vectors. */
+        Euclidean,
+
+        /** Calculate the cosine distance between feature vectors. The
+         *  normalisation setting will be ignored as the result is
+         *  already magnitude-independent. */
+        Cosine,
+    };
+
     enum DistanceNormalisation {
             
         /** Do not normalise distance metrics */
@@ -35,7 +46,7 @@ public:
          *  of the sum of the frames. */
         NormaliseDistanceToLogSum,
     };
-
+    
     enum NoiseAddition {
 
         /** Don't add noise. */
@@ -49,11 +60,12 @@ public:
     struct Parameters {
 
         Parameters() :
+            metric(Euclidean),
             norm(NormaliseDistanceToLogSum),
             noise(AddNoise)
         {}
 
-        /** Normalisation for distance metrics. */
+        Metric metric;
         DistanceNormalisation norm;
         NoiseAddition noise;
     };

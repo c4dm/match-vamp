@@ -39,10 +39,33 @@ DistanceMetric::calcDistance(const vector<double> &f1,
 {
     double d = 0;
     double sum = 0;
+    double eps = 1e-16;
 
     int featureSize = f1.size();
     assert(int(f2.size()) == featureSize);
 
+    if (m_params.metric == Cosine) {
+
+        double num = 0, denom1 = 0, denom2 = 0;
+        
+        for (int i = 0; i < featureSize; ++i) {
+            num += f1[i] * f2[i];
+            denom1 += f1[i] * f1[i];
+            denom2 += f2[i] * f2[i];
+        }
+
+        d = 1.0 - (num / (eps + sqrt(denom1 * denom2)));
+
+        if (m_params.noise == AddNoise) {
+            d += 1e-2;
+        }
+        if (d > 1.0) d = 1.0;
+        
+        return d; // normalisation param ignored
+    }
+
+    // Euclidean
+    
     for (int i = 0; i < featureSize; i++) {
         d += fabs(f1[i] - f2[i]);
         sum += fabs(f1[i]) + fabs(f2[i]);
