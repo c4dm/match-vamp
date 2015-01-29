@@ -65,6 +65,12 @@ public:
      */
     int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
 
+    /**
+     * Get the path cost for the overall path to the end of both
+     * sources.
+     */
+    double getOverallCost();
+    
 protected:
 #ifdef PERFORM_ERROR_CHECKS
     struct ErrorPosition {

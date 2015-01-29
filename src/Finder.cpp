@@ -335,6 +335,19 @@ Finder::checkAndReport()
 }
 #endif
 
+double
+Finder::getOverallCost()
+{
+    int ex = m_m->getOtherFrameCount() - 1;
+    int ey = m_m->getFrameCount() - 1;
+
+    if (ex < 0 || ey < 0) {
+        return 0;
+    }
+
+    return m_m->getNormalisedPathCost(ey, ex);
+}
+
 int
 Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
 {

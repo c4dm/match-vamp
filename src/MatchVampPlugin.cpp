@@ -401,8 +401,11 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_feParams.fftSize = m_blockSize;
 
+    cerr << "creating pipeline with m_secondReferenceFrequency = "
+         << m_secondReferenceFrequency << endl;
     m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params,
                                    m_secondReferenceFrequency);
+    cerr << "done" << endl;
 }
 
 bool
@@ -569,6 +572,19 @@ MatchVampPlugin::getOutputDescriptors() const
     m_cbFeaturesOutNo = list.size();
     list.push_back(desc);
 
+    desc.identifier = "overall_cost";
+    desc.name = "Overall Cost";
+    desc.description = "Normalised overall path cost for the cheapest path";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = 1;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::FixedSampleRate;
+    desc.sampleRate = 1;
+    m_overallCostOutNo = list.size();
+    list.push_back(desc);
+    
     return list;
 }
 
@@ -648,6 +664,12 @@ MatchVampPlugin::getRemainingFeatures()
     std::vector<int> pathy;
     int len = finder->retrievePath(m_smooth, pathx, pathy);
 
+    double cost = finder->getOverallCost();
+    Feature costFeature;
+    costFeature.hasTimestamp = false;
+    costFeature.values.push_back((float)cost);
+    returnFeatures[m_overallCostOutNo].push_back(costFeature);
+    
     int prevx = 0;
     int prevy = 0;
 

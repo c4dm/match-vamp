@@ -75,6 +75,8 @@ FeatureExtractor::makeStandardFrequencyMap()
     int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
     int crossoverMidi = lrint(log(crossoverBin * binWidth / refFreq)/
                               log(2.0) * 12 + 69);
+
+    cerr << "FeatureExtractor::makeStandardFrequencyMap: refFreq = " << refFreq << endl;
     
     int i = 0;
     while (i <= crossoverBin) {

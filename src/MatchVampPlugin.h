@@ -101,6 +101,7 @@ protected:
     mutable int m_bFeaturesOutNo;
     mutable int m_caFeaturesOutNo;
     mutable int m_cbFeaturesOutNo;
+    mutable int m_overallCostOutNo;
 
 #ifdef _WIN32
     static HANDLE m_serialisingMutex;
