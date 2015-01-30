@@ -345,7 +345,7 @@ Finder::getOverallCost()
         return 0;
     }
 
-    return m_m->getNormalisedPathCost(ey, ex);
+    return m_m->getPathCost(ey, ex);
 }
 
 int
