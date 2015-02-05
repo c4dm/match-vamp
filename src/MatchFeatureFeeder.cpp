@@ -42,6 +42,8 @@ MatchFeatureFeeder::operator=(const MatchFeatureFeeder &other)
     m_pm1 = other.m_pm1;
     m_pm2 = other.m_pm2;
     m_finder = Finder(m_pm1);
+    cerr << "MatchFeatureFeeder::operator=(): queue lengths: " << m_q1.size()
+         << ", " << m_q2.size() << endl;
     return *this;
 }
 
