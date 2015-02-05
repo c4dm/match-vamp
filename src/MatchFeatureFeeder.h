@@ -49,6 +49,12 @@ public:
     void feed(std::vector<double> f1, std::vector<double> f2);
 
     /**
+     * Get the best estimate for the frame in the reference (f1)
+     * corresponding to the latest frame in the other input (f2).
+     */
+    int getEstimatedReferenceFrame();
+    
+    /**
      * Indicate that both inputs have come to an end.
      */
     void finish();
@@ -65,18 +71,18 @@ public:
         pathy = m_fpy;
     }
 
-    Finder *getFinder() { return m_finder; }
+    Finder *getFinder() { return &m_finder; }
 
 protected:
     void feedBlock();
     void feed1();
     void feed2();
 
-    Finder *m_finder; // I own this, and it refers to m_pm1 and m_pm2
-    
     Matcher *m_pm1;   // I do not own this
     Matcher *m_pm2;   // I do not own this
 
+    Finder m_finder; // I own this, and it refers to m_pm1
+    
     std::queue<std::vector<double> > m_q1;
     std::queue<std::vector<double> > m_q2;
 

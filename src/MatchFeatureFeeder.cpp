@@ -19,21 +19,21 @@
 using std::vector;
 
 MatchFeatureFeeder::MatchFeatureFeeder(Matcher *m1, Matcher *m2) :
-    m_pm1(m1), m_pm2(m2)
+    m_pm1(m1),
+    m_pm2(m2),
+    m_finder(m_pm1)
 {
-    m_finder = new Finder(m1);
 }
 
 MatchFeatureFeeder::~MatchFeatureFeeder()
 {
-    delete m_finder;
 }
 
 MatchFeatureFeeder::MatchFeatureFeeder(const MatchFeatureFeeder &other) :
-    m_pm1(other.m_pm1), m_pm2(other.m_pm2)
+    m_pm1(other.m_pm1),
+    m_pm2(other.m_pm2),
+    m_finder(m_pm1)
 {
-    //!!! This is gross. Finder should probably not be heap allocated at all
-    m_finder = new Finder(*other.m_finder);
 }
 
 MatchFeatureFeeder &
@@ -41,7 +41,7 @@ MatchFeatureFeeder::operator=(const MatchFeatureFeeder &other)
 {
     m_pm1 = other.m_pm1;
     m_pm2 = other.m_pm2;
-    m_finder = new Finder(*other.m_finder);
+    m_finder = Finder(m_pm1);
     return *this;
 }
 
@@ -50,7 +50,7 @@ MatchFeatureFeeder::setMatchers(Matcher *m1, Matcher *m2)
 {
     m_pm1 = m1;
     m_pm2 = m2;
-    m_finder->setMatcher(m_pm1);
+    m_finder.setMatcher(m_pm1);
 }
 
 void
@@ -72,6 +72,21 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 
     while (!m_q1.empty() && !m_q2.empty()) {
         feedBlock();
+    }
+}
+
+int
+MatchFeatureFeeder::getEstimatedReferenceFrame()
+{
+    if (m_pm1->getFrameCount() == 0 || m_pm2->getFrameCount() == 0) {
+        return 0;
+    }
+    int bestRow = 0;
+    double bestCost = 0;
+    if (!m_finder.getBestColCost(m_pm2->getFrameCount()-1, bestRow, bestCost)) {
+        return -1;
+    } else {
+        return bestRow;
     }
 }
 
@@ -98,7 +113,7 @@ MatchFeatureFeeder::feedBlock()
     } else if (m_pm2->isOverrunning()) {
         feed1();
     } else {
-        switch (m_finder->getExpandDirection
+        switch (m_finder.getExpandDirection
                 (m_pm1->getFrameCount()-1, m_pm2->getFrameCount()-1)) {
         case Matcher::AdvanceThis:
             feed1();

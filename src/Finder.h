@@ -27,6 +27,8 @@ class Finder
 public:
     Finder(Matcher *pm);
 
+    // default copy ctor and operator= are fine
+
     ~Finder();
 
     void setMatcher(Matcher *pm);
@@ -116,7 +118,7 @@ protected:
     ErrorPosition checkPathCostMatrix();
     void checkAndReport();
 #endif
-    
+
     Matcher *m_m;   // I do not own this
     
     int m_duration1;
