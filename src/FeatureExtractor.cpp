@@ -70,16 +70,29 @@ FeatureExtractor::makeFreqMap()
 void
 FeatureExtractor::makeStandardFrequencyMap()
 {
-    double refFreq = m_params.referenceFrequency;
+    // Our handling of the referenceFrequency parameter depends on the
+    // frequency map in use.
+
+    // With the chroma frequency map, we use referenceFrequency to set
+    // up the chroma bin frequencies when constructing the map, and
+    // then just follow the map (without having to refer to
+    // referenceFrequency again) when we get the frequency-domain
+    // audio.
+
+    // With the standard frequency map, using referenceFrequency to
+    // set up the map doesn't work so well -- it only really affects
+    // the crossover frequency, and much of the useful information is
+    // below that frequency. What we do instead is to ignore the
+    // referenceFrequency when creating the map -- setting it up for
+    // 440Hz -- and then use it to scale the individual
+    // frequency-domain audio frames before applying the map to them.
+    
+    double refFreq = 440.; // See above -- *not* the parameter!
     double binWidth = m_params.sampleRate / m_params.fftSize;
     int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
     int crossoverMidi = lrint(log(crossoverBin * binWidth / refFreq)/
                               log(2.0) * 12 + 69);
 
-#ifdef DEBUG_FEATURE_EXTRACTOR
-    cerr << "FeatureExtractor::makeStandardFrequencyMap: refFreq = " << refFreq << endl;
-#endif
-    
     int i = 0;
     while (i <= crossoverBin) {
         m_freqMap[i] = i;
@@ -119,26 +132,89 @@ FeatureExtractor::makeChromaFrequencyMap()
 vector<double>
 FeatureExtractor::process(const vector<double> &real, const vector<double> &imag)
 {
-    vector<double> frame(m_featureSize, 0.0);
-    
+    vector<double> mags(m_params.fftSize/2 + 1, 0.0);
+
     for (int i = 0; i <= m_params.fftSize/2; i++) {
-        double mag = real[i] * real[i] + imag[i] * imag[i];
-        frame[m_freqMap[i]] += mag;
+        mags[i] = real[i] * real[i] + imag[i] * imag[i];
+    }
+
+    return processMags(mags);
+}
+
+vector<double>
+FeatureExtractor::process(const float *cframe)
+{
+    vector<double> mags(m_params.fftSize/2 + 1, 0.0);
+
+    for (int i = 0; i <= m_params.fftSize/2; i++) {
+        mags[i] = cframe[i*2] * cframe[i*2] + cframe[i*2+1] * cframe[i*2+1];
+    }
+
+    return processMags(mags);
+}
+
+vector<double>
+FeatureExtractor::processMags(const vector<double> &mags)
+{
+    vector<double> frame(m_featureSize, 0.0);
+
+    if (!m_params.useChromaFrequencyMap &&
+        (m_params.referenceFrequency != 440.)) {
+
+        // See comment in makeStandardFrequencyMap above
+        vector<double> scaled = scaleMags(mags);
+
+        for (int i = 0; i <= m_params.fftSize/2; i++) {
+            frame[m_freqMap[i]] += scaled[i];
+        }
+
+    } else {
+        for (int i = 0; i <= m_params.fftSize/2; i++) {
+            frame[m_freqMap[i]] += mags[i];
+        }
     }
 
     return frame;
 }
 
 vector<double>
-FeatureExtractor::process(const float *cframe)
+FeatureExtractor::scaleMags(const vector<double> &mags)
 {
-    vector<double> frame(m_featureSize, 0.0);
-    
-    for (int i = 0; i <= m_params.fftSize/2; i++) {
-        double mag = cframe[i*2] * cframe[i*2] + cframe[i*2+1] * cframe[i*2+1];
-        frame[m_freqMap[i]] += mag;
+    // Scale the pitch content in the given magnitude spectrum to
+    // accommodate a difference in tuning frequency (between the 440Hz
+    // reference and the actual tuning frequency of the input audio).
+    // We only do this when not using chroma features -- see the
+    // comment in makeStandardFrequencyMap() above.
+
+    if (m_params.useChromaFrequencyMap) return mags;
+
+    double ratio = 440. / m_params.referenceFrequency;
+
+    int n = mags.size();
+
+    vector<double> scaled(n, 0.0);
+
+    for (int target = 0; target < n; ++target) {
+
+        double source = target / ratio;
+
+        int lower = int(source);
+        int higher = lower + 1;
+
+        double lowerProp = higher - source;
+        double higherProp = source - lower;
+
+        double value = 0.0;
+        if (lower >= 0 && lower < n) {
+            value += lowerProp * mags[lower];
+        }
+        if (higher >= 0 && higher < n) {
+            value += higherProp * mags[higher];
+        }
+
+        scaled[target] = value;
     }
 
-    return frame;
+    return scaled;
 }
 

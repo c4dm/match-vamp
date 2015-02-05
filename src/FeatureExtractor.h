@@ -141,6 +141,9 @@ protected:
      *  bin. */
     std::vector<int> m_freqMap;
 
+    std::vector<double> processMags(const std::vector<double> &mags);
+    std::vector<double> scaleMags(const std::vector<double> &mags);
+    
     /** The size of a returned feature. */
     int m_featureSize;
 };
