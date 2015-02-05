@@ -23,7 +23,7 @@ MatchPipeline::MatchPipeline(FeatureExtractor::Parameters feParams,
 			     Matcher::Parameters matchParams,
                              double secondReferenceFrequency) :
     m_fe1(feParams),
-    m_fe2(feParams),
+    m_fe2(paramsWithFreq(feParams, secondReferenceFrequency)),
     m_fc1(fcParams),
     m_fc2(fcParams),
     m_pm1(matchParams, dParams, 0),
@@ -33,16 +33,19 @@ MatchPipeline::MatchPipeline(FeatureExtractor::Parameters feParams,
     m_lastFrameIn2(0),
     m_frameNo(0)
 {
-    if (secondReferenceFrequency != 0.0) {
-        feParams.referenceFrequency = secondReferenceFrequency;
-        m_fe2 = FeatureExtractor(feParams);
-    }
-    
     m_pm1.setOtherMatcher(&m_pm2);
 }
 
 MatchPipeline::~MatchPipeline()
 {
+}
+
+FeatureExtractor::Parameters
+MatchPipeline::paramsWithFreq(FeatureExtractor::Parameters params, double freq)
+{
+    if (freq == 0.0) return params;
+    params.referenceFrequency = freq;
+    return params;
 }
 
 void

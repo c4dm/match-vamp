@@ -115,6 +115,8 @@ private:
     vector<double> m_c1;
     vector<double> m_c2;
     bool aboveThreshold(const vector<double> &f);
+    FeatureExtractor::Parameters paramsWithFreq(FeatureExtractor::Parameters,
+                                                double);
 };
 
 #endif

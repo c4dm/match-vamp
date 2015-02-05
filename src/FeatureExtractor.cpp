@@ -24,7 +24,7 @@
 
 using namespace std;
 
-//#define DEBUG_FEATURE_EXTRACTOR 1
+#define DEBUG_FEATURE_EXTRACTOR 1
 
 FeatureExtractor::FeatureExtractor(Parameters parameters) :
     m_params(parameters)
@@ -76,7 +76,9 @@ FeatureExtractor::makeStandardFrequencyMap()
     int crossoverMidi = lrint(log(crossoverBin * binWidth / refFreq)/
                               log(2.0) * 12 + 69);
 
+#ifdef DEBUG_FEATURE_EXTRACTOR
     cerr << "FeatureExtractor::makeStandardFrequencyMap: refFreq = " << refFreq << endl;
+#endif
     
     int i = 0;
     while (i <= crossoverBin) {
@@ -91,6 +93,11 @@ FeatureExtractor::makeStandardFrequencyMap()
         if (target >= m_featureSize) target = m_featureSize - 1;
         m_freqMap[i++] = target;
     }
+
+#ifdef DEBUG_FEATURE_EXTRACTOR
+    cerr << "FeatureExtractor: crossover bin is " << crossoverBin << " for midi "
+         << crossoverMidi << endl;
+#endif
 }
 
 void

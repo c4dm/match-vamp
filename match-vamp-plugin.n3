@@ -17,7 +17,7 @@
 :library_maker
     foaf:name "Simon Dixon and Chris Cannam" ;
     foaf:logo <http://vamp-plugins.org/rdf/plugins/makers/qm.png> ;
-    foaf:page <http://c4dm.eecs.qmul.ac.uk/> .
+    foaf:page <http://c4dm.eecs.qmul.ac.uk/> ;
     .
 
 plugbase:library a  vamp:PluginLibrary ;
