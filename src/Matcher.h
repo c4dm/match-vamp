@@ -123,6 +123,10 @@ public:
         return m_blockSize;
     }
 
+    bool isFillingInitialBlock() {
+        return m_frameCount < m_blockSize;
+    }
+    
     bool isOverrunning() {
         return m_runCount >= m_params.maxRunCount;
     }
@@ -158,6 +162,14 @@ public:
      *  @return true if the location is in range
      */
     bool isInRange(int i, int j);
+
+    /** Tests whether any locations in the given row are available.
+     */
+    bool isRowAvailable(int i);
+
+    /** Tests whether any locations in the given column are available.
+     */
+    bool isColAvailable(int i);
     
     /** Tests whether a location is available in the minimum cost matrix.
      *
@@ -167,8 +179,9 @@ public:
      */
     bool isAvailable(int i, int j);
 
-    /** Returns the valid range of frames in the other Matcher for the
-     *  given frame in this Matcher's minimum cost matrix.
+    /** Returns the valid range of columns for the given row, that is,
+     *  the range of frames in the other Matcher for the given frame
+     *  in this Matcher's minimum cost matrix.
      *
      *  @param i the frame number of this Matcher
      *  @return the first, last pair of frame numbers for the other
@@ -177,8 +190,9 @@ public:
      */
     std::pair<int, int> getColRange(int i);
 
-    /** Returns the valid range of frames in this Matcher for the
-     *  given frame in the other Matcher's minimum cost matrix.
+    /** Returns the valid range of rows for the given column, that is,
+     *  the range of frames in this Matcher for the given frame in the
+     *  other Matcher's minimum cost matrix.
      *
      *  @param i the frame number of the other Matcher
      *  @return the first, last pair of frame numbers for this

@@ -208,6 +208,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.valueNames.push_back("Long-term average");
     list.push_back(desc);
     desc.valueNames.clear();
+    desc.defaultValue = (float)m_defaultFcParams.silenceThreshold;
 
     desc.identifier = "metric";
     desc.name = "Distance metric";
@@ -659,12 +660,11 @@ MatchVampPlugin::getRemainingFeatures()
 
     FeatureSet returnFeatures;
     
-    Finder *finder = m_pipeline->getFinder();
     std::vector<int> pathx;
     std::vector<int> pathy;
-    int len = finder->retrievePath(m_smooth, pathx, pathy);
+    int len = m_pipeline->retrievePath(m_smooth, pathx, pathy);
 
-    double cost = finder->getOverallCost();
+    double cost = m_pipeline->getOverallCost();
     Feature costFeature;
     costFeature.hasTimestamp = false;
     costFeature.values.push_back((float)cost);
