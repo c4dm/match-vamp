@@ -24,7 +24,7 @@
 
 using namespace std;
 
-#define DEBUG_FEATURE_EXTRACTOR 1
+//#define DEBUG_FEATURE_EXTRACTOR 1
 
 FeatureExtractor::FeatureExtractor(Parameters parameters) :
     m_params(parameters)
