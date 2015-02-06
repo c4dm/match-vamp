@@ -402,11 +402,8 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_feParams.fftSize = m_blockSize;
 
-    cerr << "creating pipeline with m_secondReferenceFrequency = "
-         << m_secondReferenceFrequency << endl;
     m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params,
                                    m_secondReferenceFrequency);
-    cerr << "done" << endl;
 }
 
 bool
