@@ -32,7 +32,11 @@ MatchFeatureFeeder::~MatchFeatureFeeder()
 MatchFeatureFeeder::MatchFeatureFeeder(const MatchFeatureFeeder &other) :
     m_pm1(other.m_pm1),
     m_pm2(other.m_pm2),
-    m_finder(m_pm1)
+    m_finder(m_pm1),
+    m_q1(other.m_q1),
+    m_q2(other.m_q2),
+    m_fpx(other.m_fpx),
+    m_fpy(other.m_fpy)
 {
 }
 
@@ -42,6 +46,10 @@ MatchFeatureFeeder::operator=(const MatchFeatureFeeder &other)
     m_pm1 = other.m_pm1;
     m_pm2 = other.m_pm2;
     m_finder = Finder(m_pm1);
+    m_q1 = other.m_q1;
+    m_q2 = other.m_q2;
+    m_fpx = other.m_fpx;
+    m_fpy = other.m_fpy;
     cerr << "MatchFeatureFeeder::operator=(): queue lengths: " << m_q1.size()
          << ", " << m_q2.size() << endl;
     return *this;
