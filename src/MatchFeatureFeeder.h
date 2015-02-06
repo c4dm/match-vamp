@@ -28,11 +28,6 @@ public:
     MatchFeatureFeeder(Matcher *m1, Matcher *m2);
     ~MatchFeatureFeeder();
 
-    MatchFeatureFeeder(const MatchFeatureFeeder &other);
-    MatchFeatureFeeder &operator=(const MatchFeatureFeeder &other);
-    
-    void setMatchers(Matcher *m1, Matcher *m2);
-    
     /**
      * Feed the two supplied feature vectors to feeders 1 and 2
      * respectively (depending on their advance status). Matchers must
@@ -88,6 +83,10 @@ protected:
 
     vector<int> m_fpx;
     vector<int> m_fpy;
+
+    // not provided:
+    MatchFeatureFeeder(const MatchFeatureFeeder &other);
+    MatchFeatureFeeder &operator=(const MatchFeatureFeeder &other);
 };
 
 #endif

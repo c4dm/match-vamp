@@ -131,6 +131,13 @@ Finder::getBestEdgeCost(int row, int col,
 }
 
 Matcher::Advance
+Finder::getExpandDirection()
+{
+    return getExpandDirection(m_m->getFrameCount() - 1,
+                              m_m->getOtherFrameCount() - 1);
+}
+
+Matcher::Advance
 Finder::getExpandDirection(int row, int col)
 {
     // To determine which direction to expand the search area in, we

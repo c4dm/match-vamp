@@ -71,6 +71,12 @@ public:
 
     /**
      * Calculate which direction to expand the search area in, given
+     * its current extents.
+     */
+    Matcher::Advance getExpandDirection();
+    
+    /**
+     * Calculate which direction to expand the search area in, given
      * that so far it extends as far as the point at (row, col).
      */
     Matcher::Advance getExpandDirection(int row, int col);

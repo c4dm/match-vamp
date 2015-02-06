@@ -123,6 +123,10 @@ public:
         return m_blockSize;
     }
 
+    bool isFillingInitialBlock() {
+        return m_frameCount < m_blockSize;
+    }
+    
     bool isOverrunning() {
         return m_runCount >= m_params.maxRunCount;
     }

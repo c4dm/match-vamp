@@ -29,40 +29,6 @@ MatchFeatureFeeder::~MatchFeatureFeeder()
 {
 }
 
-MatchFeatureFeeder::MatchFeatureFeeder(const MatchFeatureFeeder &other) :
-    m_pm1(other.m_pm1),
-    m_pm2(other.m_pm2),
-    m_finder(m_pm1),
-    m_q1(other.m_q1),
-    m_q2(other.m_q2),
-    m_fpx(other.m_fpx),
-    m_fpy(other.m_fpy)
-{
-}
-
-MatchFeatureFeeder &
-MatchFeatureFeeder::operator=(const MatchFeatureFeeder &other)
-{
-    m_pm1 = other.m_pm1;
-    m_pm2 = other.m_pm2;
-    m_finder = Finder(m_pm1);
-    m_q1 = other.m_q1;
-    m_q2 = other.m_q2;
-    m_fpx = other.m_fpx;
-    m_fpy = other.m_fpy;
-    cerr << "MatchFeatureFeeder::operator=(): queue lengths: " << m_q1.size()
-         << ", " << m_q2.size() << endl;
-    return *this;
-}
-
-void
-MatchFeatureFeeder::setMatchers(Matcher *m1, Matcher *m2)
-{
-    m_pm1 = m1;
-    m_pm2 = m2;
-    m_finder.setMatcher(m_pm1);
-}
-
 void
 MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 {
@@ -115,7 +81,7 @@ MatchFeatureFeeder::feedBlock()
         feed2();
     } else if (m_q2.empty()) { // ended
         feed1();
-    } else if (m_pm1->getFrameCount() < m_pm1->getBlockSize()) { // fill initial block
+    } else if (m_pm1->isFillingInitialBlock()) {
         feed1();
         feed2();
     } else if (m_pm1->isOverrunning()) { // slope constraints
@@ -123,8 +89,7 @@ MatchFeatureFeeder::feedBlock()
     } else if (m_pm2->isOverrunning()) {
         feed1();
     } else {
-        switch (m_finder.getExpandDirection
-                (m_pm1->getFrameCount()-1, m_pm2->getFrameCount()-1)) {
+        switch (m_finder.getExpandDirection()) {
         case Matcher::AdvanceThis:
             feed1();
             break;
