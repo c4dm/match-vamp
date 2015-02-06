@@ -57,17 +57,9 @@ Finder::setDurations(int d1, int d2)
 bool
 Finder::getBestRowCost(int row, int &bestCol, double &min)
 {
-    cerr << "Finder " << this << "::getBestRowCost(" << row << ")" << endl;
-    if (!m_m->isRowAvailable(row)) {
-        cerr << "row not available: " << row << endl;
-        return false;
-    }
+    if (!m_m->isRowAvailable(row)) return false;
     pair<int, int> colRange = m_m->getColRange(row);
-    if (colRange.first >= colRange.second) {
-        cerr << "row " << row << " has invalid col range " << colRange.first
-             << " -> " << colRange.second << endl;
-        return false;
-    }
+    if (colRange.first >= colRange.second) return false;
     for (int index = colRange.first; index < colRange.second; index++) {
         double tmp = m_m->getNormalisedPathCost(row, index);
         if (index == colRange.first || tmp < min) {
