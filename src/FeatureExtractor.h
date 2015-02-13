@@ -49,7 +49,9 @@ public:
             sampleRate(rate_),
             useChromaFrequencyMap(false),
             fftSize(fftSize_),
-            referenceFrequency(440.0)
+            referenceFrequency(440.0),
+            minFrequency(0.),
+            maxFrequency(rate_/2.)
         {}
 
         /** Sample rate of audio */
@@ -66,6 +68,12 @@ public:
 
         /** Frequency of concert A */
         double referenceFrequency;
+
+        /** Minimum frequency cutoff to include in feature */
+        double minFrequency;
+
+        /** Maximum frequency cutoff to include in feature */
+        double maxFrequency;
     };
 
     /**
@@ -138,7 +146,12 @@ protected:
      *  linearly for bins 0-34 (0 to 732Hz), and logarithmically for
      *  the remaining bins (midi notes 79 to 127, bins 35 to 83),
      *  where all energy above note 127 is mapped into the final
-     *  bin. */
+     *  bin.
+     * 
+     *  If a bin's frequency is outside the minFrequency->maxFrequency
+     *  range, it will be mapped to a target bin of -1 and should be
+     *  discarded.
+     */
     std::vector<int> m_freqMap;
 
     /** The size of a returned feature. */
