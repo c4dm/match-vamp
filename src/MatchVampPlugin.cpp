@@ -167,6 +167,26 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.unit = "Hz";
     list.push_back(desc);
 
+    desc.identifier = "minfreq";
+    desc.name = "Minimum frequency";
+    desc.description = "Minimum frequency to include in features.";
+    desc.minValue = 0.0;
+    desc.maxValue = (float)m_inputSampleRate / 4.f;
+    desc.defaultValue = (float)m_defaultFeParams.minFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+
+    desc.identifier = "maxfreq";
+    desc.name = "Maximum frequency";
+    desc.description = "Maximum frequency to include in features.";
+    desc.minValue = 1000.0;
+    desc.maxValue = (float)m_inputSampleRate / 2.f;
+    desc.defaultValue = (float)m_defaultFeParams.maxFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+    
     desc.unit = "";
     
     desc.identifier = "usechroma";
@@ -345,6 +365,10 @@ MatchVampPlugin::getParameter(std::string name) const
         return (float)m_feParams.referenceFrequency;
     } else if (name == "freq2") {
         return (float)m_secondReferenceFrequency;
+    } else if (name == "minfreq") {
+        return (float)m_feParams.minFrequency;
+    } else if (name == "maxfreq") {
+        return (float)m_feParams.maxFrequency;
     }
     
     return 0.0;
@@ -381,6 +405,10 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_feParams.referenceFrequency = value;
     } else if (name == "freq2") {
         m_secondReferenceFrequency = value;
+    } else if (name == "minfreq") {
+        m_feParams.minFrequency = value;
+    } else if (name == "maxfreq") {
+        m_feParams.maxFrequency = value;
     }
 }
 
