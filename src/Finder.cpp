@@ -38,6 +38,13 @@ Finder::~Finder()
 }
 
 void
+Finder::setMatcher(Matcher *pm)
+{
+    cerr << "Finder::setMatcher: finder " << this << ", matcher " << pm << endl;
+    m_m = pm;
+}
+
+void
 Finder::setDurations(int d1, int d2)
 {
 #ifdef DEBUG_FINDER
@@ -47,13 +54,47 @@ Finder::setDurations(int d1, int d2)
     m_duration2 = d2;
 }
 
-Matcher::Advance
-Finder::getExpandDirection(int row, int col)
+bool
+Finder::getBestRowCost(int row, int &bestCol, double &min)
 {
-    double min = m_m->getPathCost(row, col);
+    if (!m_m->isRowAvailable(row)) return false;
+    pair<int, int> colRange = m_m->getColRange(row);
+    if (colRange.first >= colRange.second) return false;
+    for (int index = colRange.first; index < colRange.second; index++) {
+        double tmp = m_m->getNormalisedPathCost(row, index);
+        if (index == colRange.first || tmp < min) {
+            min = tmp;
+            bestCol = index;
+        }
+    }
+    return true;
+}    
+
+bool
+Finder::getBestColCost(int col, int &bestRow, double &min)
+{
+    if (!m_m->isColAvailable(col)) return false;
+    pair<int, int> rowRange = m_m->getRowRange(col);
+    if (rowRange.first >= rowRange.second) return false;
+    for (int index = rowRange.first; index < rowRange.second; index++) {
+        double tmp = m_m->getNormalisedPathCost(index, col);
+        if (index == rowRange.first || tmp < min) {
+            min = tmp;
+            bestRow = index;
+        }
+    }
+    return true;
+}    
+
+void
+Finder::getBestEdgeCost(int row, int col,
+                        int &bestRow, int &bestCol,
+                        double &min)
+{
+    min = m_m->getPathCost(row, col);
     
-    int bestRow = row;
-    int bestCol = col;
+    bestRow = row;
+    bestCol = col;
 
     pair<int, int> rowRange = m_m->getRowRange(col);
     if (rowRange.second > row+1) {
@@ -79,8 +120,39 @@ Finder::getExpandDirection(int row, int col)
             bestRow = row;
         }
     }
+}
 
-//    cerr << "at [" << row << "," << col << "] (cost " << m_m->getPathCost(row, col) << ") blocksize = " << m_m->getBlockSize() << " best is [" << bestRow << "," << bestCol << "] (cost " << min << ")" << endl;
+Matcher::Advance
+Finder::getExpandDirection()
+{
+    return getExpandDirection(m_m->getFrameCount() - 1,
+                              m_m->getOtherFrameCount() - 1);
+}
+
+Matcher::Advance
+Finder::getExpandDirection(int row, int col)
+{
+    // To determine which direction to expand the search area in, we
+    // look at the path costs along the leading edges of the search
+    // area (the final row and column within the area). We find the
+    // lowest path cost within the final row, and the lowest within
+    // the final column, and we compare them. If the row is cheaper
+    // then we expand by adding another row next to it; if the column
+    // is cheaper then we expand by adding another column next to
+    // it. (The overall lowest path cost across the row and column
+    // represents the best alignment we have within the entire search
+    // area given the data available and the assumption that the piece
+    // is not ending yet.)
+
+    int bestRow = row;
+    int bestCol = col;
+    double bestCost = -1;
+
+//    cerr << "Finder " << this << "::getExpandDirection: ";
+    
+    getBestEdgeCost(row, col, bestRow, bestCol, bestCost);
+
+//    cerr << "at [" << row << "," << col << "] (cost " << m_m->getPathCost(row, col) << ") blocksize = " << m_m->getBlockSize() << " best is [" << bestRow << "," << bestCol << "] (cost " << bestCost << ")" << endl;
     
     if (bestRow == row) {
         if (bestCol == col) {

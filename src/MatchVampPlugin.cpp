@@ -167,6 +167,26 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.unit = "Hz";
     list.push_back(desc);
 
+    desc.identifier = "minfreq";
+    desc.name = "Minimum frequency";
+    desc.description = "Minimum frequency to include in features.";
+    desc.minValue = 0.0;
+    desc.maxValue = (float)m_inputSampleRate / 4.f;
+    desc.defaultValue = (float)m_defaultFeParams.minFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+
+    desc.identifier = "maxfreq";
+    desc.name = "Maximum frequency";
+    desc.description = "Maximum frequency to include in features.";
+    desc.minValue = 1000.0;
+    desc.maxValue = (float)m_inputSampleRate / 2.f;
+    desc.defaultValue = (float)m_defaultFeParams.maxFrequency;
+    desc.isQuantized = false;
+    desc.unit = "Hz";
+    list.push_back(desc);
+    
     desc.unit = "";
     
     desc.identifier = "usechroma";
@@ -208,6 +228,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.valueNames.push_back("Long-term average");
     list.push_back(desc);
     desc.valueNames.clear();
+    desc.defaultValue = (float)m_defaultFcParams.silenceThreshold;
 
     desc.identifier = "metric";
     desc.name = "Distance metric";
@@ -344,6 +365,10 @@ MatchVampPlugin::getParameter(std::string name) const
         return (float)m_feParams.referenceFrequency;
     } else if (name == "freq2") {
         return (float)m_secondReferenceFrequency;
+    } else if (name == "minfreq") {
+        return (float)m_feParams.minFrequency;
+    } else if (name == "maxfreq") {
+        return (float)m_feParams.maxFrequency;
     }
     
     return 0.0;
@@ -380,6 +405,10 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_feParams.referenceFrequency = value;
     } else if (name == "freq2") {
         m_secondReferenceFrequency = value;
+    } else if (name == "minfreq") {
+        m_feParams.minFrequency = value;
+    } else if (name == "maxfreq") {
+        m_feParams.maxFrequency = value;
     }
 }
 
@@ -401,11 +430,8 @@ MatchVampPlugin::createMatchers()
     m_params.hopTime = m_stepTime;
     m_feParams.fftSize = m_blockSize;
 
-    cerr << "creating pipeline with m_secondReferenceFrequency = "
-         << m_secondReferenceFrequency << endl;
     m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params,
                                    m_secondReferenceFrequency);
-    cerr << "done" << endl;
 }
 
 bool
@@ -659,12 +685,11 @@ MatchVampPlugin::getRemainingFeatures()
 
     FeatureSet returnFeatures;
     
-    Finder *finder = m_pipeline->getFinder();
     std::vector<int> pathx;
     std::vector<int> pathy;
-    int len = finder->retrievePath(m_smooth, pathx, pathy);
+    int len = m_pipeline->retrievePath(m_smooth, pathx, pathy);
 
-    double cost = finder->getOverallCost();
+    double cost = m_pipeline->getOverallCost();
     Feature costFeature;
     costFeature.hasTimestamp = false;
     costFeature.values.push_back((float)cost);

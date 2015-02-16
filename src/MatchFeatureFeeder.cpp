@@ -19,14 +19,14 @@
 using std::vector;
 
 MatchFeatureFeeder::MatchFeatureFeeder(Matcher *m1, Matcher *m2) :
-    m_pm1(m1), m_pm2(m2)
+    m_pm1(m1),
+    m_pm2(m2),
+    m_finder(m_pm1)
 {
-    m_finder = new Finder(m1);
 }
 
 MatchFeatureFeeder::~MatchFeatureFeeder()
 {
-    delete m_finder;
 }
 
 void
@@ -51,6 +51,21 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
     }
 }
 
+int
+MatchFeatureFeeder::getEstimatedReferenceFrame()
+{
+    if (m_pm1->getFrameCount() == 0 || m_pm2->getFrameCount() == 0) {
+        return 0;
+    }
+    int bestRow = 0;
+    double bestCost = 0;
+    if (!m_finder.getBestColCost(m_pm2->getFrameCount()-1, bestRow, bestCost)) {
+        return -1;
+    } else {
+        return bestRow;
+    }
+}
+
 void
 MatchFeatureFeeder::finish()
 {
@@ -66,7 +81,7 @@ MatchFeatureFeeder::feedBlock()
         feed2();
     } else if (m_q2.empty()) { // ended
         feed1();
-    } else if (m_pm1->getFrameCount() < m_pm1->getBlockSize()) { // fill initial block
+    } else if (m_pm1->isFillingInitialBlock()) {
         feed1();
         feed2();
     } else if (m_pm1->isOverrunning()) { // slope constraints
@@ -74,8 +89,7 @@ MatchFeatureFeeder::feedBlock()
     } else if (m_pm2->isOverrunning()) {
         feed1();
     } else {
-        switch (m_finder->getExpandDirection
-                (m_pm1->getFrameCount()-1, m_pm2->getFrameCount()-1)) {
+        switch (m_finder.getExpandDirection()) {
         case Matcher::AdvanceThis:
             feed1();
             break;

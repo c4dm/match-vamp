@@ -24,7 +24,7 @@
 
 using namespace std;
 
-#define DEBUG_FEATURE_EXTRACTOR 1
+//#define DEBUG_FEATURE_EXTRACTOR 1
 
 FeatureExtractor::FeatureExtractor(Parameters parameters) :
     m_params(parameters)
@@ -95,21 +95,36 @@ FeatureExtractor::makeStandardFrequencyMap()
 
     int i = 0;
     while (i <= crossoverBin) {
-        m_freqMap[i] = i;
-        ++i;
+        double freq = i * binWidth;
+        if (freq < m_params.minFrequency || freq > m_params.maxFrequency) {
+            m_freqMap[i++] = -1;
+        } else {
+            m_freqMap[i] = i;
+            i++;
+        }
     }
 
     while (i <= m_params.fftSize/2) {
-        double midi = log(i * binWidth / refFreq) / log(2.0) * 12 + 69;
-        if (midi > 127) midi = 127;
-        int target = crossoverBin + lrint(midi) - crossoverMidi;
-        if (target >= m_featureSize) target = m_featureSize - 1;
-        m_freqMap[i++] = target;
+        double freq = i * binWidth;
+        if (freq < m_params.minFrequency || freq > m_params.maxFrequency) {
+            m_freqMap[i++] = -1;
+        } else {
+            double midi = log(freq / refFreq) / log(2.0) * 12 + 69;
+            if (midi > 127) midi = 127;
+            int target = crossoverBin + lrint(midi) - crossoverMidi;
+            if (target >= m_featureSize) target = m_featureSize - 1;
+            m_freqMap[i++] = target;
+        }
     }
 
 #ifdef DEBUG_FEATURE_EXTRACTOR
     cerr << "FeatureExtractor: crossover bin is " << crossoverBin << " for midi "
          << crossoverMidi << endl;
+    cerr << "FeatureExtractor: map is:" << endl;
+    for (i = 0; i <= m_params.fftSize/2; ++i) {
+        cerr << i << ": " << m_freqMap[i] << ", ";
+    }
+    cerr << endl;
 #endif
 }
 
@@ -121,11 +136,21 @@ FeatureExtractor::makeChromaFrequencyMap()
     int crossoverBin = (int)(1 / (pow(2, 1/12.0) - 1));
     int i = 0;
     while (i <= crossoverBin) {
-        m_freqMap[i++] = 0;
+        double freq = i * binWidth;
+        if (freq < m_params.minFrequency || freq > m_params.maxFrequency) {
+            m_freqMap[i++] = -1;
+        } else {
+            m_freqMap[i++] = 0;
+        }
     }
     while (i <= m_params.fftSize/2) {
-        double midi = log(i * binWidth / refFreq) / log(2.0) * 12 + 69;
-        m_freqMap[i++] = (lrint(midi)) % 12 + 1;
+        double freq = i * binWidth;
+        if (freq < m_params.minFrequency || freq > m_params.maxFrequency) {
+            m_freqMap[i++] = -1;
+        } else {
+            double midi = log(freq / refFreq) / log(2.0) * 12 + 69;
+            m_freqMap[i++] = (lrint(midi)) % 12 + 1;
+        }
     }
 }
 
@@ -165,12 +190,18 @@ FeatureExtractor::processMags(const vector<double> &mags)
         vector<double> scaled = scaleMags(mags);
 
         for (int i = 0; i <= m_params.fftSize/2; i++) {
-            frame[m_freqMap[i]] += scaled[i];
+            int index = m_freqMap[i];
+            if (index >= 0) {
+                frame[index] += scaled[i];
+            }
         }
 
     } else {
         for (int i = 0; i <= m_params.fftSize/2; i++) {
-            frame[m_freqMap[i]] += mags[i];
+            int index = m_freqMap[i];
+            if (index >= 0) {
+                frame[index] += mags[i];
+            }
         }
     }
 
