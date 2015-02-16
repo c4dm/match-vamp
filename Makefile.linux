@@ -1,5 +1,5 @@
 
-CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror -Wfloat-conversion
+CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror 
 #CXXFLAGS	+= -fPIC -g -Wall -Werror -DPERFORM_ERROR_CHECKS=1
 
 LDFLAGS		+= -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic
