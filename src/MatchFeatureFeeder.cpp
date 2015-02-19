@@ -90,17 +90,17 @@ MatchFeatureFeeder::feedBlock()
         feed1();
     } else {
         switch (m_finder.getExpandDirection()) {
-        case Matcher::AdvanceThis:
+        case AdvanceThis:
             feed1();
             break;
-        case Matcher::AdvanceOther:
+        case AdvanceOther:
             feed2();
             break;
-        case Matcher::AdvanceBoth:
+        case AdvanceBoth:
             feed1();
             feed2();
             break;
-        case Matcher::AdvanceNone:
+        case AdvanceNone:
             cerr << "m_finder says AdvanceNone!" << endl;
             break;
         }

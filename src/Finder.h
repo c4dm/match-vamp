@@ -73,13 +73,13 @@ public:
      * Calculate which direction to expand the search area in, given
      * its current extents.
      */
-    Matcher::Advance getExpandDirection();
+    advance_t getExpandDirection();
     
     /**
      * Calculate which direction to expand the search area in, given
      * that so far it extends as far as the point at (row, col).
      */
-    Matcher::Advance getExpandDirection(int row, int col);
+    advance_t getExpandDirection(int row, int col);
     
     /** Calculates a rectangle of the path cost matrix so that the
      *  minimum cost path between the bottom left and top right
@@ -124,8 +124,8 @@ protected:
         float distance;
         double costWas;
         double costShouldBe;
-        Matcher::Advance advanceWas;
-        Matcher::Advance advanceShouldBe;
+        advance_t advanceWas;
+        advance_t advanceShouldBe;
     };
     ErrorPosition checkPathCostMatrix();
     void checkAndReport();

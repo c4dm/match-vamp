@@ -207,7 +207,7 @@ Matcher::getPathCost(int i, int j)
 }
                 
 void
-Matcher::setPathCost(int i, int j, Advance dir, double pathCost)
+Matcher::setPathCost(int i, int j, advance_t dir, double pathCost)
 {
     if (m_firstPM) {
         if (!isInRange(i, j)) {
@@ -235,7 +235,7 @@ Matcher::size()
     int distSize = (m_params.maxRunCount + 1) * m_blockSize;
     m_bestPathCost.resize(m_distXSize, vector<double>(distSize, -1));
     m_distance.resize(m_distXSize, vector<float>(distSize, -1));
-    m_advance.resize(m_distXSize, vector<Advance>(distSize, AdvanceNone));
+    m_advance.resize(m_distXSize, vector<advance_t>(distSize, AdvanceNone));
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
 }
@@ -275,8 +275,8 @@ Matcher::calcAdvance()
         vector<double> bpcOld = m_bestPathCost[m_frameCount - m_blockSize];
         vector<double> bpcNew(len, -1.0);
 
-        vector<Advance> adOld = m_advance[m_frameCount - m_blockSize];
-        vector<Advance> adNew(len, AdvanceNone);
+        vector<advance_t> adOld = m_advance[m_frameCount - m_blockSize];
+        vector<advance_t> adNew(len, AdvanceNone);
 
         for (int i = 0; i < len; ++i) {
             dNew[i] = dOld[i];
@@ -406,7 +406,7 @@ Matcher::calcAdvance()
 }
 
 void
-Matcher::updateValue(int i, int j, Advance dir, double value, float distance)
+Matcher::updateValue(int i, int j, advance_t dir, double value, float distance)
 {
     float weighted = distance;
     if (dir == AdvanceBoth) {
@@ -440,7 +440,7 @@ Matcher::updateValue(int i, int j, Advance dir, double value, float distance)
     }
 }
 
-Matcher::Advance
+advance_t
 Matcher::getAdvance(int i, int j)
 {
     if (m_firstPM) {

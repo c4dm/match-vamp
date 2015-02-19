@@ -14,8 +14,8 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef _MATCHER_H_
-#define _MATCHER_H_
+#ifndef MATCHER_H
+#define MATCHER_H
 
 #include <vector>
 #include <iostream>
@@ -23,6 +23,7 @@
 #include <cmath>
 
 #include "DistanceMetric.h"
+#include "Types.h"
 
 using std::vector;
 using std::string;
@@ -36,13 +37,7 @@ using std::endl;
 class Matcher
 {
 public:
-    enum Advance {
-        AdvanceNone,
-        AdvanceBoth,
-        AdvanceThis,
-        AdvanceOther
-    };
-    static string advanceToString(Advance a) {
+    static string advanceToString(advance_t a) {
         switch (a) {
         case AdvanceNone: return "AdvanceNone";
         case AdvanceBoth: return "AdvanceBoth";
@@ -233,7 +228,7 @@ public:
      *  minimum cost
      *  @param value the cost of the minimum cost path to set for this location
      */
-    void setPathCost(int i, int j, Advance dir, double value);
+    void setPathCost(int i, int j, advance_t dir, double value);
     
     /** Retrieves a value from the minimum cost matrix, normalised for
      *  path length.
@@ -252,7 +247,7 @@ public:
      *  @return the direction from which this position is reached with
      *  minimum cost
      */
-    Advance getAdvance(int i, int j);
+    advance_t getAdvance(int i, int j);
     
 protected:
     /** Create internal structures and reset. */
@@ -270,7 +265,7 @@ protected:
      *  @param value the cost of the minimum path except the current step
      *  @param dMN the distance cost between the two frames
      */
-    void updateValue(int i, int j, Advance dir, double value, float dMN);
+    void updateValue(int i, int j, advance_t dir, double value, float dMN);
 
     void calcAdvance();
 
@@ -315,7 +310,7 @@ protected:
     vector<vector<float> > m_distance;
 
     /** The advance direction matrix. */
-    vector<vector<Advance> > m_advance;
+    vector<vector<advance_t> > m_advance;
 
     /** The bounds of each row of data in the distance, path cost, and
      * advance direction matrices.*/
