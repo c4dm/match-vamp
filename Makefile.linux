@@ -1,6 +1,6 @@
 
-CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror 
-#CXXFLAGS	+= -fPIC -g -Wall -Werror -DPERFORM_ERROR_CHECKS=1
+CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror -Wconversion
+#CXXFLAGS	+= -fPIC -g -Wall -Werror -Wconversion -DPERFORM_ERROR_CHECKS=1
 
 LDFLAGS		+= -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic
 PLUGIN_LDFLAGS	+= -shared -Wl,-Bsymbolic -Wl,-z,defs -lpthread -Wl,--version-script=vamp-plugin.map

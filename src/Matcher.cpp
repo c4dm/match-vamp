@@ -43,7 +43,7 @@ Matcher::Matcher(Parameters parameters, DistanceMetric::Parameters dparams,
     m_runCount = 0;
     m_blockSize = 0;
 
-    m_blockSize = lrint(m_params.blockTime / m_params.hopTime);
+    m_blockSize = int(m_params.blockTime / m_params.hopTime + 0.5);
 #ifdef DEBUG_MATCHER
     cerr << "Matcher: m_blockSize = " << m_blockSize << endl;
 #endif

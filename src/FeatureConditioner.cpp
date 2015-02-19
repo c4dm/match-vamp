@@ -47,7 +47,7 @@ FeatureConditioner::process(const vector<double> &feature)
 	return feature;
     }
 
-    int size = feature.size();
+    int size = static_cast<int>(feature.size());
     
     vector<double> out(size, 0.0);
 

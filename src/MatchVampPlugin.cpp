@@ -209,7 +209,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to use half-wave rectified feature-to-feature difference instead of straight spectral or chroma feature";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = (int)m_defaultFcParams.order;
+    desc.defaultValue = (float)m_defaultFcParams.order;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -219,7 +219,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for features";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultFcParams.norm;
+    desc.defaultValue = (float)m_defaultFcParams.norm;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -235,7 +235,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Metric for distance calculations.";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultDParams.metric;
+    desc.defaultValue = (float)m_defaultDParams.metric;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -250,7 +250,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for distance metric";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (int)m_defaultDParams.norm;
+    desc.defaultValue = (float)m_defaultDParams.norm;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -274,7 +274,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio.";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = (int)m_defaultDParams.noise;
+    desc.defaultValue = (float)m_defaultDParams.noise;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -284,7 +284,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Limit of number of frames that will be accepted from one source without a frame from the other source being accepted";
     desc.minValue = 1;
     desc.maxValue = 10;
-    desc.defaultValue = m_defaultParams.maxRunCount;
+    desc.defaultValue = (float)m_defaultParams.maxRunCount;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -340,15 +340,15 @@ MatchVampPlugin::getParameter(std::string name) const
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
     } else if (name == "framenorm") {
-        return (int)m_fcParams.norm;
+        return (float)m_fcParams.norm;
     } else if (name == "distnorm") {
-        return (int)m_dParams.norm;
+        return (float)m_dParams.norm;
     } else if (name == "usespecdiff") {
-        return (int)m_fcParams.order;
+        return (float)m_fcParams.order;
     } else if (name == "usechroma") {
         return m_feParams.useChromaFrequencyMap ? 1.0 : 0.0;
     } else if (name == "gradientlimit") {
-        return m_params.maxRunCount;
+        return (float)m_params.maxRunCount;
     } else if (name == "diagonalweight") {
         return m_params.diagonalWeight;
     } else if (name == "zonewidth") {
@@ -358,7 +358,7 @@ MatchVampPlugin::getParameter(std::string name) const
     } else if (name == "silencethreshold") {
         return (float)m_fcParams.silenceThreshold;
     } else if (name == "metric") {
-        return (int)m_dParams.metric;
+        return (float)m_dParams.metric;
     } else if (name == "noise") {
         return m_dParams.noise;
     } else if (name == "freq1") {
@@ -448,9 +448,9 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
     if (stepSize > blockSize/2 ||
         blockSize != getPreferredBlockSize()) return false;
 
-    m_stepSize = stepSize;
+    m_stepSize = (int)stepSize;
     m_stepTime = float(stepSize) / m_inputSampleRate;
-    m_blockSize = blockSize;
+    m_blockSize = (int)blockSize;
 
     createMatchers();
     m_begin = true;
@@ -489,7 +489,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.quantizeStep = 1;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
-    m_pathOutNo = list.size();
+    m_pathOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "a_b";
@@ -502,7 +502,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
-    m_abOutNo = list.size();
+    m_abOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "b_a";
@@ -515,7 +515,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
-    m_baOutNo = list.size();
+    m_baOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "a_b_divergence";
@@ -528,7 +528,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
-    m_abDivOutNo = list.size();
+    m_abDivOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "a_b_temporatio";
@@ -541,7 +541,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::VariableSampleRate;
     desc.sampleRate = outRate;
-    m_abRatioOutNo = list.size();
+    m_abRatioOutNo = int(list.size());
     list.push_back(desc);
 
     int featureSize = FeatureExtractor(m_feParams).getFeatureSize();
@@ -556,7 +556,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
-    m_aFeaturesOutNo = list.size();
+    m_aFeaturesOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "b_features";
@@ -569,7 +569,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
-    m_bFeaturesOutNo = list.size();
+    m_bFeaturesOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "a_cfeatures";
@@ -582,7 +582,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
-    m_caFeaturesOutNo = list.size();
+    m_caFeaturesOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "b_cfeatures";
@@ -595,7 +595,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = outRate;
-    m_cbFeaturesOutNo = list.size();
+    m_cbFeaturesOutNo = int(list.size());
     list.push_back(desc);
 
     desc.identifier = "overall_cost";
@@ -608,7 +608,7 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.isQuantized = false;
     desc.sampleType = OutputDescriptor::FixedSampleRate;
     desc.sampleRate = 1;
-    m_overallCostOutNo = list.size();
+    m_overallCostOutNo = int(list.size());
     list.push_back(desc);
     
     return list;
@@ -704,9 +704,9 @@ MatchVampPlugin::getRemainingFeatures()
         int y = pathy[i];
 
         Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
-            (x * m_stepSize, lrintf(m_inputSampleRate));
+            (x * m_stepSize, int(m_inputSampleRate + 0.5));
         Vamp::RealTime yt = Vamp::RealTime::frame2RealTime
-            (y * m_stepSize, lrintf(m_inputSampleRate));
+            (y * m_stepSize, int(m_inputSampleRate + 0.5));
 
         Feature feature;
         feature.hasTimestamp = true;

@@ -509,10 +509,11 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     reverse(pathy.begin(), pathy.end());
 
     if (smooth) {
-        int smoothedLen = Path().smooth(pathx, pathy, pathx.size());
+        int smoothedLen = Path().smooth
+            (pathx, pathy, static_cast<int>(pathx.size()));
         return smoothedLen;
     } else {
-        return pathx.size();
+        return static_cast<int>(pathx.size());
     }
 }
 

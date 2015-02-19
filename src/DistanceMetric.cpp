@@ -41,8 +41,8 @@ DistanceMetric::calcDistance(const vector<double> &f1,
     double sum = 0;
     double eps = 1e-16;
 
-    int featureSize = f1.size();
-    assert(int(f2.size()) == featureSize);
+    assert(f2.size() == f1.size());
+    int featureSize = static_cast<int>(f1.size());
 
     if (m_params.metric == Cosine) {
 

@@ -88,10 +88,10 @@ FeatureExtractor::makeStandardFrequencyMap()
     // frequency-domain audio frames before applying the map to them.
     
     double refFreq = 440.; // See above -- *not* the parameter!
-    double binWidth = m_params.sampleRate / m_params.fftSize;
+    double binWidth = double(m_params.sampleRate) / m_params.fftSize;
     int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
-    int crossoverMidi = lrint(log(crossoverBin * binWidth / refFreq)/
-                              log(2.0) * 12 + 69);
+    int crossoverMidi = int(log(crossoverBin * binWidth / refFreq)/
+                            log(2.0) * 12 + 69 + 0.5);
 
     int i = 0;
     while (i <= crossoverBin) {
@@ -111,7 +111,7 @@ FeatureExtractor::makeStandardFrequencyMap()
         } else {
             double midi = log(freq / refFreq) / log(2.0) * 12 + 69;
             if (midi > 127) midi = 127;
-            int target = crossoverBin + lrint(midi) - crossoverMidi;
+            int target = crossoverBin + int(midi + 0.5) - crossoverMidi;
             if (target >= m_featureSize) target = m_featureSize - 1;
             m_freqMap[i++] = target;
         }
@@ -132,7 +132,7 @@ void
 FeatureExtractor::makeChromaFrequencyMap()
 {
     double refFreq = m_params.referenceFrequency;
-    double binWidth = m_params.sampleRate / m_params.fftSize;
+    double binWidth = double(m_params.sampleRate) / m_params.fftSize;
     int crossoverBin = (int)(1 / (pow(2, 1/12.0) - 1));
     int i = 0;
     while (i <= crossoverBin) {
@@ -149,7 +149,7 @@ FeatureExtractor::makeChromaFrequencyMap()
             m_freqMap[i++] = -1;
         } else {
             double midi = log(freq / refFreq) / log(2.0) * 12 + 69;
-            m_freqMap[i++] = (lrint(midi)) % 12 + 1;
+            m_freqMap[i++] = (int(midi + 0.5)) % 12 + 1;
         }
     }
 }
@@ -221,7 +221,7 @@ FeatureExtractor::scaleMags(const vector<double> &mags)
 
     double ratio = 440. / m_params.referenceFrequency;
 
-    int n = mags.size();
+    int n = static_cast<int>(mags.size());
 
     vector<double> scaled(n, 0.0);
 
