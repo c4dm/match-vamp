@@ -24,23 +24,26 @@ typedef double featurebin_t;
 /// A feature vector
 typedef std::vector<featurebin_t> feature_t;
 
+/// A sequence of feature vectors
+typedef std::vector<feature_t> featureseq_t;
+
 /// The distance between two feature vectors
 typedef float distance_t;
 
 /// A distance vector
-typedef std::vector<distance_t> distvec_t;
+typedef std::vector<distance_t> distancevec_t;
 
 /// A distance matrix
-typedef std::vector<distvec_t> distmat_t;
+typedef std::vector<distancevec_t> distancemat_t;
 
 /// The integrated distance (path cost) from the origin to a given point
 typedef double pathcost_t;
 
 /// A vector of path costs
-typedef std::vector<pathcost_t> pathvec_t;
+typedef std::vector<pathcost_t> pathcostvec_t;
 
 /// A matrix of path costs
-typedef std::vector<pathcost_t> pathmat_t;
+typedef std::vector<pathcostvec_t> pathcostmat_t;
 
 /// A direction advance instruction or state
 enum advance_t {

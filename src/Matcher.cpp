@@ -63,7 +63,7 @@ Matcher::init()
 {
     if (m_initialised) return;
 
-    m_frames = vector<vector<double> >(m_blockSize);
+    m_features = featureseq_t(m_blockSize);
 
     m_distXSize = m_blockSize * 2;
 
@@ -140,7 +140,7 @@ Matcher::getRowRange(int i)
     return m_otherMatcher->getColRange(i);
 }
 
-float
+distance_t
 Matcher::getDistance(int i, int j)
 {
     if (m_firstPM) {
@@ -149,7 +149,7 @@ Matcher::getDistance(int i, int j)
                  << "Location is not in range" << endl;
             throw "Distance not available";
         }
-        float dist = m_distance[i][j - m_first[i]];
+        distance_t dist = m_distance[i][j - m_first[i]];
         if (dist < 0) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is in range, but distance ("
@@ -163,7 +163,7 @@ Matcher::getDistance(int i, int j)
 }
                 
 void
-Matcher::setDistance(int i, int j, float distance)
+Matcher::setDistance(int i, int j, distance_t distance)
 {
     if (m_firstPM) {
         if (!isInRange(i, j)) {
@@ -177,14 +177,14 @@ Matcher::setDistance(int i, int j, float distance)
     }
 }
 
-double
+pathcost_t
 Matcher::getNormalisedPathCost(int i, int j)
 {
     // normalised for path length. 1+ prevents division by zero here
     return getPathCost(i, j) / (1 + i + j);
 }
 
-double
+pathcost_t
 Matcher::getPathCost(int i, int j)
 {
     if (m_firstPM) {
@@ -207,7 +207,7 @@ Matcher::getPathCost(int i, int j)
 }
                 
 void
-Matcher::setPathCost(int i, int j, advance_t dir, double pathCost)
+Matcher::setPathCost(int i, int j, advance_t dir, pathcost_t pathCost)
 {
     if (m_firstPM) {
         if (!isInRange(i, j)) {
@@ -233,19 +233,19 @@ void
 Matcher::size()
 {
     int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-    m_bestPathCost.resize(m_distXSize, vector<double>(distSize, -1));
-    m_distance.resize(m_distXSize, vector<float>(distSize, -1));
-    m_advance.resize(m_distXSize, vector<advance_t>(distSize, AdvanceNone));
+    m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, -1));
+    m_distance.resize(m_distXSize, distancevec_t(distSize, -1));
+    m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
 }
 
 void
-Matcher::consumeFeatureVector(vector<double> feature)
+Matcher::consumeFeatureVector(const feature_t &feature)
 {
     if (!m_initialised) init();
     int frameIndex = m_frameCount % m_blockSize; 
-    m_frames[frameIndex] = feature;
+    m_features[frameIndex] = feature;
     calcAdvance();
 }
 
@@ -269,14 +269,14 @@ Matcher::calcAdvance()
         // distance[m_frameCount-m_blockSize] to its first len elements.
         // Same for bestPathCost.
 
-        vector<float> dOld = m_distance[m_frameCount - m_blockSize];
-        vector<float> dNew(len, -1.f);
+        distancevec_t dOld(m_distance[m_frameCount - m_blockSize]);
+        distancevec_t dNew(len, -1.f);
 
-        vector<double> bpcOld = m_bestPathCost[m_frameCount - m_blockSize];
-        vector<double> bpcNew(len, -1.0);
+        pathcostvec_t bpcOld(m_bestPathCost[m_frameCount - m_blockSize]);
+        pathcostvec_t bpcNew(len, -1.0);
 
-        vector<advance_t> adOld = m_advance[m_frameCount - m_blockSize];
-        vector<advance_t> adNew(len, AdvanceNone);
+        advancevec_t adOld(m_advance[m_frameCount - m_blockSize]);
+        advancevec_t adNew(len, AdvanceNone);
 
         for (int i = 0; i < len; ++i) {
             dNew[i] = dOld[i];
@@ -303,11 +303,11 @@ Matcher::calcAdvance()
 
     for ( ; index < stop; index++) {
 
-        float distance = (float) m_metric.calcDistance
-            (m_frames[frameIndex],
-             m_otherMatcher->m_frames[index % m_blockSize]);
+        distance_t distance = (distance_t) m_metric.calcDistance
+            (m_features[frameIndex],
+             m_otherMatcher->m_features[index % m_blockSize]);
 
-        float diagDistance = distance * m_params.diagonalWeight;
+        distance_t diagDistance = distance * m_params.diagonalWeight;
 
         if ((m_frameCount == 0) && (index == 0)) { // first element
 
@@ -333,7 +333,7 @@ Matcher::calcAdvance()
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
             
-            double min2 = getPathCost(m_frameCount - 1, index);
+            pathcost_t min2 = getPathCost(m_frameCount - 1, index);
 
 //            cerr << "NOTE: missing value at i = " << m_frameCount << ", j = "
 //                 << index << " (first = " << m_firstPM << ")" << endl;
@@ -347,7 +347,7 @@ Matcher::calcAdvance()
                 
             } else {
 
-                double min1 = getPathCost(m_frameCount - 1, index - 1);
+                pathcost_t min1 = getPathCost(m_frameCount - 1, index - 1);
                 if (min1 + diagDistance <= min2 + distance) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min1, distance);
@@ -359,13 +359,13 @@ Matcher::calcAdvance()
 
         } else {
 
-            double min1 = getPathCost(m_frameCount, index - 1);
-            double min2 = getPathCost(m_frameCount - 1, index);
-            double min3 = getPathCost(m_frameCount - 1, index - 1);
+            pathcost_t min1 = getPathCost(m_frameCount, index - 1);
+            pathcost_t min2 = getPathCost(m_frameCount - 1, index);
+            pathcost_t min3 = getPathCost(m_frameCount - 1, index - 1);
 
-            double cost1 = min1 + distance;
-            double cost2 = min2 + distance;
-            double cost3 = min3 + diagDistance;
+            pathcost_t cost1 = min1 + distance;
+            pathcost_t cost2 = min2 + distance;
+            pathcost_t cost3 = min3 + diagDistance;
 
             // Choosing is easy if there is a strict cheapest of the
             // three. If two or more share the lowest cost, we choose
@@ -406,9 +406,9 @@ Matcher::calcAdvance()
 }
 
 void
-Matcher::updateValue(int i, int j, advance_t dir, double value, float distance)
+Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t distance)
 {
-    float weighted = distance;
+    distance_t weighted = distance;
     if (dir == AdvanceBoth) {
         weighted *= m_params.diagonalWeight;
     }

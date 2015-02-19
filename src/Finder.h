@@ -47,7 +47,7 @@ public:
      * cost within the given row. If the row is out of range, return
      * false and leave the bestCol and bestCost variables unchanged.
      */
-    bool getBestRowCost(int row, int &bestCol, double &bestCost);
+    bool getBestRowCost(int row, int &bestCol, pathcost_t &bestCost);
 
     /**
      * Find the location and cost of the row with the cheapest path
@@ -55,7 +55,7 @@ public:
      * return false and leave the bestRow and bestCost variables
      * unchanged.
      */
-    bool getBestColCost(int col, int &bestRow, double &bestCost);
+    bool getBestColCost(int col, int &bestRow, pathcost_t &bestCost);
     
     /**
      * Find the location and cost of the cheapest path cost within the
@@ -67,7 +67,7 @@ public:
      */
     void getBestEdgeCost(int row, int col,
                          int &bestRow, int &bestCol,
-                         double &bestCost);
+                         pathcost_t &bestCost);
 
     /**
      * Calculate which direction to expand the search area in, given
@@ -110,7 +110,7 @@ public:
      * Get the path cost for the overall path to the end of both
      * sources.
      */
-    double getOverallCost();
+    pathcost_t getOverallCost();
     
 protected:
 #ifdef PERFORM_ERROR_CHECKS
@@ -120,10 +120,10 @@ protected:
         Type type;
         int r;
         int c;
-        double prevCost;
-        float distance;
-        double costWas;
-        double costShouldBe;
+        pathcost_t prevCost;
+        distance_t distance;
+        pathcost_t costWas;
+        pathcost_t costShouldBe;
         advance_t advanceWas;
         advance_t advanceShouldBe;
     };

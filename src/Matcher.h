@@ -148,7 +148,7 @@ public:
      *  The supplied features must always be of the same size (within
      *  any pair of Matcher objects).
      */
-    void consumeFeatureVector(std::vector<double> feature);
+    void consumeFeatureVector(const feature_t &feature);
     
     /** Tests whether a location is in range in the minimum cost matrix.
      *
@@ -202,7 +202,7 @@ public:
      *  @param j the frame number of the other Matcher
      *  @return the distance metric at this location
      */
-    float getDistance(int i, int j);
+    distance_t getDistance(int i, int j);
 
     /** Sets a value to the distance matrix.
      *
@@ -210,7 +210,7 @@ public:
      *  @param j the frame number of the other Matcher
      *  @param value the distance metric to set for this location
      */
-    void setDistance(int i, int j, float distance);
+    void setDistance(int i, int j, distance_t distance);
     
     /** Retrieves a value from the minimum cost matrix.
      *
@@ -218,7 +218,7 @@ public:
      *  @param j the frame number of the other Matcher
      *  @return the cost of the minimum cost path to this location
      */
-    double getPathCost(int i, int j);
+    pathcost_t getPathCost(int i, int j);
 
     /** Sets a value and an advance direction to the minimum cost matrix.
      *
@@ -228,7 +228,7 @@ public:
      *  minimum cost
      *  @param value the cost of the minimum cost path to set for this location
      */
-    void setPathCost(int i, int j, advance_t dir, double value);
+    void setPathCost(int i, int j, advance_t dir, pathcost_t value);
     
     /** Retrieves a value from the minimum cost matrix, normalised for
      *  path length.
@@ -238,7 +238,7 @@ public:
      *  @return the cost of the minimum cost path to this location,
      *     normalised by the Manhattan distance from 0,0 to i,j
      */
-    double getNormalisedPathCost(int i, int j);
+    pathcost_t getNormalisedPathCost(int i, int j);
 
     /** Retrieves an advance direction from the matrix.
      * 
@@ -265,7 +265,7 @@ protected:
      *  @param value the cost of the minimum path except the current step
      *  @param dMN the distance cost between the two frames
      */
-    void updateValue(int i, int j, advance_t dir, double value, float dMN);
+    void updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t dMN);
 
     void calcAdvance();
 
@@ -301,16 +301,16 @@ protected:
      *  structure for calculation of the distance matrix as the new
      *  frames are received.  One can think of the structure of the
      *  array as a circular buffer of vectors. */
-    vector<vector<double> > m_frames;
+    featureseq_t m_features;
 
     /** The best path cost matrix. */
-    vector<vector<double> > m_bestPathCost;
+    pathcostmat_t m_bestPathCost;
 
     /** The distance matrix. */
-    vector<vector<float> > m_distance;
+    distancemat_t m_distance;
 
     /** The advance direction matrix. */
-    vector<vector<advance_t> > m_advance;
+    advancemat_t m_advance;
 
     /** The bounds of each row of data in the distance, path cost, and
      * advance direction matrices.*/
