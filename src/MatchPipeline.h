@@ -68,7 +68,7 @@ public:
      * be passed in to FeatureConditioner and then on to the rest of
      * the pipeline.
      */
-    void feedFeatures(const vector<double> &f1, const vector<double> &f2);
+    void feedFeatures(const feature_t &f1, const feature_t &f2);
     
     /**
      * Feed in data at the third pipeline stage. The vectors represent
@@ -76,7 +76,7 @@ public:
      * will be passed to MatchFeatureFeeder for feeding to the two
      * matchers.
      */
-    void feedConditionedFeatures(const vector<double> &f1, const vector<double> &f2);
+    void feedConditionedFeatures(const feature_t &f1, const feature_t &f2);
 
     /**
      * If a frame was just fed in at the first or second pipeline
@@ -84,12 +84,12 @@ public:
      * if you provided frequency-domain audio, extractFeatures will
      * give you back the FeatureExtractor's features.
      */
-    void extractFeatures(vector<double> &f1, vector<double> &f2);
+    void extractFeatures(feature_t &f1, feature_t &f2);
 
     /**
      * Retrieve the conditioned features from the third pipeline stage.
      */
-    void extractConditionedFeatures(vector<double> &f1, vector<double> &f2);
+    void extractConditionedFeatures(feature_t &f1, feature_t &f2);
 
     /**
      * Indicate that both inputs have come to an end.
@@ -130,11 +130,11 @@ private:
     int m_lastFrameIn1;
     int m_lastFrameIn2;
     int m_frameNo;
-    vector<double> m_f1;
-    vector<double> m_f2;
-    vector<double> m_c1;
-    vector<double> m_c2;
-    bool aboveThreshold(const vector<double> &f);
+    feature_t m_f1;
+    feature_t m_f2;
+    feature_t m_c1;
+    feature_t m_c2;
+    bool aboveThreshold(const feature_t &f);
     FeatureExtractor::Parameters paramsWithFreq(FeatureExtractor::Parameters,
                                                 double);
 };

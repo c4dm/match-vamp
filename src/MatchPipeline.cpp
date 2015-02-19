@@ -55,7 +55,7 @@ MatchPipeline::feedFrequencyDomainAudio(const float *arr1, const float *arr2)
 }
 
 void
-MatchPipeline::feedFeatures(const vector<double> &f1, const vector<double> &f2)
+MatchPipeline::feedFeatures(const feature_t &f1, const feature_t &f2)
 {
     m_f1 = f1;
     m_f2 = f2;
@@ -74,7 +74,7 @@ MatchPipeline::feedFeatures(const vector<double> &f1, const vector<double> &f2)
 }
 
 void
-MatchPipeline::feedConditionedFeatures(const vector<double> &c1, const vector<double> &c2)
+MatchPipeline::feedConditionedFeatures(const feature_t &c1, const feature_t &c2)
 {
     m_c1 = c1;
     m_c2 = c2;
@@ -103,21 +103,21 @@ MatchPipeline::feedConditionedFeatures(const vector<double> &c1, const vector<do
 }
 
 void
-MatchPipeline::extractFeatures(vector<double> &f1, vector<double> &f2)
+MatchPipeline::extractFeatures(feature_t &f1, feature_t &f2)
 {
     f1 = m_f1;
     f2 = m_f2;
 }
 
 void
-MatchPipeline::extractConditionedFeatures(vector<double> &c1, vector<double> &c2)
+MatchPipeline::extractConditionedFeatures(feature_t &c1, feature_t &c2)
 {
     c1 = m_c1;
     c2 = m_c2;
 }
 
 bool
-MatchPipeline::aboveThreshold(const vector<double> &f)
+MatchPipeline::aboveThreshold(const feature_t &f)
 {
     // This threshold is used only to determine when either of the
     // input streams has ended -- the last frame for a stream is

@@ -190,7 +190,8 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                 pathcost_t min = -1;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
-                    min = m_m->getPathCost(r-1, c-1) + newStep * diagonalWeight;
+                    min = m_m->getPathCost(r-1, c-1) +
+                        distance_t(newStep * diagonalWeight);
                     dir = AdvanceBoth;
                 }
                 if ((c >= prevRowStart) && (c < prevRowStop)) {
@@ -253,16 +254,16 @@ Finder::checkPathCostMatrix()
         for (int c = rowStart; c < rowStop; c++) {
 
             distance_t newStep = m_m->getDistance(r, c);
-            pathcost_t updateTo = -1.0;
+            pathcost_t updateTo = InvalidPathCost;
             advance_t dir = AdvanceNone;
 
             if (r > r1) { // not first row
                 pathcost_t min = -1;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
-                    min = m_m->getPathCost(r-1, c-1) + newStep * diagonalWeight;
+                    min = m_m->getPathCost(r-1, c-1) + distance_t(newStep * diagonalWeight);
                     err.prevCost = m_m->getPathCost(r-1, c-1);
-                    err.distance = newStep * diagonalWeight;
+                    err.distance = distance_t(newStep * diagonalWeight);
                     dir = AdvanceBoth;
                 }
                 if ((c >= prevRowStart) && (c < prevRowStop)) {

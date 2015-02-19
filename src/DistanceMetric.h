@@ -17,7 +17,7 @@
 #ifndef DISTANCE_METRIC_H
 #define DISTANCE_METRIC_H
 
-#include <vector>
+#include "Types.h"
 
 class DistanceMetric
 {
@@ -87,8 +87,8 @@ public:
      *  @param f2 one of the vectors involved in the distance calculation
      *  @return the distance
      */
-    double calcDistance(const std::vector<double> &f1,
-			const std::vector<double> &f2);
+    distance_t calcDistance(const feature_t &f1,
+                            const feature_t &f2);
     
 private:
     Parameters m_params;

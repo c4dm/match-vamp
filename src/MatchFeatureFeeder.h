@@ -41,7 +41,7 @@ public:
      * feature vector as normal for the input that is still going on,
      * and an empty vector for the one that has ended.
      */
-    void feed(std::vector<double> f1, std::vector<double> f2);
+    void feed(feature_t f1, feature_t f2);
 
     /**
      * Get the best estimate for the frame in the reference (f1)
@@ -78,8 +78,8 @@ protected:
 
     Finder m_finder; // I own this, and it refers to m_pm1
     
-    std::queue<std::vector<double> > m_q1;
-    std::queue<std::vector<double> > m_q2;
+    std::queue<feature_t> m_q1;
+    std::queue<feature_t> m_q2;
 
     vector<int> m_fpx;
     vector<int> m_fpy;

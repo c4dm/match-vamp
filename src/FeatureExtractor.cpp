@@ -154,7 +154,7 @@ FeatureExtractor::makeChromaFrequencyMap()
     }
 }
 
-vector<double>
+feature_t
 FeatureExtractor::process(const vector<double> &real, const vector<double> &imag)
 {
     vector<double> mags(m_params.fftSize/2 + 1, 0.0);
@@ -166,7 +166,7 @@ FeatureExtractor::process(const vector<double> &real, const vector<double> &imag
     return processMags(mags);
 }
 
-vector<double>
+feature_t
 FeatureExtractor::process(const float *cframe)
 {
     vector<double> mags(m_params.fftSize/2 + 1, 0.0);
@@ -178,10 +178,10 @@ FeatureExtractor::process(const float *cframe)
     return processMags(mags);
 }
 
-vector<double>
+feature_t
 FeatureExtractor::processMags(const vector<double> &mags)
 {
-    vector<double> frame(m_featureSize, 0.0);
+    feature_t frame(m_featureSize, 0.0);
 
     if (!m_params.useChromaFrequencyMap &&
         (m_params.referenceFrequency != 440.)) {

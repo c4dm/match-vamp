@@ -33,9 +33,9 @@ DistanceMetric::DistanceMetric(Parameters params) :
 #endif
 }
 
-double
-DistanceMetric::calcDistance(const vector<double> &f1,
-			     const vector<double> &f2)
+distance_t
+DistanceMetric::calcDistance(const feature_t &f1,
+			     const feature_t &f2)
 {
     double d = 0;
     double sum = 0;

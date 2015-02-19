@@ -150,7 +150,7 @@ Matcher::getDistance(int i, int j)
             throw "Distance not available";
         }
         distance_t dist = m_distance[i][j - m_first[i]];
-        if (dist < 0) {
+        if (dist == InvalidDistance) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is in range, but distance ("
                  << dist << ") is invalid or has not been set" << endl;
@@ -233,8 +233,8 @@ void
 Matcher::size()
 {
     int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-    m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, -1));
-    m_distance.resize(m_distXSize, distancevec_t(distSize, -1));
+    m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, InvalidPathCost));
+    m_distance.resize(m_distXSize, distancevec_t(distSize, InvalidDistance));
     m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
@@ -270,10 +270,10 @@ Matcher::calcAdvance()
         // Same for bestPathCost.
 
         distancevec_t dOld(m_distance[m_frameCount - m_blockSize]);
-        distancevec_t dNew(len, -1.f);
+        distancevec_t dNew(len, InvalidDistance);
 
         pathcostvec_t bpcOld(m_bestPathCost[m_frameCount - m_blockSize]);
-        pathcostvec_t bpcNew(len, -1.0);
+        pathcostvec_t bpcNew(len, InvalidPathCost);
 
         advancevec_t adOld(m_advance[m_frameCount - m_blockSize]);
         advancevec_t adNew(len, AdvanceNone);
@@ -307,7 +307,7 @@ Matcher::calcAdvance()
             (m_features[frameIndex],
              m_otherMatcher->m_features[index % m_blockSize]);
 
-        distance_t diagDistance = distance * m_params.diagonalWeight;
+        distance_t diagDistance = distance_t(distance * m_params.diagonalWeight);
 
         if ((m_frameCount == 0) && (index == 0)) { // first element
 
@@ -410,7 +410,7 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
 {
     distance_t weighted = distance;
     if (dir == AdvanceBoth) {
-        weighted *= m_params.diagonalWeight;
+        weighted = distance_t(weighted * m_params.diagonalWeight);
     }
     
     if (m_firstPM) {
@@ -430,8 +430,8 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
             cerr << "Emergency resize: " << idx << " -> " << idx * 2 << endl;
-            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, -1);
-            m_otherMatcher->m_distance[j].resize(idx * 2, -1);
+            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, InvalidPathCost);
+            m_otherMatcher->m_distance[j].resize(idx * 2, InvalidDistance);
             m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
         }
 

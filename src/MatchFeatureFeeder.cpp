@@ -30,7 +30,7 @@ MatchFeatureFeeder::~MatchFeatureFeeder()
 }
 
 void
-MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
+MatchFeatureFeeder::feed(feature_t f1, feature_t f2)
 {
     // We maintain two FIFO queues of feature vectors, one per input
     // stream.  When the match-feeder function is entered, it knows
@@ -58,7 +58,7 @@ MatchFeatureFeeder::getEstimatedReferenceFrame()
         return 0;
     }
     int bestRow = 0;
-    double bestCost = 0;
+    pathcost_t bestCost = 0;
     if (!m_finder.getBestColCost(m_pm2->getFrameCount()-1, bestRow, bestCost)) {
         return -1;
     } else {

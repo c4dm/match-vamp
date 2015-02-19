@@ -17,9 +17,10 @@
 #define MATCH_TYPES_H
 
 #include <vector>
+#include <cstdint>
 
 /// A single value in a feature vector
-typedef double featurebin_t;
+typedef float featurebin_t;
 
 /// A feature vector
 typedef std::vector<featurebin_t> feature_t;
@@ -28,7 +29,9 @@ typedef std::vector<featurebin_t> feature_t;
 typedef std::vector<feature_t> featureseq_t;
 
 /// The distance between two feature vectors
-typedef float distance_t;
+typedef uint8_t distance_t;
+
+const int InvalidDistance = 0xff;
 
 /// A distance vector
 typedef std::vector<distance_t> distancevec_t;
@@ -37,7 +40,9 @@ typedef std::vector<distance_t> distancevec_t;
 typedef std::vector<distancevec_t> distancemat_t;
 
 /// The integrated distance (path cost) from the origin to a given point
-typedef double pathcost_t;
+typedef uint32_t pathcost_t;
+
+const int InvalidPathCost = 0xdeadbeef;
 
 /// A vector of path costs
 typedef std::vector<pathcost_t> pathcostvec_t;
@@ -46,7 +51,7 @@ typedef std::vector<pathcost_t> pathcostvec_t;
 typedef std::vector<pathcostvec_t> pathcostmat_t;
 
 /// A direction advance instruction or state
-enum advance_t {
+enum advance_t : uint8_t {
     AdvanceNone,
     AdvanceBoth,
     AdvanceThis,

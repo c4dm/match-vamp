@@ -17,7 +17,7 @@
 #ifndef FEATURE_EXTRACTOR_H
 #define FEATURE_EXTRACTOR_H
 
-#include <vector>
+#include "Types.h"
 
 /**
  * Convert frequency-domain audio frames into features suitable for
@@ -106,8 +106,8 @@ public:
      * part-logarithmic array, unless useChromaFrequencyMap is true in
      * which case they are mapped into chroma bins.
      */
-    std::vector<double> process(const std::vector<double> &real,
-                                const std::vector<double> &imag);
+    feature_t process(const std::vector<double> &real,
+                      const std::vector<double> &imag);
     
     /**
      * Process one frequency-domain audio frame, provided as a single
@@ -118,7 +118,7 @@ public:
      * part-logarithmic array, unless useChromaFrequencyMap is true in
      * which case they are mapped into chroma bins.
      */
-    std::vector<double> process(const float *carray);
+    std::feature_t process(const float *carray);
     
 protected:
     /** Make either standard or chroma map, depending on m_params */
@@ -154,7 +154,7 @@ protected:
      */
     std::vector<int> m_freqMap;
 
-    std::vector<double> processMags(const std::vector<double> &mags);
+    feature_t processMags(const std::vector<double> &mags);
     std::vector<double> scaleMags(const std::vector<double> &mags);
     
     /** The size of a returned feature. */
