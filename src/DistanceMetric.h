@@ -68,12 +68,14 @@ public:
         Parameters() :
             metric(Manhattan),
             norm(NormaliseDistanceToLogSum),
-            noise(AddNoise)
+            noise(AddNoise),
+            scale(90.)
         {}
 
         Metric metric;
         DistanceNormalisation norm;
         NoiseAddition noise;
+        double scale;
     };
     
     DistanceMetric(Parameters params);
@@ -92,6 +94,7 @@ public:
     
 private:
     Parameters m_params;
+    distance_t scaleIntoRange(double distance);
 };
 
 #endif

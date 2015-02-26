@@ -110,6 +110,19 @@ public:
                       const std::vector<double> &imag);
     
     /**
+     * Process one frequency-domain audio frame (provided as real &
+     * imaginary components from the FFT output). Return a feature
+     * vector of size given by getFeatureSize(). Input vectors must
+     * have at least params.fftSize/2+1 elements each.
+     *
+     * Operates by mapping the frequency bins into a part-linear
+     * part-logarithmic array, unless useChromaFrequencyMap is true in
+     * which case they are mapped into chroma bins.
+     */
+    feature_t process(const std::vector<float> &real,
+                      const std::vector<float> &imag);
+    
+    /**
      * Process one frequency-domain audio frame, provided as a single
      * array of alternating real and imaginary components. Input array
      * must have at least 2 * (params.fftSize/2 + 1) elements.
@@ -118,7 +131,7 @@ public:
      * part-logarithmic array, unless useChromaFrequencyMap is true in
      * which case they are mapped into chroma bins.
      */
-    std::feature_t process(const float *carray);
+    feature_t process(const float *carray);
     
 protected:
     /** Make either standard or chroma map, depending on m_params */
@@ -154,8 +167,8 @@ protected:
      */
     std::vector<int> m_freqMap;
 
-    feature_t processMags(const std::vector<double> &mags);
-    std::vector<double> scaleMags(const std::vector<double> &mags);
+    feature_t processMags(const std::vector<float> &mags);
+    std::vector<float> scaleMags(const std::vector<float> &mags);
     
     /** The size of a returned feature. */
     int m_featureSize;

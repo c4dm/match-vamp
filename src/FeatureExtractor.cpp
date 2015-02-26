@@ -157,7 +157,19 @@ FeatureExtractor::makeChromaFrequencyMap()
 feature_t
 FeatureExtractor::process(const vector<double> &real, const vector<double> &imag)
 {
-    vector<double> mags(m_params.fftSize/2 + 1, 0.0);
+    vector<float> mags(m_params.fftSize/2 + 1, 0.0);
+
+    for (int i = 0; i <= m_params.fftSize/2; i++) {
+        mags[i] = float(real[i] * real[i] + imag[i] * imag[i]);
+    }
+
+    return processMags(mags);
+}
+
+feature_t
+FeatureExtractor::process(const vector<float> &real, const vector<float> &imag)
+{
+    vector<float> mags(m_params.fftSize/2 + 1, 0.0);
 
     for (int i = 0; i <= m_params.fftSize/2; i++) {
         mags[i] = real[i] * real[i] + imag[i] * imag[i];
@@ -169,7 +181,7 @@ FeatureExtractor::process(const vector<double> &real, const vector<double> &imag
 feature_t
 FeatureExtractor::process(const float *cframe)
 {
-    vector<double> mags(m_params.fftSize/2 + 1, 0.0);
+    vector<float> mags(m_params.fftSize/2 + 1, 0.0);
 
     for (int i = 0; i <= m_params.fftSize/2; i++) {
         mags[i] = cframe[i*2] * cframe[i*2] + cframe[i*2+1] * cframe[i*2+1];
@@ -179,7 +191,7 @@ FeatureExtractor::process(const float *cframe)
 }
 
 feature_t
-FeatureExtractor::processMags(const vector<double> &mags)
+FeatureExtractor::processMags(const vector<float> &mags)
 {
     feature_t frame(m_featureSize, 0.0);
 
@@ -187,7 +199,7 @@ FeatureExtractor::processMags(const vector<double> &mags)
         (m_params.referenceFrequency != 440.)) {
 
         // See comment in makeStandardFrequencyMap above
-        vector<double> scaled = scaleMags(mags);
+        vector<float> scaled = scaleMags(mags);
 
         for (int i = 0; i <= m_params.fftSize/2; i++) {
             int index = m_freqMap[i];
@@ -208,8 +220,8 @@ FeatureExtractor::processMags(const vector<double> &mags)
     return frame;
 }
 
-vector<double>
-FeatureExtractor::scaleMags(const vector<double> &mags)
+vector<float>
+FeatureExtractor::scaleMags(const vector<float> &mags)
 {
     // Scale the pitch content in the given magnitude spectrum to
     // accommodate a difference in tuning frequency (between the 440Hz
@@ -219,11 +231,11 @@ FeatureExtractor::scaleMags(const vector<double> &mags)
 
     if (m_params.useChromaFrequencyMap) return mags;
 
-    double ratio = 440. / m_params.referenceFrequency;
+    double ratio = 440.f / m_params.referenceFrequency;
 
     int n = static_cast<int>(mags.size());
 
-    vector<double> scaled(n, 0.0);
+    vector<float> scaled(n, 0.0);
 
     for (int target = 0; target < n; ++target) {
 
@@ -243,7 +255,7 @@ FeatureExtractor::scaleMags(const vector<double> &mags)
             value += higherProp * mags[higher];
         }
 
-        scaled[target] = value;
+        scaled[target] = float(value);
     }
 
     return scaled;
