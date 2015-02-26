@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(scale)
     BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(2.0), 2);
 
     if (sizeof(distance_t) == 1) {
-        BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(256.0), 255);
+        BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(256.0), MaxDistance);
     } else {
         BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(256.0), 256);
     }
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(scale)
         BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(0.0), 0);
         BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(1.0), 2);
         BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(2.0), 4);
-        BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(128.0), 255);
+        BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(128.0), MaxDistance);
     } else {
         BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(0.0), 0);
         BOOST_CHECK_EQUAL(dm.scaleValueIntoDistanceRange(1.0), 1);
