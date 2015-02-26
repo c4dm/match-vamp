@@ -69,7 +69,7 @@ public:
             metric(Manhattan),
             norm(NormaliseDistanceToLogSum),
             noise(AddNoise),
-            scale(200.)
+            scale(100.)
         {}
 
         Metric metric;
