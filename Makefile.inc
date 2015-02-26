@@ -4,7 +4,7 @@ PLUGIN		?= match-vamp-plugin$(PLUGIN_EXT)
 CXX		?= g++
 CC		?= gcc
 
-CXXFLAGS	:= -Isrc $(CXXFLAGS)
+CXXFLAGS	:= -Isrc -DUSE_COMPACT_TYPES $(CXXFLAGS)
 
 TEST_LDFLAGS	+= -lboost_unit_test_framework
 
