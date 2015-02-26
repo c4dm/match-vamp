@@ -69,7 +69,7 @@ public:
             metric(Manhattan),
             norm(NormaliseDistanceToLogSum),
             noise(AddNoise),
-            scale(90.)
+            scale(200.)
         {}
 
         Metric metric;
@@ -79,6 +79,8 @@ public:
     };
     
     DistanceMetric(Parameters params);
+
+    ~DistanceMetric();
     
     /** Calculates the distance in some metric between two vectors,
      *  with an optional normalisation by the combined values in the
@@ -100,7 +102,11 @@ public:
 private:
     Parameters m_params;
 
+    distance_t scaleAndTally(double);
     template <typename T> T scaleIntoRange(double);
+
+    distance_t m_max;
+    int m_overcount;
 };
 
 #endif

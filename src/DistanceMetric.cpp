@@ -22,14 +22,19 @@
 
 using namespace std;
 
-//#define DEBUG_DISTANCE_METRIC 1
+#define DEBUG_DISTANCE_METRIC 1
 
 template <> uint8_t
 DistanceMetric::scaleIntoRange(double distance)
 {
     double scaled = m_params.scale * distance;
-    if (scaled < 0) scaled = 0;
-    if (scaled > 255) scaled = 255;
+    if (scaled < 0) {
+        scaled = 0;
+    }
+    if (scaled > MaxDistance) {
+        scaled = MaxDistance;
+        ++m_overcount;
+    }
     return uint8_t(scaled);
 }
 
@@ -46,11 +51,36 @@ DistanceMetric::scaleIntoRange(double distance)
 }
 
 DistanceMetric::DistanceMetric(Parameters params) :
-    m_params(params)
+    m_params(params),
+    m_max(0),
+    m_overcount(0)
 {
 #ifdef DEBUG_DISTANCE_METRIC
-    cerr << "*** DistanceMetric: norm = " << m_params.norm
+    cerr << "*** DistanceMetric: metric = " << m_params.metric
+         << ", norm = " << m_params.norm
+         << ", noise = " << m_params.noise
+         << ", scale = " << m_params.scale
          << endl;
+#endif
+}
+
+DistanceMetric::~DistanceMetric()
+{
+#ifdef DEBUG_DISTANCE_METRIC
+    cerr << "*** DistanceMetric::~DistanceMetric: metric = " << m_params.metric
+         << ", norm = " << m_params.norm
+         << ", noise = " << m_params.noise;
+#ifdef USE_COMPACT_TYPES
+    cerr << ", scale = " << m_params.scale;
+    cerr << "\n*** DistanceMetric::~DistanceMetric: max scaled value = "
+         << distance_print_t(m_max)
+         << ", " << m_overcount << " clipped" << endl;
+#else
+    cerr << ", no scaling";
+    cerr << "\n*** DistanceMetric::~DistanceMetric: max value = "
+         << distance_print_t(m_max)
+         << endl;
+#endif
 #endif
 }
 
@@ -59,7 +89,15 @@ DistanceMetric::scaleValueIntoDistanceRange(double value)
 {
     return scaleIntoRange<distance_t>(value);
 }
-    
+
+distance_t
+DistanceMetric::scaleAndTally(double value)
+{
+    distance_t dist = scaleIntoRange<distance_t>(value);
+    if (dist > m_max) m_max = dist;
+    return dist;
+}
+
 distance_t
 DistanceMetric::calcDistance(const feature_t &f1,
 			     const feature_t &f2)
@@ -88,7 +126,7 @@ DistanceMetric::calcDistance(const feature_t &f1,
         }
         if (d > 1.0) d = 1.0;
         
-        return scaleIntoRange<distance_t>(d); // normalisation param ignored
+        return scaleAndTally(d); // normalisation param ignored
     }
 
     if (m_params.metric == Manhattan) {
@@ -112,7 +150,7 @@ DistanceMetric::calcDistance(const feature_t &f1,
     }
     
     if (sum == 0) {
-        return scaleIntoRange<distance_t>(0);
+        return scaleAndTally(0);
     }
 
     double distance = 0;
@@ -140,5 +178,5 @@ DistanceMetric::calcDistance(const feature_t &f1,
         distance = d;
     }
     
-    return scaleIntoRange<distance_t>(distance);
+    return scaleAndTally(distance);
 }
