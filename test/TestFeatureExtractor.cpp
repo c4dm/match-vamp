@@ -39,7 +39,7 @@ void checkAlternateProcessType(FeatureExtractor &fe, feature_t expected,
 			       vector<double> real, vector<double> imag)
 {
     vector<float> in;
-    for (int i = 0; i < (int)real.size(); ++i) {
+    for (size_t i = 0; i < real.size(); ++i) {
 	in.push_back(float(real[i]));
 	in.push_back(float(imag[i]));
     }
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(chroma)
 	    int hs = sz / 2 + 1;
 	    int fsz = 13;
     
-	    FeatureExtractor::Parameters params((float)rate, sz);
+	    FeatureExtractor::Parameters params(float(rate), sz);
 	    params.useChromaFrequencyMap = true;
 	    FeatureExtractor fe(params);
 	    BOOST_CHECK_EQUAL(fe.getFeatureSize(), fsz);
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(nonchroma)
     int hs = sz / 2 + 1;
     int fsz = 84;
     
-    FeatureExtractor::Parameters params((float)rate, sz);
+    FeatureExtractor::Parameters params(float(rate), sz);
     FeatureExtractor fe(params);
     BOOST_CHECK_EQUAL(fe.getFeatureSize(), fsz);
 

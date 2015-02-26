@@ -152,7 +152,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Tuning frequency (concert A) for the reference audio.";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
-    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
+    desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
     desc.isQuantized = false;
     desc.unit = "Hz";
     list.push_back(desc);
@@ -162,7 +162,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Tuning frequency (concert A) for the other audio.";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
-    desc.defaultValue = (float)m_defaultFeParams.referenceFrequency;
+    desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
     desc.isQuantized = false;
     desc.unit = "Hz";
     list.push_back(desc);
@@ -171,8 +171,8 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.name = "Minimum frequency";
     desc.description = "Minimum frequency to include in features.";
     desc.minValue = 0.0;
-    desc.maxValue = (float)m_inputSampleRate / 4.f;
-    desc.defaultValue = (float)m_defaultFeParams.minFrequency;
+    desc.maxValue = float(m_inputSampleRate / 4.f);
+    desc.defaultValue = float(m_defaultFeParams.minFrequency);
     desc.isQuantized = false;
     desc.unit = "Hz";
     list.push_back(desc);
@@ -181,8 +181,8 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.name = "Maximum frequency";
     desc.description = "Maximum frequency to include in features.";
     desc.minValue = 1000.0;
-    desc.maxValue = (float)m_inputSampleRate / 2.f;
-    desc.defaultValue = (float)m_defaultFeParams.maxFrequency;
+    desc.maxValue = float(m_inputSampleRate / 2.f);
+    desc.defaultValue = float(m_defaultFeParams.maxFrequency);
     desc.isQuantized = false;
     desc.unit = "Hz";
     list.push_back(desc);
@@ -209,7 +209,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to use half-wave rectified feature-to-feature difference instead of straight spectral or chroma feature";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = (float)m_defaultFcParams.order;
+    desc.defaultValue = float(m_defaultFcParams.order);
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -219,7 +219,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for features";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (float)m_defaultFcParams.norm;
+    desc.defaultValue = float(m_defaultFcParams.norm);
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -228,14 +228,14 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.valueNames.push_back("Long-term average");
     list.push_back(desc);
     desc.valueNames.clear();
-    desc.defaultValue = (float)m_defaultFcParams.silenceThreshold;
+    desc.defaultValue = float(m_defaultFcParams.silenceThreshold);
 
     desc.identifier = "metric";
     desc.name = "Distance metric";
     desc.description = "Metric for distance calculations.";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (float)m_defaultDParams.metric;
+    desc.defaultValue = float(m_defaultDParams.metric);
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -250,7 +250,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Type of normalisation to use for distance metric";
     desc.minValue = 0;
     desc.maxValue = 2;
-    desc.defaultValue = (float)m_defaultDParams.norm;
+    desc.defaultValue = float(m_defaultDParams.norm);
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
@@ -265,7 +265,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Total frame energy threshold below which a feature will be regarded as silent";
     desc.minValue = 0;
     desc.maxValue = 0.1f;
-    desc.defaultValue = (float)m_defaultFcParams.silenceThreshold;
+    desc.defaultValue = float(m_defaultFcParams.silenceThreshold);
     desc.isQuantized = false;
     list.push_back(desc);
 
@@ -274,7 +274,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio.";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = (float)m_defaultDParams.noise;
+    desc.defaultValue = float(m_defaultDParams.noise);
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -284,7 +284,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Limit of number of frames that will be accepted from one source without a frame from the other source being accepted";
     desc.minValue = 1;
     desc.maxValue = 10;
-    desc.defaultValue = (float)m_defaultParams.maxRunCount;
+    desc.defaultValue = float(m_defaultParams.maxRunCount);
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
@@ -294,7 +294,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Width of the search zone (error margin) either side of the ongoing match position, in seconds";
     desc.minValue = 1;
     desc.maxValue = 60;
-    desc.defaultValue = (float)m_defaultParams.blockTime;
+    desc.defaultValue = float(m_defaultParams.blockTime);
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.unit = "s";
@@ -305,7 +305,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step. The default of 2.0 is good for gross tracking of quite different performances; closer to 1.0 produces a smoother path for performances more similar in tempo";
     desc.minValue = 1.0;
     desc.maxValue = 2.0;
-    desc.defaultValue = (float)m_defaultParams.diagonalWeight;
+    desc.defaultValue = float(m_defaultParams.diagonalWeight);
     desc.isQuantized = false;
     desc.unit = "";
     list.push_back(desc);
@@ -340,35 +340,35 @@ MatchVampPlugin::getParameter(std::string name) const
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
     } else if (name == "framenorm") {
-        return (float)m_fcParams.norm;
+        return float(m_fcParams.norm);
     } else if (name == "distnorm") {
-        return (float)m_dParams.norm;
+        return float(m_dParams.norm);
     } else if (name == "usespecdiff") {
-        return (float)m_fcParams.order;
+        return float(m_fcParams.order);
     } else if (name == "usechroma") {
         return m_feParams.useChromaFrequencyMap ? 1.0 : 0.0;
     } else if (name == "gradientlimit") {
-        return (float)m_params.maxRunCount;
+        return float(m_params.maxRunCount);
     } else if (name == "diagonalweight") {
-        return m_params.diagonalWeight;
+        return float(m_params.diagonalWeight);
     } else if (name == "zonewidth") {
-        return (float)m_params.blockTime;
+        return float(m_params.blockTime);
     } else if (name == "smooth") {
         return m_smooth ? 1.0 : 0.0;
     } else if (name == "silencethreshold") {
-        return (float)m_fcParams.silenceThreshold;
+        return float(m_fcParams.silenceThreshold);
     } else if (name == "metric") {
-        return (float)m_dParams.metric;
+        return float(m_dParams.metric);
     } else if (name == "noise") {
         return m_dParams.noise;
     } else if (name == "freq1") {
-        return (float)m_feParams.referenceFrequency;
+        return float(m_feParams.referenceFrequency);
     } else if (name == "freq2") {
-        return (float)m_secondReferenceFrequency;
+        return float(m_secondReferenceFrequency);
     } else if (name == "minfreq") {
-        return (float)m_feParams.minFrequency;
+        return float(m_feParams.minFrequency);
     } else if (name == "maxfreq") {
-        return (float)m_feParams.maxFrequency;
+        return float(m_feParams.maxFrequency);
     }
     
     return 0.0;
@@ -380,11 +380,11 @@ MatchVampPlugin::setParameter(std::string name, float value)
     if (name == "serialise") {
         m_serialise = (value > 0.5);
     } else if (name == "framenorm") {
-        m_fcParams.norm = (FeatureConditioner::Normalisation)(int(value + 0.1));
+        m_fcParams.norm = FeatureConditioner::Normalisation(int(value + 0.1));
     } else if (name == "distnorm") {
-        m_dParams.norm = (DistanceMetric::DistanceNormalisation)(int(value + 0.1));
+        m_dParams.norm = DistanceMetric::DistanceNormalisation(int(value + 0.1));
     } else if (name == "usespecdiff") {
-        m_fcParams.order = (FeatureConditioner::OutputOrder)(int(value + 0.1));
+        m_fcParams.order = FeatureConditioner::OutputOrder(int(value + 0.1));
     } else if (name == "usechroma") {
         m_feParams.useChromaFrequencyMap = (value > 0.5);
     } else if (name == "gradientlimit") {
@@ -398,9 +398,9 @@ MatchVampPlugin::setParameter(std::string name, float value)
     } else if (name == "silencethreshold") {
         m_fcParams.silenceThreshold = value;
     } else if (name == "metric") {
-        m_dParams.metric = (DistanceMetric::Metric)(int(value + 0.1));
+        m_dParams.metric = DistanceMetric::Metric(int(value + 0.1));
     } else if (name == "noise") {
-        m_dParams.noise = (DistanceMetric::NoiseAddition)(int(value + 0.1));
+        m_dParams.noise = DistanceMetric::NoiseAddition(int(value + 0.1));
     } else if (name == "freq1") {
         m_feParams.referenceFrequency = value;
     } else if (name == "freq2") {
@@ -448,9 +448,9 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
     if (stepSize > blockSize/2 ||
         blockSize != getPreferredBlockSize()) return false;
 
-    m_stepSize = (int)stepSize;
+    m_stepSize = int(stepSize);
     m_stepTime = float(stepSize) / m_inputSampleRate;
-    m_blockSize = (int)blockSize;
+    m_blockSize = int(blockSize);
 
     createMatchers();
     m_begin = true;
@@ -647,27 +647,19 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     f.hasTimestamp = false;
 
     f.values.clear();
-    for (int j = 0; j < (int)f1.size(); ++j) {
-        f.values.push_back(float(f1[j]));
-    }
+    for (auto v: f1) f.values.push_back(float(v));
     returnFeatures[m_aFeaturesOutNo].push_back(f);
 
     f.values.clear();
-    for (int j = 0; j < (int)f2.size(); ++j) {
-        f.values.push_back(float(f2[j]));
-    }
+    for (auto v: f2) f.values.push_back(float(v));
     returnFeatures[m_bFeaturesOutNo].push_back(f);
 
     f.values.clear();
-    for (int j = 0; j < (int)cf1.size(); ++j) {
-        f.values.push_back(float(cf1[j]));
-    }
+    for (auto v: cf1) f.values.push_back(float(v));
     returnFeatures[m_caFeaturesOutNo].push_back(f);
 
     f.values.clear();
-    for (int j = 0; j < (int)cf2.size(); ++j) {
-        f.values.push_back(float(cf2[j]));
-    }
+    for (auto v: cf2) f.values.push_back(float(v));
     returnFeatures[m_cbFeaturesOutNo].push_back(f);
 
 //    std::cerr << ".";
@@ -692,7 +684,7 @@ MatchVampPlugin::getRemainingFeatures()
     double cost = m_pipeline->getOverallCost();
     Feature costFeature;
     costFeature.hasTimestamp = false;
-    costFeature.values.push_back((float)cost);
+    costFeature.values.push_back(float(cost));
     returnFeatures[m_overallCostOutNo].push_back(costFeature);
     
     int prevx = 0;

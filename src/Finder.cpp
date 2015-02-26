@@ -172,8 +172,6 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
 {
     int prevRowStart = 0, prevRowStop = 0;
 
-    float diagonalWeight = m_m->getDiagonalWeight();
-    
     for (int r = r1; r <= r2; r++) {
 
         pair<int, int> colRange = m_m->getColRange(r);
@@ -183,20 +181,21 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
         
         for (int c = rowStart; c < rowStop; c++) {
 
-            distance_t newStep = m_m->getDistance(r, c);
             advance_t dir = AdvanceNone;
+            pathcost_t straightIncrement = m_m->getDistance(r, c);
+            pathcost_t diagIncrement = pathcost_t(straightIncrement *
+                                                  m_m->getDiagonalWeight());
 
             if (r > r1) {	// not first row
                 pathcost_t min = -1;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
-                    min = m_m->getPathCost(r-1, c-1) +
-                        distance_t(newStep * diagonalWeight);
+                    min = m_m->getPathCost(r-1, c-1) + diagIncrement;
                     dir = AdvanceBoth;
                 }
                 if ((c >= prevRowStart) && (c < prevRowStop)) {
                     // vertical from (r-1,c)
-                    pathcost_t cost = m_m->getPathCost(r-1, c) + newStep;
+                    pathcost_t cost = m_m->getPathCost(r-1, c) + straightIncrement;
                     if ((min < 0) || (cost < min)) {
                         min = cost;
                         dir = AdvanceThis;
@@ -204,7 +203,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                 }
                 if (c > rowStart) {
                     // horizontal from (r,c-1)
-                    pathcost_t cost = m_m->getPathCost(r, c-1) + newStep;
+                    pathcost_t cost = m_m->getPathCost(r, c-1) + straightIncrement;
                     if ((min < 0) || (cost < min)) {
                         min = cost;
                         dir = AdvanceOther;
@@ -216,7 +215,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
             } else if (c > rowStart) {	// first row
                 // horizontal from (r,c-1)
                 m_m->setPathCost(r, c, AdvanceOther,
-                                   m_m->getPathCost(r, c-1) + newStep);
+                                 m_m->getPathCost(r, c-1) + straightIncrement);
             }
         }
 
@@ -242,8 +241,6 @@ Finder::checkPathCostMatrix()
 
     int prevRowStart = 0, prevRowStop = 0;
 
-    float diagonalWeight = m_m->getDiagonalWeight();
-    
     for (int r = r1; r <= r2; r++) {
 
         pair<int, int> colRange = m_m->getColRange(r);
@@ -253,36 +250,36 @@ Finder::checkPathCostMatrix()
         
         for (int c = rowStart; c < rowStop; c++) {
 
-            distance_t newStep = m_m->getDistance(r, c);
-            pathcost_t updateTo = InvalidPathCost;
             advance_t dir = AdvanceNone;
+            pathcost_t updateTo = InvalidPathCost;
+            distance_t distance = m_m->getDistance(r, c);
+            pathcost_t straightIncrement = distance;
+            pathcost_t diagIncrement = pathcost_t(distance * m_m->getDiagonalWeight());
+            err.distance = distance;
 
             if (r > r1) { // not first row
                 pathcost_t min = -1;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
-                    min = m_m->getPathCost(r-1, c-1) + distance_t(newStep * diagonalWeight);
+                    min = m_m->getPathCost(r-1, c-1) + diagIncrement;
                     err.prevCost = m_m->getPathCost(r-1, c-1);
-                    err.distance = distance_t(newStep * diagonalWeight);
                     dir = AdvanceBoth;
                 }
                 if ((c >= prevRowStart) && (c < prevRowStop)) {
                     // vertical from (r-1,c)
-                    pathcost_t cost = m_m->getPathCost(r-1, c) + newStep;
+                    pathcost_t cost = m_m->getPathCost(r-1, c) + straightIncrement;
                     if ((min < 0) || (cost < min)) {
                         min = cost;
                         err.prevCost = m_m->getPathCost(r-1, c);
-                        err.distance = newStep;
                         dir = AdvanceThis;
                     }
                 }
                 if (c > rowStart) {
                     // horizontal from (r,c-1)
-                    pathcost_t cost = m_m->getPathCost(r, c-1) + newStep;
+                    pathcost_t cost = m_m->getPathCost(r, c-1) + straightIncrement;
                     if ((min < 0) || (cost < min)) {
                         min = cost;
                         err.prevCost = m_m->getPathCost(r, c-1);
-                        err.distance = newStep;
                         dir = AdvanceOther;
                     }
                 }
@@ -293,9 +290,8 @@ Finder::checkPathCostMatrix()
 
                 if (c > rowStart) {
                     // horizontal from (r,c-1)
-                    updateTo = m_m->getPathCost(r, c-1) + newStep;
+                    updateTo = m_m->getPathCost(r, c-1) + straightIncrement;
                     err.prevCost = m_m->getPathCost(r, c-1);
-                    err.distance = newStep;
                     dir = AdvanceOther;
                 }
             }
@@ -366,7 +362,7 @@ Finder::checkAndReport()
              << ", advance in matrix is "
              << Matcher::advanceToString(err.advanceWas)
              << "\nPrev cost " << err.prevCost
-             << " plus distance " << err.distance << " gives "
+             << " plus distance " << err.distance << " [perhaps diagonalised] gives "
              << err.costShouldBe << ", matrix contains " << err.costWas
              << endl;
         cerr << "Note: diagonal weight = " << m_m->getDiagonalWeight() << endl;

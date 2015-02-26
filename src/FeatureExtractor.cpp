@@ -89,7 +89,7 @@ FeatureExtractor::makeStandardFrequencyMap()
     
     double refFreq = 440.; // See above -- *not* the parameter!
     double binWidth = double(m_params.sampleRate) / m_params.fftSize;
-    int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
+    int crossoverBin = int(2 / (pow(2, 1/12.0) - 1));
     int crossoverMidi = int(log(crossoverBin * binWidth / refFreq)/
                             log(2.0) * 12 + 69 + 0.5);
 
@@ -133,7 +133,7 @@ FeatureExtractor::makeChromaFrequencyMap()
 {
     double refFreq = m_params.referenceFrequency;
     double binWidth = double(m_params.sampleRate) / m_params.fftSize;
-    int crossoverBin = (int)(1 / (pow(2, 1/12.0) - 1));
+    int crossoverBin = int(1 / (pow(2, 1/12.0) - 1));
     int i = 0;
     while (i <= crossoverBin) {
         double freq = i * binWidth;

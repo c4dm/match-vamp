@@ -84,7 +84,7 @@ public:
          *  normal DTW approach for performances with similar speeds
          *  might use 1.0 or something close to it.
          */
-        float diagonalWeight;
+        double diagonalWeight;
     };
 
     /** Constructor for Matcher.
@@ -134,7 +134,7 @@ public:
         return m_otherMatcher->getFrameCount();
     }
 
-    float getDiagonalWeight() {
+    double getDiagonalWeight() {
         return m_params.diagonalWeight;
     }
     

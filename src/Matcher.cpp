@@ -226,7 +226,6 @@ Matcher::setPathCost(int i, int j, advance_t dir, pathcost_t pathCost)
         }
         m_otherMatcher->setPathCost(j, i, dir, pathCost);
     }
-
 }
 
 void
@@ -303,11 +302,12 @@ Matcher::calcAdvance()
 
     for ( ; index < stop; index++) {
 
-        distance_t distance = (distance_t) m_metric.calcDistance
+        distance_t distance = m_metric.calcDistance
             (m_features[frameIndex],
              m_otherMatcher->m_features[index % m_blockSize]);
 
-        distance_t diagDistance = distance_t(distance * m_params.diagonalWeight);
+        pathcost_t straightIncrement(distance);
+        pathcost_t diagIncrement = pathcost_t(distance * m_params.diagonalWeight);
 
         if ((m_frameCount == 0) && (index == 0)) { // first element
 
@@ -348,7 +348,7 @@ Matcher::calcAdvance()
             } else {
 
                 pathcost_t min1 = getPathCost(m_frameCount - 1, index - 1);
-                if (min1 + diagDistance <= min2 + distance) {
+                if (min1 + diagIncrement <= min2 + straightIncrement) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min1, distance);
                 } else {
@@ -363,9 +363,9 @@ Matcher::calcAdvance()
             pathcost_t min2 = getPathCost(m_frameCount - 1, index);
             pathcost_t min3 = getPathCost(m_frameCount - 1, index - 1);
 
-            pathcost_t cost1 = min1 + distance;
-            pathcost_t cost2 = min2 + distance;
-            pathcost_t cost3 = min3 + diagDistance;
+            pathcost_t cost1 = min1 + straightIncrement;
+            pathcost_t cost2 = min2 + straightIncrement;
+            pathcost_t cost3 = min3 + diagIncrement;
 
             // Choosing is easy if there is a strict cheapest of the
             // three. If two or more share the lowest cost, we choose
@@ -408,15 +408,22 @@ Matcher::calcAdvance()
 void
 Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t distance)
 {
-    distance_t weighted = distance;
+    pathcost_t increment = distance;
     if (dir == AdvanceBoth) {
-        weighted = distance_t(weighted * m_params.diagonalWeight);
+        increment = pathcost_t(increment * m_params.diagonalWeight);
+    }
+
+    pathcost_t newValue = value + increment;
+    if (MaxPathCost - increment < value) {
+        cerr << "ERROR: Path cost overflow at i=" << i << ", j=" << j << ": "
+             << value << " + " << increment << " > " << MaxPathCost << endl;
+        newValue = MaxPathCost;
     }
     
     if (m_firstPM) {
 
         setDistance(i, j, distance);
-        setPathCost(i, j, dir, value + weighted);
+        setPathCost(i, j, dir, newValue);
 
     } else {
 
@@ -425,7 +432,7 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
 
         int idx = i - m_otherMatcher->m_first[j];
         
-        if (idx == (int)m_otherMatcher->m_distance[j].size()) {
+        if (idx < 0 || size_t(idx) == m_otherMatcher->m_distance[j].size()) {
             // This should never happen, but if we allow arbitrary
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
@@ -436,7 +443,7 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
         }
 
         m_otherMatcher->setDistance(j, i, distance);
-        m_otherMatcher->setPathCost(j, i, dir, value + weighted);
+        m_otherMatcher->setPathCost(j, i, dir, newValue);
     }
 }
 

@@ -1,5 +1,6 @@
 
-CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror -Wconversion -std=c++11
+CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror -Werror=old-style-cast -Wconversion -std=c++11 -DUSE_COMPACT_TYPES -DPERFORM_ERROR_CHECKS=1
+
 #CXXFLAGS	+= -fPIC -g -Wall -Werror -Wconversion -DPERFORM_ERROR_CHECKS=1 -std=c++11
 
 LDFLAGS		+= -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic
