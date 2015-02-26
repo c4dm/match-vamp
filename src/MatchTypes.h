@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <float.h>
 
 #ifdef USE_COMPACT_TYPES
 
@@ -56,13 +57,13 @@ typedef double featurebin_t;
 /// The distance between two feature vectors
 typedef float distance_t;
 
-const float MaxDistance = FLOAT_MAX;
+const float MaxDistance = FLT_MAX;
 const float InvalidDistance = -1.f;
 
 /// The integrated distance (path cost) from the origin to a given point
 typedef double pathcost_t;
 
-const double MaxPathCost = DOUBLE_MAX;
+const double MaxPathCost = DBL_MAX;
 const double InvalidPathCost = -1.;
 
 /// A direction advance instruction or state
