@@ -28,14 +28,17 @@ typedef float featurebin_t;
 /// The distance between two feature vectors
 typedef uint8_t distance_t;
 
-const int MaxDistance = 0xfe;
-const int InvalidDistance = 0xff;
+/// What to cast a distance_t to when printing it (to avoid printing as char)
+typedef int distance_print_t;
+
+const distance_t MaxDistance = 0xfe;
+const distance_t InvalidDistance = 0xff;
 
 /// The integrated distance (path cost) from the origin to a given point
 typedef uint32_t pathcost_t;
 
-const int MaxPathCost = 0xfffffffe;
-const int InvalidPathCost = 0xffffffff;
+const pathcost_t MaxPathCost = 0xfffffffe;
+const pathcost_t InvalidPathCost = 0xffffffff;
 
 /// A direction advance instruction or state
 enum advance_t : uint8_t {
@@ -56,6 +59,9 @@ typedef double featurebin_t;
 
 /// The distance between two feature vectors
 typedef float distance_t;
+
+/// What to cast a distance_t to when printing it
+typedef distance_t distance_print_t;
 
 const float MaxDistance = FLT_MAX;
 const float InvalidDistance = -1.f;
@@ -100,6 +106,9 @@ typedef std::vector<advance_t> advancevec_t;
 
 /// A matrix of advance directions
 typedef std::vector<advancevec_t> advancemat_t;
+
+/// A normalised path cost, i.e. a pathcost_t divided by some scale factor
+typedef double normpathcost_t;
 
 
 #endif

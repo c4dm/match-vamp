@@ -238,7 +238,7 @@ public:
      *  @return the cost of the minimum cost path to this location,
      *     normalised by the Manhattan distance from 0,0 to i,j
      */
-    pathcost_t getNormalisedPathCost(int i, int j);
+    normpathcost_t getNormalisedPathCost(int i, int j);
 
     /** Retrieves an advance direction from the matrix.
      * 

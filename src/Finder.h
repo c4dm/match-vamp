@@ -43,31 +43,32 @@ public:
     void setDurations(int d1, int d2);
 
     /**
-     * Find the location and cost of the column with the cheapest path
-     * cost within the given row. If the row is out of range, return
-     * false and leave the bestCol and bestCost variables unchanged.
+     * Find the location and normalised path cost of the column with
+     * the cheapest path cost within the given row. If the row is out
+     * of range, return false and leave the bestCol and bestCost
+     * variables unchanged.
      */
-    bool getBestRowCost(int row, int &bestCol, pathcost_t &bestCost);
+    bool getBestRowCost(int row, int &bestCol, normpathcost_t &bestCost);
 
     /**
-     * Find the location and cost of the row with the cheapest path
-     * cost within the given column. If the column is out of range,
-     * return false and leave the bestRow and bestCost variables
-     * unchanged.
+     * Find the location and normalised path cost of the row with the
+     * cheapest path cost within the given column. If the column is
+     * out of range, return false and leave the bestRow and bestCost
+     * variables unchanged.
      */
-    bool getBestColCost(int col, int &bestRow, pathcost_t &bestCost);
+    bool getBestColCost(int col, int &bestRow, normpathcost_t &bestCost);
     
     /**
-     * Find the location and cost of the cheapest path cost within the
-     * final row and column of the search area, given that the area
-     * extends as far as the point at (row, col). This is used by
-     * getExpandDirection and can also be used, for example, to
-     * determine the current best estimate alignment for a frame we
-     * have just reached.
+     * Find the location and normalised path cost of the cheapest path
+     * cost within the final row and column of the search area, given
+     * that the area extends as far as the point at (row, col). This
+     * is used by getExpandDirection and can also be used, for
+     * example, to determine the current best estimate alignment for a
+     * frame we have just reached.
      */
     void getBestEdgeCost(int row, int col,
                          int &bestRow, int &bestCol,
-                         pathcost_t &bestCost);
+                         normpathcost_t &bestCost);
 
     /**
      * Calculate which direction to expand the search area in, given

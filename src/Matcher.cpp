@@ -153,7 +153,8 @@ Matcher::getDistance(int i, int j)
         if (dist == InvalidDistance) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is in range, but distance ("
-                 << dist << ") is invalid or has not been set" << endl;
+                 << distance_print_t(dist)
+                 << ") is invalid or has not been set" << endl;
             throw "Distance not available";
         }
         return dist;
@@ -168,7 +169,8 @@ Matcher::setDistance(int i, int j, distance_t distance)
     if (m_firstPM) {
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::setDistance(" << i << ", " << j << ", "
-                 << distance << "): Location is out of range" << endl;
+                 << distance_print_t(distance)
+                 << "): Location is out of range" << endl;
             throw "Indices out of range";
         }
         m_distance[i][j - m_first[i]] = distance;
@@ -177,11 +179,11 @@ Matcher::setDistance(int i, int j, distance_t distance)
     }
 }
 
-pathcost_t
+normpathcost_t
 Matcher::getNormalisedPathCost(int i, int j)
 {
     // normalised for path length. 1+ prevents division by zero here
-    return getPathCost(i, j) / (1 + i + j);
+    return normpathcost_t(getPathCost(i, j)) / normpathcost_t(1 + i + j);
 }
 
 pathcost_t

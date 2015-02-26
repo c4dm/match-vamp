@@ -58,7 +58,7 @@ MatchFeatureFeeder::getEstimatedReferenceFrame()
         return 0;
     }
     int bestRow = 0;
-    pathcost_t bestCost = 0;
+    normpathcost_t bestCost = 0;
     if (!m_finder.getBestColCost(m_pm2->getFrameCount()-1, bestRow, bestCost)) {
         return -1;
     } else {

@@ -55,13 +55,13 @@ Finder::setDurations(int d1, int d2)
 }
 
 bool
-Finder::getBestRowCost(int row, int &bestCol, pathcost_t &min)
+Finder::getBestRowCost(int row, int &bestCol, normpathcost_t &min)
 {
     if (!m_m->isRowAvailable(row)) return false;
     pair<int, int> colRange = m_m->getColRange(row);
     if (colRange.first >= colRange.second) return false;
     for (int index = colRange.first; index < colRange.second; index++) {
-        pathcost_t tmp = m_m->getNormalisedPathCost(row, index);
+        normpathcost_t tmp = m_m->getNormalisedPathCost(row, index);
         if (index == colRange.first || tmp < min) {
             min = tmp;
             bestCol = index;
@@ -71,14 +71,17 @@ Finder::getBestRowCost(int row, int &bestCol, pathcost_t &min)
 }    
 
 bool
-Finder::getBestColCost(int col, int &bestRow, pathcost_t &min)
+Finder::getBestColCost(int col, int &bestRow, normpathcost_t &min)
 {
     if (!m_m->isColAvailable(col)) return false;
     pair<int, int> rowRange = m_m->getRowRange(col);
     if (rowRange.first >= rowRange.second) return false;
+    bestRow = rowRange.first;
     for (int index = rowRange.first; index < rowRange.second; index++) {
-        pathcost_t tmp = m_m->getNormalisedPathCost(index, col);
-        if (index == rowRange.first || tmp < min) {
+        normpathcost_t tmp = m_m->getNormalisedPathCost(index, col);
+        if (index == rowRange.first) {
+            min = tmp;
+        } else if (tmp < min) {
             min = tmp;
             bestRow = index;
         }
@@ -89,9 +92,9 @@ Finder::getBestColCost(int col, int &bestRow, pathcost_t &min)
 void
 Finder::getBestEdgeCost(int row, int col,
                         int &bestRow, int &bestCol,
-                        pathcost_t &min)
+                        normpathcost_t &min)
 {
-    min = m_m->getPathCost(row, col);
+    min = m_m->getNormalisedPathCost(row, col);
     
     bestRow = row;
     bestCol = col;
@@ -101,7 +104,7 @@ Finder::getBestEdgeCost(int row, int col,
         rowRange.second = row+1;	// don't cheat by looking at future :)
     }
     for (int index = rowRange.first; index < rowRange.second; index++) {
-        pathcost_t tmp = m_m->getNormalisedPathCost(index, col);
+        normpathcost_t tmp = m_m->getNormalisedPathCost(index, col);
         if (tmp < min) {
             min = tmp;
             bestRow = index;
@@ -113,7 +116,7 @@ Finder::getBestEdgeCost(int row, int col,
         colRange.second = col+1;	// don't cheat by looking at future :)
     }
     for (int index = colRange.first; index < colRange.second; index++) {
-        pathcost_t tmp = m_m->getNormalisedPathCost(row, index);
+        normpathcost_t tmp = m_m->getNormalisedPathCost(row, index);
         if (tmp < min) {
             min = tmp;
             bestCol = index;
@@ -146,7 +149,7 @@ Finder::getExpandDirection(int row, int col)
 
     int bestRow = row;
     int bestCol = col;
-    pathcost_t bestCost = -1;
+    normpathcost_t bestCost = -1;
 
 //    cerr << "Finder " << this << "::getExpandDirection: ";
     
@@ -362,7 +365,8 @@ Finder::checkAndReport()
              << ", advance in matrix is "
              << Matcher::advanceToString(err.advanceWas)
              << "\nPrev cost " << err.prevCost
-             << " plus distance " << err.distance << " [perhaps diagonalised] gives "
+             << " plus distance " << distance_print_t(err.distance)
+             << " [perhaps diagonalised] gives "
              << err.costShouldBe << ", matrix contains " << err.costWas
              << endl;
         cerr << "Note: diagonal weight = " << m_m->getDiagonalWeight() << endl;
@@ -380,7 +384,8 @@ Finder::checkAndReport()
         for (int j = -4; j <= 0; ++j) {
             cerr << setw(w) << j;
             for (int i = -4; i <= 0; ++i) {
-                cerr << setw(ww) << m_m->getDistance(err.r + j, err.c + i);
+                cerr << setw(ww)
+                     << distance_print_t(m_m->getDistance(err.r + j, err.c + i));
             }
             cerr << endl;
         }
