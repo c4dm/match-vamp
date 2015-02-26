@@ -23,7 +23,7 @@
 #include <cmath>
 
 #include "DistanceMetric.h"
-#include "Types.h"
+#include "MatchTypes.h"
 
 using std::vector;
 using std::string;

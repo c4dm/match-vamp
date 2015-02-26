@@ -17,7 +17,7 @@
 #ifndef DISTANCE_METRIC_H
 #define DISTANCE_METRIC_H
 
-#include "Types.h"
+#include "MatchTypes.h"
 
 class DistanceMetric
 {

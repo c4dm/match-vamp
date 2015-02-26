@@ -17,7 +17,7 @@
 #ifndef FEATURE_EXTRACTOR_H
 #define FEATURE_EXTRACTOR_H
 
-#include "Types.h"
+#include "MatchTypes.h"
 
 /**
  * Convert frequency-domain audio frames into features suitable for

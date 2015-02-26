@@ -16,7 +16,7 @@
 #ifndef FEATURE_CONDITIONER_H
 #define FEATURE_CONDITIONER_H
 
-#include "Types.h"
+#include "MatchTypes.h"
 
 /**
  * Take a series of feature vectors and apply conditioning of some
