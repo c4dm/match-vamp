@@ -34,8 +34,8 @@ FeatureConditioner::FeatureConditioner(Parameters parameters) :
 #endif
 }
 
-vector<double>
-FeatureConditioner::process(const vector<double> &feature)
+feature_t
+FeatureConditioner::process(const feature_t &feature)
 {
     if (m_prev.empty()) {
 	m_prev.resize(feature.size(), 0.0);
@@ -49,7 +49,7 @@ FeatureConditioner::process(const vector<double> &feature)
 
     int size = static_cast<int>(feature.size());
     
-    vector<double> out(size, 0.0);
+    feature_t out(size, 0.0);
 
     double totalEnergy = 0;
 
@@ -94,11 +94,11 @@ FeatureConditioner::process(const vector<double> &feature)
 	}
     } else if (m_params.norm == NormaliseToSum1) {
         for (int i = 0; i < size; i++) { 
-            out[i] /= totalEnergy;
+            out[i] = featurebin_t(out[i] / totalEnergy);
 	}
     } else if (m_params.norm == NormaliseToLTAverage) {
         for (int i = 0; i < size; i++) {
-            out[i] /= m_ltAverage;
+            out[i] = featurebin_t(out[i] / m_ltAverage);
 	}
     }
 

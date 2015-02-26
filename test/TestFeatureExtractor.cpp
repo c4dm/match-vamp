@@ -35,7 +35,7 @@ static int bin2warped(int bin, int rate, int sz)
 
 BOOST_AUTO_TEST_SUITE(TestFeatureExtractor)
 
-void checkAlternateProcessType(FeatureExtractor &fe, vector<double> expected,
+void checkAlternateProcessType(FeatureExtractor &fe, feature_t expected,
 			       vector<double> real, vector<double> imag)
 {
     vector<float> in;
@@ -43,7 +43,7 @@ void checkAlternateProcessType(FeatureExtractor &fe, vector<double> expected,
 	in.push_back(float(real[i]));
 	in.push_back(float(imag[i]));
     }
-    vector<double> alt = fe.process(&in[0]);
+    feature_t alt = fe.process(&in[0]);
     BOOST_CHECK_EQUAL_COLLECTIONS(alt.begin(), alt.end(),
 				  expected.begin(), expected.end());
 }
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(chroma)
 		real[hs-bin-1] += 5.0;
 		imag[hs-bin-1] += 5.0;
 	
-		vector<double> out = fe.process(real, imag);
+		feature_t out = fe.process(real, imag);
 
 		checkAlternateProcessType(fe, out, real, imag);
 
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(chroma)
 
 		double cutoff = (17.0 * rate) / sz;
 		
-		vector<double> expected(fsz);
+		feature_t expected(fsz);
 
 		double infreq1 = (double(bin) * rate) / sz;
 
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(nonchroma)
 	real[hs-bin-1] += 5.0;
 	imag[hs-bin-1] += 5.0;
 
-	vector<double> out = fe.process(real, imag);
+	feature_t out = fe.process(real, imag);
 
 	checkAlternateProcessType(fe, out, real, imag);
 
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(nonchroma)
 	// mapped linearly by MIDI pitch into the next 49 bins;
 	// everything above goes into the last bin, for 84 bins total.
 
-	vector<double> expected(fsz);
+	feature_t expected(fsz);
 
 	if (bin == hs-bin-1) {
 	    expected[bin2warped(bin, rate, sz)] += 450;

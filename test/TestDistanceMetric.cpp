@@ -12,12 +12,12 @@ using namespace std;
 
 #include <boost/test/unit_test.hpp>
 
-static vector<double> getTestFeature(double m)
+static feature_t getTestFeature(double m)
 {
-    vector<double> f;
-    double fd[] = { 0, 1, 2, 3 };
+    feature_t f;
+    int fd[] = { 0, 1, 2, 3 };
     for (int i = 0; i < 4; ++i) {
-	f.push_back(fd[i] * m);
+	f.push_back(featurebin_t(fd[i] * m));
     }
     return f;
 }
@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(nonorm)
     DistanceMetric::Parameters params;
     params.norm = DistanceMetric::NoDistanceNormalisation;
     DistanceMetric dm(params);
-    vector<double>
+    feature_t
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
 	e0 = getTestFeature(0);
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(sum)
     DistanceMetric::Parameters params;
     params.norm = DistanceMetric::NormaliseDistanceToSum;
     DistanceMetric dm(params);
-    vector<double>
+    feature_t
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
 	e0 = getTestFeature(0);

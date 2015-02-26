@@ -12,12 +12,12 @@ using namespace std;
 
 #include <boost/test/unit_test.hpp>
 
-static vector<double> getTestFeature(double m)
+static feature_t getTestFeature(double m)
 {
-    vector<double> f;
-    double fd[] = { 0, 1, 2, 3 };
+    feature_t f;
+    int fd[] = { 0, 1, 2, 3 };
     for (int i = 0; i < 4; ++i) {
-	f.push_back(fd[i] * m);
+	f.push_back(featurebin_t(fd[i] * m));
     }
     return f;
 }
@@ -29,14 +29,14 @@ BOOST_AUTO_TEST_CASE(nonorm_features)
     FeatureConditioner::Parameters params;
     params.norm = FeatureConditioner::NoNormalisation;
     params.order = FeatureConditioner::OutputFeatures;
-    vector<double>
+    feature_t
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
 	e0 = getTestFeature(0);
 
     params.silenceThreshold = 1.0;
     FeatureConditioner fc(params);
-    vector<double> out = fc.process(e1);
+    feature_t out = fc.process(e1);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), e1.begin(), e1.end());
     out = fc.process(e2);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), e2.begin(), e2.end());
@@ -54,14 +54,14 @@ BOOST_AUTO_TEST_CASE(nonorm_rectderiv)
     FeatureConditioner::Parameters params;
     params.norm = FeatureConditioner::NoNormalisation;
     params.order = FeatureConditioner::OutputRectifiedDerivative;
-    vector<double>
+    feature_t
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
 	e0 = getTestFeature(0);
 
     params.silenceThreshold = 1.0;
     FeatureConditioner fc(params);
-    vector<double> out = fc.process(e1);
+    feature_t out = fc.process(e1);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), e1.begin(), e1.end());
     out = fc.process(e2);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), e1.begin(), e1.end());
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(nonorm_deriv)
     FeatureConditioner::Parameters params;
     params.norm = FeatureConditioner::NoNormalisation;
     params.order = FeatureConditioner::OutputDerivative;
-    vector<double>
+    feature_t
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
 	e3 = getTestFeature(3),
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(nonorm_deriv)
 
     params.silenceThreshold = 1.0;
     FeatureConditioner fc(params);
-    vector<double> out = fc.process(e1);
+    feature_t out = fc.process(e1);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), e1.begin(), e1.end());
     out = fc.process(e2);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), e1.begin(), e1.end());
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(sum1_features)
     FeatureConditioner::Parameters params;
     params.norm = FeatureConditioner::NormaliseToSum1;
     params.order = FeatureConditioner::OutputFeatures;
-    vector<double>
+    feature_t
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
 	en = getTestFeature(1.0/6.0),
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(sum1_features)
 
     params.silenceThreshold = 1.0;
     FeatureConditioner fc(params);
-    vector<double> out = fc.process(e1);
+    feature_t out = fc.process(e1);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), en.begin(), en.end());
     out = fc.process(e2);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), en.begin(), en.end());
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(sum1_rectderiv)
     FeatureConditioner::Parameters params;
     params.norm = FeatureConditioner::NormaliseToSum1;
     params.order = FeatureConditioner::OutputRectifiedDerivative;
-    vector<double>
+    feature_t
 	e1 = getTestFeature(1),
 	e2 = getTestFeature(2),
 	en = getTestFeature(1.0/6.0),
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(sum1_rectderiv)
 
     params.silenceThreshold = 1.0;
     FeatureConditioner fc(params);
-    vector<double> out = fc.process(e1);
+    feature_t out = fc.process(e1);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), en.begin(), en.end());
     out = fc.process(e2);
     BOOST_CHECK_EQUAL_COLLECTIONS(out.begin(), out.end(), en2.begin(), en2.end());

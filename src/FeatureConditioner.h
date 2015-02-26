@@ -16,7 +16,7 @@
 #ifndef FEATURE_CONDITIONER_H
 #define FEATURE_CONDITIONER_H
 
-#include <vector>
+#include "Types.h"
 
 /**
  * Take a series of feature vectors and apply conditioning of some
@@ -96,7 +96,7 @@ public:
     /**
      * Process the given feature and return the conditioned feature.
      */
-    std::vector<double> process(const std::vector<double> &feature);
+    feature_t process(const feature_t &feature);
 
 protected:
     Parameters m_params;
@@ -106,7 +106,7 @@ protected:
 
     /** The most recent feature, used for calculating the feature to
      *  feature difference. This is therefore not yet normalised. */
-    std::vector<double> m_prev;
+    feature_t m_prev;
 };
 
 #endif

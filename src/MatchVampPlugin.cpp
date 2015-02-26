@@ -637,10 +637,10 @@ MatchVampPlugin::process(const float *const *inputBuffers,
 
     FeatureSet returnFeatures;
 
-    vector<double> f1, f2;
+    feature_t f1, f2;
     m_pipeline->extractFeatures(f1, f2);
 
-    vector<double> cf1, cf2;
+    feature_t cf1, cf2;
     m_pipeline->extractConditionedFeatures(cf1, cf2);
 
     Feature f;

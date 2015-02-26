@@ -94,7 +94,8 @@ public:
     
 private:
     Parameters m_params;
-    distance_t scaleIntoRange(double distance);
+
+    template <typename T> T scaleIntoRange(double);
 };
 
 #endif

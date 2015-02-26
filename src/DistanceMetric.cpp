@@ -24,6 +24,24 @@ using namespace std;
 
 //#define DEBUG_DISTANCE_METRIC 1
 
+template <> uint8_t
+DistanceMetric::scaleIntoRange(double distance)
+{
+    return uint8_t(m_params.scale * distance);
+}
+
+template <> float
+DistanceMetric::scaleIntoRange(double distance)
+{
+    return float(distance);
+}
+
+template <> double
+DistanceMetric::scaleIntoRange(double distance)
+{
+    return distance;
+}
+
 DistanceMetric::DistanceMetric(Parameters params) :
     m_params(params)
 {
@@ -61,7 +79,7 @@ DistanceMetric::calcDistance(const feature_t &f1,
         }
         if (d > 1.0) d = 1.0;
         
-        return scaleIntoRange(d); // normalisation param ignored
+        return scaleIntoRange<distance_t>(d); // normalisation param ignored
     }
 
     if (m_params.metric == Manhattan) {
@@ -85,7 +103,7 @@ DistanceMetric::calcDistance(const feature_t &f1,
     }
     
     if (sum == 0) {
-        return scaleIntoRange(0);
+        return scaleIntoRange<distance_t>(0);
     }
 
     double distance = 0;
@@ -113,15 +131,5 @@ DistanceMetric::calcDistance(const feature_t &f1,
         distance = d;
     }
     
-    return scaleIntoRange(distance);
-}
-
-distance_t
-DistanceMetric::scaleIntoRange(double distance)
-{
-    if (sizeof(distance_t) == sizeof(distance)) {
-        return distance_t(distance);
-    } else {
-        return distance_t(m_params.scale * distance);
-    }
+    return scaleIntoRange<distance_t>(distance);
 }
