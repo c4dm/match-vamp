@@ -27,7 +27,10 @@ using namespace std;
 template <> uint8_t
 DistanceMetric::scaleIntoRange(double distance)
 {
-    return uint8_t(m_params.scale * distance);
+    double scaled = m_params.scale * distance;
+    if (scaled < 0) scaled = 0;
+    if (scaled > 255) scaled = 255;
+    return uint8_t(scaled);
 }
 
 template <> float
@@ -51,6 +54,12 @@ DistanceMetric::DistanceMetric(Parameters params) :
 #endif
 }
 
+distance_t
+DistanceMetric::scaleValueIntoDistanceRange(double value)
+{
+    return scaleIntoRange<distance_t>(value);
+}
+    
 distance_t
 DistanceMetric::calcDistance(const feature_t &f1,
 			     const feature_t &f2)

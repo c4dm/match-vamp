@@ -91,6 +91,11 @@ public:
      */
     distance_t calcDistance(const feature_t &f1,
                             const feature_t &f2);
+
+    /**
+     * Mostly for internal use and testing
+     */
+    distance_t scaleValueIntoDistanceRange(double value);
     
 private:
     Parameters m_params;
