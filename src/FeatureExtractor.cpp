@@ -179,6 +179,18 @@ FeatureExtractor::process(const vector<float> &real, const vector<float> &imag)
 }
 
 feature_t
+FeatureExtractor::process(const float *real, const float *imag)
+{
+    vector<float> mags(m_params.fftSize/2 + 1, 0.0);
+
+    for (int i = 0; i <= m_params.fftSize/2; i++) {
+        mags[i] = real[i] * real[i] + imag[i] * imag[i];
+    }
+
+    return processMags(mags);
+}
+
+feature_t
 FeatureExtractor::process(const float *cframe)
 {
     vector<float> mags(m_params.fftSize/2 + 1, 0.0);
