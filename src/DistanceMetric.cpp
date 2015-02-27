@@ -22,7 +22,7 @@
 
 using namespace std;
 
-#define DEBUG_DISTANCE_METRIC 1
+//#define DEBUG_DISTANCE_METRIC 1
 
 template <> uint8_t
 DistanceMetric::scaleIntoRange(double distance)
