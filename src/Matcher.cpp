@@ -77,23 +77,51 @@ Matcher::init()
 }
 
 bool
-Matcher::isRowAvailable(int i)
+Matcher::isAvailable(int i, int j)
 {
-    if (i < 0 || i >= int(m_first.size())) return false;
-
-    for (int j = m_first[i]; j < int(m_first[i] + m_bestPathCost[i].size()); ++j) {
-        if (isAvailable(i, j)) {
-            return true;
+    if (m_firstPM) {
+        if (isInRange(i, j)) {
+            return (m_bestPathCost[i][j - m_first[i]] != InvalidPathCost);
+        } else {
+            return false;
         }
+    } else {
+        return m_otherMatcher->isAvailable(j, i);
     }
-
-    return false;
 }
 
 bool
-Matcher::isColAvailable(int i)
+Matcher::isRowAvailable(int i)
 {
-    return m_otherMatcher->isRowAvailable(i);
+    if (m_firstPM) {
+
+        if (i < 0 || i >= int(m_first.size())) return false;
+        for (auto c: m_bestPathCost[i]) {
+            if (c != InvalidPathCost) return true;
+        }
+        return false;
+
+    } else {
+        return m_otherMatcher->isColAvailable(i);
+    }
+}
+
+bool
+Matcher::isColAvailable(int j)
+{
+    if (m_firstPM) {
+        for (int i = 0; i < int(m_first.size()); ++i) {
+            if (j >= m_first[i] &&
+                j < int(m_first[i] + m_bestPathCost[i].size())) {//!!! m_last[i]?
+                if (m_bestPathCost[i][j - m_first[i]] != InvalidPathCost) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } else {
+        return m_otherMatcher->isRowAvailable(j);
+    }
 }
 
 bool
@@ -106,20 +134,6 @@ Matcher::isInRange(int i, int j)
                 (j < int(m_first[i] + m_bestPathCost[i].size())));
     } else {
         return m_otherMatcher->isInRange(j, i);
-    }
-}
-
-bool
-Matcher::isAvailable(int i, int j)
-{
-    if (m_firstPM) {
-        if (isInRange(i, j)) {
-            return (m_bestPathCost[i][j - m_first[i]] >= 0);
-        } else {
-            return false;
-        }
-    } else {
-        return m_otherMatcher->isAvailable(j, i);
     }
 }
 
@@ -191,6 +205,7 @@ pathcost_t
 Matcher::getPathCost(int i, int j)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isAvailable(i, j)) {
             if (!isInRange(i, j)) {
                 cerr << "ERROR: Matcher::getPathCost(" << i << ", " << j << "): "
@@ -203,6 +218,7 @@ Matcher::getPathCost(int i, int j)
             }
             throw "Path cost not available";
         }
+#endif
         return m_bestPathCost[i][j - m_first[i]];
     } else {
         return m_otherMatcher->getPathCost(j, i);
@@ -493,7 +509,7 @@ Matcher::printStats()
         cerr << "- have no cells in matrix" << endl;
     } else {
         cerr << "- have " << m_distance.size() << " cols in matrix with avg "
-             << double(cells) / m_distance.size() << " rows, total "
+             << double(cells) / double(m_distance.size()) << " rows, total "
              << cells << " cells" << endl;
         cerr << "- path costs " << k(cells * sizeof(pathcost_t))
              << "K, distances " << k(cells * sizeof(distance_t))
