@@ -142,7 +142,7 @@ Matcher::getColRangeForRow(int i)
 {
     if (m_firstPM) {
         if (i < 0 || i >= int(m_first.size())) {
-            cerr << "ERROR: Matcher::getColRange(" << i << "): Index out of range"
+            cerr << "ERROR: Matcher::getColRangeForRow(" << i << "): Index out of range"
                  << endl;
             throw "Index out of range";
         } else {
@@ -154,29 +154,21 @@ Matcher::getColRangeForRow(int i)
 }
 
 pair<int, int>
-Matcher::getRowRangeForCol(int j)
+Matcher::getRowRangeForCol(int i)
 {
     if (m_firstPM) {
 
-        //!!! tedious, examine uses (& consider restoring use of
-        //!!! first/last in "other" matcher)
-        int a = -1, b = -1;
-        for (int i = 0; i < int(m_first.size()); ++i) {
-            if (j >= m_first[i] && j < m_last[i]) {
-                if (a == -1) a = i;
-                b = i;
-            }
-        }
-        if (a == -1) {
-            cerr << "ERROR: Matcher::getRowRange(" << j << "): Index out of range"
+        if (i < 0 || i >= int(m_otherMatcher->m_first.size())) {
+            cerr << "ERROR: Matcher::getRowRangeForCol(" << i << "): Index out of range"
                  << endl;
             throw "Index out of range";
         } else {
-            return pair<int, int>(a, b + 1);
+            return pair<int, int>(m_otherMatcher->m_first[i],
+                                  m_otherMatcher->m_last[i]);
         }
 
     } else {
-        return m_otherMatcher->getColRangeForRow(j);
+        return m_otherMatcher->getColRangeForRow(i);
     }
 }
 
@@ -275,12 +267,15 @@ Matcher::setPathCost(int i, int j, advance_t dir, pathcost_t pathCost)
 void
 Matcher::size()
 {
-    int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-    m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, InvalidPathCost));
-    m_distance.resize(m_distXSize, distancevec_t(distSize, InvalidDistance));
-    m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
+
+    if (m_firstPM) {
+        int distSize = (m_params.maxRunCount + 1) * m_blockSize;
+        m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, InvalidPathCost));
+        m_distance.resize(m_distXSize, distancevec_t(distSize, InvalidDistance));
+        m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
+    }
 }
 
 void
