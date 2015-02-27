@@ -140,19 +140,44 @@ Matcher::isInRange(int i, int j)
 pair<int, int>
 Matcher::getColRange(int i)
 {
-    if (i < 0 || i >= int(m_first.size())) {
-        cerr << "ERROR: Matcher::getColRange(" << i << "): Index out of range"
-             << endl;
-        throw "Index out of range";
+    if (m_firstPM) {
+        if (i < 0 || i >= int(m_first.size())) {
+            cerr << "ERROR: Matcher::getColRange(" << i << "): Index out of range"
+                 << endl;
+            throw "Index out of range";
+        } else {
+            return pair<int, int>(m_first[i], m_last[i]);
+        }
     } else {
-        return pair<int, int>(m_first[i], m_last[i]);
+        return m_otherMatcher->getRowRange(i);
     }
 }
 
 pair<int, int>
-Matcher::getRowRange(int i)
+Matcher::getRowRange(int j)
 {
-    return m_otherMatcher->getColRange(i);
+    if (m_firstPM) {
+
+        //!!! tedious, examine uses (& consider restoring use of
+        //!!! first/last in "other" matcher)
+        int a = -1, b = -1;
+        for (int i = 0; i < int(m_first.size()); ++i) {
+            if (j >= m_first[i] && j < m_last[i]) {
+                if (a == -1) a = i;
+                b = i;
+            }
+        }
+        if (a == -1) {
+            cerr << "ERROR: Matcher::getRowRange(" << j << "): Index out of range"
+                 << endl;
+            throw "Index out of range";
+        } else {
+            return pair<int, int>(a, b + 1);
+        }
+
+    } else {
+        return m_otherMatcher->getColRange(j);
+    }
 }
 
 distance_t
