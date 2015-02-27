@@ -38,8 +38,8 @@ public:
 protected:
     static const int MAX_RUN_LENGTH = 50;
 
-    std::vector<int> val;
-    std::vector<int> len;
+    std::vector<int> m_val;
+    std::vector<int> m_len;
 };
 
 #endif

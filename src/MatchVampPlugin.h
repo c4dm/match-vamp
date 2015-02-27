@@ -25,9 +25,7 @@
 #include <pthread.h>
 #endif
 
-#include "Matcher.h"
-
-class MatchFeeder;
+#include "MatchPipeline.h"
 
 class MatchVampPlugin : public Vamp::Plugin
 {
@@ -66,10 +64,9 @@ public:
 
 protected:
     void createMatchers();
+    bool aboveThreshold(const float *);
 
-    Matcher *pm1;
-    Matcher *pm2;
-    MatchFeeder *feeder;
+    MatchPipeline *m_pipeline;
 
     Vamp::RealTime m_startTime;
     int m_stepSize;
@@ -80,8 +77,20 @@ protected:
     bool m_locked;
     bool m_smooth;
 
+    int m_frameNo;
+    
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
+
+    FeatureExtractor::Parameters m_feParams;
+    FeatureExtractor::Parameters m_defaultFeParams;
+    double m_secondReferenceFrequency;
+
+    FeatureConditioner::Parameters m_fcParams;
+    FeatureConditioner::Parameters m_defaultFcParams;
+
+    DistanceMetric::Parameters m_dParams;
+    DistanceMetric::Parameters m_defaultDParams;
 
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
@@ -90,6 +99,9 @@ protected:
     mutable int m_abRatioOutNo;
     mutable int m_aFeaturesOutNo;
     mutable int m_bFeaturesOutNo;
+    mutable int m_caFeaturesOutNo;
+    mutable int m_cbFeaturesOutNo;
+    mutable int m_overallCostOutNo;
 
 #ifdef _WIN32
     static HANDLE m_serialisingMutex;

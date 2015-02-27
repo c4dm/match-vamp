@@ -22,57 +22,66 @@
 
 #include "Matcher.h"
 
-/** Maps cost matrix coordinates into an efficient
- *  (linear instead of quadratic space) representation.
- *  Stores result of most recent mapping for fast
- *  sequential access.
- */
-class Finder {
-
-protected:
-    Matcher *pm1, *pm2;
-    int index1, index2, bestRow, bestCol;
-    int *rowRange;
-    int *colRange;
-
+class Finder
+{
 public:
-    Finder(Matcher *p1, Matcher *p2);
+    Finder(Matcher *pm);
+
+    // default copy ctor and operator= are fine
 
     ~Finder();
 
-    /** Sets up the instance variables to point to the given
-     *  coordinate in the distance matrix.
-     *
-     *  @param i1 frameNumber in the first Matcher
-     *  @param i2 frameNumber in the second Matcher
-     *  @return true iff the point (i2,i1) is represented in the distance matrix
+    void setMatcher(Matcher *pm);
+    
+    /**
+     * Tell the finder that one or both files ends sooner than it
+     * thought, i.e. that some of the trailing features are silence or
+     * otherwise to be ignored. d1 and d2 are feature frame counts for
+     * matchers 1 and 2 respectively. If this is not called, the full
+     * duration of each input will be considered.
      */
-    bool find(int i1, int i2);
+    void setDurations(int d1, int d2);
 
-    /** Returns the range [lo,hi) of legal column indices for the
-     *  given row. */
-    void getColRange(int row, int *range);
+    /**
+     * Find the location and normalised path cost of the column with
+     * the cheapest path cost within the given row. If the row is out
+     * of range, return false and leave the bestCol and bestCost
+     * variables unchanged.
+     */
+    bool getBestRowCost(int row, int &bestCol, normpathcost_t &bestCost);
 
-    /** Returns the range [lo,hi) of legal row indices for the given
-     *  column. */
-    void getRowRange(int col, int *range);
+    /**
+     * Find the location and normalised path cost of the row with the
+     * cheapest path cost within the given column. If the column is
+     * out of range, return false and leave the bestRow and bestCost
+     * variables unchanged.
+     */
+    bool getBestColCost(int col, int &bestRow, normpathcost_t &bestCost);
+    
+    /**
+     * Find the location and normalised path cost of the cheapest path
+     * cost within the final row and column of the search area, given
+     * that the area extends as far as the point at (row, col). This
+     * is used by getExpandDirection and can also be used, for
+     * example, to determine the current best estimate alignment for a
+     * frame we have just reached.
+     */
+    void getBestEdgeCost(int row, int col,
+                         int &bestRow, int &bestCol,
+                         normpathcost_t &bestCost);
 
-    int getExpandDirection(int row, int col);
-    int getExpandDirection(int row, int col, bool check);
-	
-    unsigned char getDistance(int row, int col);
-    void setDistance(int row, int col, unsigned char b);
-
-    int getPathCost(int row, int col);
-    int getRawPathCost(int row, int col);
-    void setPathCost(int row, int col, int i);
-
-    unsigned char getDistance();
-    void setDistance(int b);
-
-    int getPathCost();
-    void setPathCost(int i);
-
+    /**
+     * Calculate which direction to expand the search area in, given
+     * its current extents.
+     */
+    advance_t getExpandDirection();
+    
+    /**
+     * Calculate which direction to expand the search area in, given
+     * that so far it extends as far as the point at (row, col).
+     */
+    advance_t getExpandDirection(int row, int col);
+    
     /** Calculates a rectangle of the path cost matrix so that the
      *  minimum cost path between the bottom left and top right
      *  corners can be computed.  Caches previous values to avoid
@@ -97,7 +106,36 @@ public:
      * @param smooth whether to smooth the path before returning it
      */
     int retrievePath(bool smooth, std::vector<int> &pathx, std::vector<int> &pathy);
+
+    /**
+     * Get the path cost for the overall path to the end of both
+     * sources.
+     */
+    pathcost_t getOverallCost();
     
-}; // class Finder
+protected:
+#ifdef PERFORM_ERROR_CHECKS
+    struct ErrorPosition {
+        enum Type { NoError = 0, WrongCost, WrongAdvance, NoAdvance };
+        ErrorPosition() : type(NoError) { }
+        Type type;
+        int r;
+        int c;
+        pathcost_t prevCost;
+        distance_t distance;
+        pathcost_t costWas;
+        pathcost_t costShouldBe;
+        advance_t advanceWas;
+        advance_t advanceShouldBe;
+    };
+    ErrorPosition checkPathCostMatrix();
+    void checkAndReport();
+#endif
+
+    Matcher *m_m;   // I do not own this
+    
+    int m_duration1;
+    int m_duration2;
+};
 
 #endif

@@ -19,23 +19,57 @@
 using std::vector;
 
 MatchFeatureFeeder::MatchFeatureFeeder(Matcher *m1, Matcher *m2) :
-    pm1(m1), pm2(m2)
+    m_pm1(m1),
+    m_pm2(m2),
+    m_finder(m_pm1)
 {
-    finder = new Finder(m1, m2);
 }
 
 MatchFeatureFeeder::~MatchFeatureFeeder()
 {
-    delete finder;
 }
 
 void
-MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
+MatchFeatureFeeder::feed(feature_t f1, feature_t f2)
 {
-    q1.push(f1);
-    q2.push(f2);
+    // We maintain two FIFO queues of feature vectors, one per input
+    // stream.  When the match-feeder function is entered, it knows
+    // that it has at least one feature in each queue.  It loops,
+    // processing up to one feature per matcher, until a queue is
+    // empty.  Then it returns, to be called again with more data.
 
-    while (!q1.empty() && !q2.empty()) {
+    if (!f1.empty()) {
+        m_q1.push(f1);
+    }
+    
+    if (!f2.empty()) {
+        m_q2.push(f2);
+    }
+
+    while (!m_q1.empty() && !m_q2.empty()) {
+        feedBlock();
+    }
+}
+
+int
+MatchFeatureFeeder::getEstimatedReferenceFrame()
+{
+    if (m_pm1->getFrameCount() == 0 || m_pm2->getFrameCount() == 0) {
+        return 0;
+    }
+    int bestRow = 0;
+    normpathcost_t bestCost = 0;
+    if (!m_finder.getBestColCost(m_pm2->getFrameCount()-1, bestRow, bestCost)) {
+        return -1;
+    } else {
+        return bestRow;
+    }
+}
+
+void
+MatchFeatureFeeder::finish()
+{
+    while (!m_q1.empty() || !m_q2.empty()) {
         feedBlock();
     }
 }
@@ -43,42 +77,50 @@ MatchFeatureFeeder::feed(vector<double> f1, vector<double> f2)
 void
 MatchFeatureFeeder::feedBlock()
 {
-    if (pm1->frameCount < pm1->blockSize) {		// fill initial block
+    if (m_q1.empty()) { // ended
+        feed2();
+    } else if (m_q2.empty()) { // ended
+        feed1();
+    } else if (m_pm1->isFillingInitialBlock()) {
         feed1();
         feed2();
-    }
-    else if (pm1->runCount >= pm1->params.maxRunCount) {  // slope constraints
+    } else if (m_pm1->isOverrunning()) { // slope constraints
         feed2();
-    } else if (pm2->runCount >= pm2->params.maxRunCount) {
+    } else if (m_pm2->isOverrunning()) {
         feed1();
     } else {
-        switch (finder->getExpandDirection
-                (pm1->frameCount-1, pm2->frameCount-1)) {
-        case ADVANCE_THIS:
+        switch (m_finder.getExpandDirection()) {
+        case AdvanceThis:
             feed1();
             break;
-        case ADVANCE_OTHER:
+        case AdvanceOther:
             feed2();
             break;
-        case ADVANCE_BOTH:
+        case AdvanceBoth:
             feed1();
             feed2();
+            break;
+        case AdvanceNone:
+            cerr << "m_finder says AdvanceNone!" << endl;
             break;
         }
     }
+
+    m_fpx.push_back(m_pm2->getFrameCount());
+    m_fpy.push_back(m_pm1->getFrameCount());
 }
 
 void
 MatchFeatureFeeder::feed1()
 {
-    pm1->consumeFeatureVector(q1.front());
-    q1.pop();
+    m_pm1->consumeFeatureVector(m_q1.front());
+    m_q1.pop();
 }
 
 void
 MatchFeatureFeeder::feed2()
 {
-    pm2->consumeFeatureVector(q2.front());
-    q2.pop();
+    m_pm2->consumeFeatureVector(m_q2.front());
+    m_q2.pop();
 }
 

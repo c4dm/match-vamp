@@ -21,71 +21,34 @@
 #include <cstdlib>
 #include <cassert>
 
-bool Matcher::silent = true;
+using namespace std;
 
 //#define DEBUG_MATCHER 1
 
-Matcher::Matcher(Parameters parameters, Matcher *p) :
-    params(parameters),
-    metric(parameters.distanceNorm)
+Matcher::Matcher(Parameters parameters, DistanceMetric::Parameters dparams,
+                 Matcher *p) :
+    m_params(parameters),
+    m_metric(dparams)
 {
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ")" << endl;
+    cerr << "*** Matcher: hopTime = " << parameters.hopTime
+         << ", blockTime = " << parameters.blockTime
+         << ", maxRunCount = " << parameters.maxRunCount
+         << ", diagonalWeight = " << parameters.diagonalWeight << endl;
 #endif
+    
+    m_otherMatcher = p;	// the first matcher will need this to be set later
+    m_firstPM = (!p);
+    m_frameCount = 0;
+    m_runCount = 0;
+    m_blockSize = 0;
 
-    otherMatcher = p;	// the first matcher will need this to be set later
-    firstPM = (!p);
-    ltAverage = 0;
-    frameCount = 0;
-    runCount = 0;
-    freqMapSize = 0;
-    externalFeatureSize = 0;
-    featureSize = 0;
-    blockSize = 0;
-
-    blockSize = lrint(params.blockTime / params.hopTime);
+    m_blockSize = int(m_params.blockTime / m_params.hopTime + 0.5);
 #ifdef DEBUG_MATCHER
-    cerr << "Matcher: blockSize = " << blockSize << endl;
+    cerr << "Matcher: m_blockSize = " << m_blockSize << endl;
 #endif
 
-    distance = 0;
-    bestPathCost = 0;
-    distYSizes = 0;
-    distXSize = 0;
-
-    initialised = false;
-}
-
-Matcher::Matcher(Parameters parameters, Matcher *p, int featureSize) :
-    params(parameters),
-    externalFeatureSize(featureSize),
-    metric(parameters.distanceNorm)
-{
-#ifdef DEBUG_MATCHER
-    cerr << "Matcher::Matcher(" << params.sampleRate << ", " << p << ", " << featureSize << ")" << endl;
-#endif
-
-    otherMatcher = p;	// the first matcher will need this to be set later
-    firstPM = (!p);
-    ltAverage = 0;
-    frameCount = 0;
-    runCount = 0;
-    freqMapSize = 0;
-    featureSize = 0;
-    blockSize = 0;
-
-    blockSize = lrint(params.blockTime / params.hopTime);
-#ifdef DEBUG_MATCHER
-    cerr << "Matcher: blockSize = " << blockSize << endl;
-#endif
-
-    distance = 0;
-    bestPathCost = 0;
-    distYSizes = 0;
-    distXSize = 0;
-
-    initialised = false;
-
+    m_initialised = false;
 } 
 
 Matcher::~Matcher()
@@ -93,418 +56,410 @@ Matcher::~Matcher()
 #ifdef DEBUG_MATCHER
     cerr << "Matcher(" << this << ")::~Matcher()" << endl;
 #endif
-
-    if (initialised) {
-        
-        for (int i = 0; i < distXSize; ++i) {
-            if (distance[i]) {
-                free(distance[i]);
-                free(bestPathCost[i]);
-            }
-        }
-        free(distance);
-        free(bestPathCost);
-
-        free(first);
-        free(last);
-
-        free(distYSizes);
-    }
 }
 
 void
 Matcher::init()
 {
-    if (initialised) return;
+    if (m_initialised) return;
 
-    initialised = true;
+    m_features = featureseq_t(m_blockSize);
 
-    if (externalFeatureSize == 0) {
-        freqMapSize = getFeatureSizeFor(params);
-        featureSize = freqMapSize;
-        makeFreqMap();
-    } else {
-        featureSize = externalFeatureSize;
-    }
+    m_distXSize = m_blockSize * 2;
 
-    initVector<double>(prevFrame, featureSize);
-    initVector<double>(newFrame, featureSize);
-    initMatrix<double>(frames, blockSize, featureSize);
-    initVector<double>(totalEnergies, blockSize);
+    size();
 
-    int distSize = (params.maxRunCount + 1) * blockSize;
-
-    distXSize = blockSize * 2;
-
-    distance = (unsigned char **)malloc(distXSize * sizeof(unsigned char *));
-    bestPathCost = (int **)malloc(distXSize * sizeof(int *));
-    distYSizes = (int *)malloc(distXSize * sizeof(int));
-
-    for (int i = 0; i < blockSize; ++i) {
-        distance[i] = (unsigned char *)malloc(distSize * sizeof(unsigned char));
-        bestPathCost[i] = (int *)malloc(distSize * sizeof(int));
-        distYSizes[i] = distSize;
-    }
-    for (int i = blockSize; i < distXSize; ++i) {
-        distance[i] = 0;
-    }
+    m_frameCount = 0;
+    m_runCount = 0;
     
-    first = (int *)malloc(distXSize * sizeof(int));
-    last = (int *)malloc(distXSize * sizeof(int));
+    m_initialised = true;
+}
 
-    frameCount = 0;
-    runCount = 0;
-    ltAverage = 0;
-
-} // init
-
-void
-Matcher::makeFreqMap()
+bool
+Matcher::isRowAvailable(int i)
 {
-    initVector<int>(freqMap, params.fftSize/2 + 1);
+    if (i < 0 || i >= int(m_first.size())) return false;
 
-    if (params.useChromaFrequencyMap) {
-#ifdef DEBUG_MATCHER
-        cerr << "makeFreqMap: calling makeChromaFrequencyMap" << endl;
-#endif
-        makeChromaFrequencyMap();
+    for (int j = m_first[i]; j < int(m_first[i] + m_bestPathCost[i].size()); ++j) {
+        if (isAvailable(i, j)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool
+Matcher::isColAvailable(int i)
+{
+    return m_otherMatcher->isRowAvailable(i);
+}
+
+bool
+Matcher::isInRange(int i, int j)
+{
+    if (m_firstPM) {
+        return ((i >= 0) &&
+                (i < int(m_first.size())) &&
+                (j >= m_first[i]) &&
+                (j < int(m_first[i] + m_bestPathCost[i].size())));
     } else {
-#ifdef DEBUG_MATCHER
-        cerr << "makeFreqMap: calling makeStandardFrequencyMap" << endl;
-#endif
-        makeStandardFrequencyMap();
+        return m_otherMatcher->isInRange(j, i);
     }
-} // makeFreqMap()
+}
 
-int
-Matcher::getFeatureSizeFor(Parameters params)
+bool
+Matcher::isAvailable(int i, int j)
 {
-    if (params.useChromaFrequencyMap) {
-        return 13;
+    if (m_firstPM) {
+        if (isInRange(i, j)) {
+            return (m_bestPathCost[i][j - m_first[i]] >= 0);
+        } else {
+            return false;
+        }
     } else {
-        return 84;
+        return m_otherMatcher->isAvailable(j, i);
     }
 }
 
-void
-Matcher::makeStandardFrequencyMap()
+pair<int, int>
+Matcher::getColRange(int i)
 {
-    double binWidth = params.sampleRate / params.fftSize;
-    int crossoverBin = (int)(2 / (pow(2, 1/12.0) - 1));
-    int crossoverMidi = lrint(log(crossoverBin*binWidth/440.0)/
-                              log(2.0) * 12 + 69);
-    // freq = 440 * Math.pow(2, (midi-69)/12.0) / binWidth;
-    int i = 0;
-    while (i <= crossoverBin) {
-        freqMap[i] = i;
-        ++i;
+    if (i < 0 || i >= int(m_first.size())) {
+        cerr << "ERROR: Matcher::getColRange(" << i << "): Index out of range"
+             << endl;
+        throw "Index out of range";
+    } else {
+        return pair<int, int>(m_first[i], m_last[i]);
     }
-    while (i <= params.fftSize/2) {
-        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
-        if (midi > 127) midi = 127;
-        int target = crossoverBin + lrint(midi) - crossoverMidi;
-        if (target >= freqMapSize) target = freqMapSize - 1;
-        freqMap[i++] = target;
-    }
-
-    if (!silent) {
-        cerr << "Standard map size: " << freqMapSize 
-             << ";  Crossover at: " << crossoverBin << endl;
-            for (i = 0; i < params.fftSize / 2; i++)
-                cerr << "freqMap[" << i << "] = " << freqMap[i] << endl;
-    }
-} // makeStandardFrequencyMap()
-
-void
-Matcher::makeChromaFrequencyMap()
-{
-    double binWidth = params.sampleRate / params.fftSize;
-    int crossoverBin = (int)(1 / (pow(2, 1/12.0) - 1));
-    // freq = 440 * Math.pow(2, (midi-69)/12.0) / binWidth;
-    int i = 0;
-    while (i <= crossoverBin)
-        freqMap[i++] = 0;
-    while (i <= params.fftSize/2) {
-        double midi = log(i*binWidth/440.0) / log(2.0) * 12 + 69;
-        freqMap[i++] = (lrint(midi)) % 12 + 1;
-    }
-    if (!silent) {
-        cerr << "Chroma map size: " << freqMapSize 
-             << ";  Crossover at: " << crossoverBin << endl;
-        for (i = 0; i < params.fftSize / 2; i++)
-            cerr << "freqMap[" << i << "] = " << freqMap[i] << endl;
-    }
-} // makeChromaFrequencyMap()
-
-vector<double>
-Matcher::consumeFrame(double *reBuffer, double *imBuffer)
-{
-    if (!initialised) init();
-
-    vector<double> processedFrame = 
-        processFrameFromFreqData(reBuffer, imBuffer);
-
-    calcAdvance();
-
-    return processedFrame;
 }
 
-void
-Matcher::consumeFeatureVector(std::vector<double> feature)
+pair<int, int>
+Matcher::getRowRange(int i)
 {
-    if (!initialised) init();
-    int frameIndex = frameCount % blockSize; 
-    frames[frameIndex] = feature;
-    calcAdvance();
+    return m_otherMatcher->getColRange(i);
 }
 
-vector<double> 
-Matcher::processFrameFromFreqData(double *reBuffer, double *imBuffer)
+distance_t
+Matcher::getDistance(int i, int j)
 {
-    for (int i = 0; i < (int)newFrame.size(); ++i) {
-        newFrame[i] = 0;
+    if (m_firstPM) {
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
+                 << "Location is not in range" << endl;
+            throw "Distance not available";
+        }
+        distance_t dist = m_distance[i][j - m_first[i]];
+        if (dist == InvalidDistance) {
+            cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
+                 << "Location is in range, but distance ("
+                 << distance_print_t(dist)
+                 << ") is invalid or has not been set" << endl;
+            throw "Distance not available";
+        }
+        return dist;
+    } else {
+        return m_otherMatcher->getDistance(j, i);
     }
-    double rms = 0;
-    for (int i = 0; i <= params.fftSize/2; i++) {
-        double mag = reBuffer[i] * reBuffer[i] +
-                     imBuffer[i] * imBuffer[i];
-        rms += mag;
-        newFrame[freqMap[i]] += mag;
+}
+                
+void
+Matcher::setDistance(int i, int j, distance_t distance)
+{
+    if (m_firstPM) {
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::setDistance(" << i << ", " << j << ", "
+                 << distance_print_t(distance)
+                 << "): Location is out of range" << endl;
+            throw "Indices out of range";
+        }
+        m_distance[i][j - m_first[i]] = distance;
+    } else {
+        m_otherMatcher->setDistance(j, i, distance);
     }
-    rms = sqrt(rms / (params.fftSize/2));
+}
 
-    int frameIndex = frameCount % blockSize;
+normpathcost_t
+Matcher::getNormalisedPathCost(int i, int j)
+{
+    // normalised for path length. 1+ prevents division by zero here
+    return normpathcost_t(getPathCost(i, j)) / normpathcost_t(1 + i + j);
+}
 
-    vector<double> processedFrame(freqMapSize, 0.0);
-
-    double totalEnergy = 0;
-    if (params.useSpectralDifference) {
-        for (int i = 0; i < freqMapSize; i++) {
-            totalEnergy += newFrame[i];
-            if (newFrame[i] > prevFrame[i]) {
-                processedFrame[i] = newFrame[i] - prevFrame[i];
+pathcost_t
+Matcher::getPathCost(int i, int j)
+{
+    if (m_firstPM) {
+        if (!isAvailable(i, j)) {
+            if (!isInRange(i, j)) {
+                cerr << "ERROR: Matcher::getPathCost(" << i << ", " << j << "): "
+                     << "Location is not in range" << endl;
             } else {
-                processedFrame[i] = 0;
+                cerr << "ERROR: Matcher::getPathCost(" << i << ", " << j << "): "
+                     << "Location is in range, but pathCost ("
+                     << m_bestPathCost[i][j - m_first[i]]
+                     << ") is invalid or has not been set" << endl;
             }
+            throw "Path cost not available";
         }
+        return m_bestPathCost[i][j - m_first[i]];
     } else {
-        for (int i = 0; i < freqMapSize; i++) {
-            processedFrame[i] = newFrame[i];
-            totalEnergy += processedFrame[i];
-        }
+        return m_otherMatcher->getPathCost(j, i);
     }
-    totalEnergies[frameIndex] = totalEnergy;
-
-    double decay = frameCount >= 200 ? 0.99:
-        (frameCount < 100? 0: (frameCount - 100) / 100.0);
-
-    if (ltAverage == 0)
-        ltAverage = totalEnergy;
-    else
-        ltAverage = ltAverage * decay + totalEnergy * (1.0 - decay);
-
-    if (rms <= params.silenceThreshold)
-        for (int i = 0; i < freqMapSize; i++)
-            processedFrame[i] = 0;
-    else if (params.frameNorm == NormaliseFrameToSum1)
-        for (int i = 0; i < freqMapSize; i++)
-            processedFrame[i] /= totalEnergy;
-    else if (params.frameNorm == NormaliseFrameToLTAverage)
-        for (int i = 0; i < freqMapSize; i++)
-            processedFrame[i] /= ltAverage;
-
-    vector<double> tmp = prevFrame;
-    prevFrame = newFrame;
-    newFrame = tmp;
-
-    frames[frameIndex] = processedFrame;
-
-    if ((frameCount % 100) == 0) {
-        if (!silent) {
-            cerr << "Progress:" << frameCount << " " << ltAverage << endl;
+}
+                
+void
+Matcher::setPathCost(int i, int j, advance_t dir, pathcost_t pathCost)
+{
+    if (m_firstPM) {
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::setPathCost(" << i << ", " << j << ", "
+                 << dir << ", " << pathCost
+                 << "): Location is out of range" << endl;
+            throw "Indices out of range";
         }
+        m_advance[i][j - m_first[i]] = dir;
+        m_bestPathCost[i][j - m_first[i]] = pathCost;
+    } else {
+        if (dir == AdvanceThis) {
+            dir = AdvanceOther;
+        } else if (dir == AdvanceOther) {
+            dir = AdvanceThis;
+        }
+        m_otherMatcher->setPathCost(j, i, dir, pathCost);
     }
+}
 
-    return processedFrame;
+void
+Matcher::size()
+{
+    int distSize = (m_params.maxRunCount + 1) * m_blockSize;
+    m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, InvalidPathCost));
+    m_distance.resize(m_distXSize, distancevec_t(distSize, InvalidDistance));
+    m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
+    m_first.resize(m_distXSize, 0);
+    m_last.resize(m_distXSize, 0);
+}
+
+void
+Matcher::consumeFeatureVector(const feature_t &feature)
+{
+    if (!m_initialised) init();
+    int frameIndex = m_frameCount % m_blockSize; 
+    m_features[frameIndex] = feature;
+    calcAdvance();
 }
 
 void
 Matcher::calcAdvance()
 {
-    int frameIndex = frameCount % blockSize;
+    int frameIndex = m_frameCount % m_blockSize;
 
-    if (frameCount >= distXSize) {
-//        std::cerr << "Resizing " << distXSize << " -> " << distXSize * 2 << std::endl;
-        distXSize *= 2;
-        distance = (unsigned char **)realloc(distance, distXSize * sizeof(unsigned char *));
-        bestPathCost = (int **)realloc(bestPathCost, distXSize * sizeof(int *));
-        distYSizes = (int *)realloc(distYSizes, distXSize * sizeof(int));
-        first = (int *)realloc(first, distXSize * sizeof(int));
-        last = (int *)realloc(last, distXSize * sizeof(int));
-        
-        for (int i = distXSize/2; i < distXSize; ++i) {
-            distance[i] = 0;
-        }
+    if (m_frameCount >= m_distXSize) {
+        m_distXSize *= 2;
+        size();
     }
 
-    if (firstPM && (frameCount >= blockSize)) {
+    if (m_firstPM && (m_frameCount >= m_blockSize)) {
 
-        int len = last[frameCount - blockSize] -
-                 first[frameCount - blockSize];
+        int len = m_last[m_frameCount - m_blockSize] -
+                 m_first[m_frameCount - m_blockSize];
 
-        // We need to copy distance[frameCount-blockSize] to
-        // distance[frameCount], and then truncate
-        // distance[frameCount-blockSize] to its first len elements.
+        // We need to copy distance[m_frameCount-m_blockSize] to
+        // distance[m_frameCount], and then truncate
+        // distance[m_frameCount-m_blockSize] to its first len elements.
         // Same for bestPathCost.
-/*
-        std::cerr << "Matcher(" << this << "): moving " << distYSizes[frameCount - blockSize] << " from " << frameCount - blockSize << " to "
-                  << frameCount << ", allocating " << len << " for "
-                  << frameCount - blockSize << std::endl;
-*/
-        distance[frameCount] = distance[frameCount - blockSize];
 
-        distance[frameCount - blockSize] = (unsigned char *)
-            malloc(len * sizeof(unsigned char));
+        distancevec_t dOld(m_distance[m_frameCount - m_blockSize]);
+        distancevec_t dNew(len, InvalidDistance);
+
+        pathcostvec_t bpcOld(m_bestPathCost[m_frameCount - m_blockSize]);
+        pathcostvec_t bpcNew(len, InvalidPathCost);
+
+        advancevec_t adOld(m_advance[m_frameCount - m_blockSize]);
+        advancevec_t adNew(len, AdvanceNone);
+
         for (int i = 0; i < len; ++i) {
-            distance[frameCount - blockSize][i] =
-                distance[frameCount][i];
+            dNew[i] = dOld[i];
+            bpcNew[i] = bpcOld[i];
+            adNew[i] = adOld[i];
         }
+        
+        m_distance[m_frameCount] = dOld;
+        m_distance[m_frameCount - m_blockSize] = dNew;
 
-        bestPathCost[frameCount] = bestPathCost[frameCount - blockSize];
+        m_bestPathCost[m_frameCount] = bpcOld;
+        m_bestPathCost[m_frameCount - m_blockSize] = bpcNew;
 
-        bestPathCost[frameCount - blockSize] = (int *)
-            malloc(len * sizeof(int));
-        for (int i = 0; i < len; ++i) {
-            bestPathCost[frameCount - blockSize][i] =
-                bestPathCost[frameCount][i];
-        }
-
-        distYSizes[frameCount] = distYSizes[frameCount - blockSize];
-        distYSizes[frameCount - blockSize] = len;
+        m_advance[m_frameCount] = adOld;
+        m_advance[m_frameCount - m_blockSize] = adNew;
     }
 
-    int stop = otherMatcher->frameCount;
-    int index = stop - blockSize;
-    if (index < 0)
-        index = 0;
-    first[frameCount] = index;
-    last[frameCount] = stop;
+    int stop = m_otherMatcher->m_frameCount;
+    int index = stop - m_blockSize;
+    if (index < 0) index = 0;
 
-    bool overflow = false;
-    int mn= -1;
-    int mx= -1;
+    m_first[m_frameCount] = index;
+    m_last[m_frameCount] = stop;
+
     for ( ; index < stop; index++) {
 
-        int dMN = metric.calcDistanceScaled
-            (frames[frameIndex],
-             otherMatcher->frames[index % blockSize],
-             params.distanceScale);
-        
-        if (mx<0)
-            mx = mn = dMN;
-        else if (dMN > mx)
-            mx = dMN;
-        else if (dMN < mn)
-            mn = dMN;
-        if (dMN >= 255) {
-            overflow = true;
-            dMN = 255;
-        }
+        distance_t distance = m_metric.calcDistance
+            (m_features[frameIndex],
+             m_otherMatcher->m_features[index % m_blockSize]);
 
-        if ((frameCount == 0) && (index == 0))    // first element
-            setValue(0, 0, 0, 0, dMN);
-        else if (frameCount == 0)                 // first row
-            setValue(0, index, ADVANCE_OTHER,
-                     getValue(0, index-1, true), dMN);
-        else if (index == 0)                      // first column
-            setValue(frameCount, index, ADVANCE_THIS,
-                     getValue(frameCount - 1, 0, true), dMN);
-        else if (index == otherMatcher->frameCount - blockSize) {
+        pathcost_t straightIncrement(distance);
+        pathcost_t diagIncrement = pathcost_t(distance * m_params.diagonalWeight);
+
+        if ((m_frameCount == 0) && (index == 0)) { // first element
+
+            updateValue(0, 0, AdvanceNone,
+                        0,
+                        distance);
+
+        } else if (m_frameCount == 0) { // first row
+
+            updateValue(0, index, AdvanceOther,
+                        getPathCost(0, index-1),
+                        distance);
+            
+        } else if (index == 0) { // first column
+
+            updateValue(m_frameCount, index, AdvanceThis,
+                        getPathCost(m_frameCount - 1, 0),
+                        distance);
+            
+        } else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
+            
             // missing value(s) due to cutoff
             //  - no previous value in current row (resp. column)
             //  - no diagonal value if prev. dir. == curr. dirn
-            int min2 = getValue(frameCount - 1, index, true);
-            //	if ((firstPM && (first[frameCount - 1] == index)) ||
-            //			(!firstPM && (last[index-1] < frameCount)))
-            if (first[frameCount - 1] == index)
-                setValue(frameCount, index, ADVANCE_THIS, min2, dMN);
-            else {
-                int min1 = getValue(frameCount - 1, index - 1, true);
-                if (min1 + dMN <= min2)
-                    setValue(frameCount, index, ADVANCE_BOTH, min1,dMN);
-                else
-                    setValue(frameCount, index, ADVANCE_THIS, min2,dMN);
-            }
-        } else {
-            int min1 = getValue(frameCount, index-1, true);
-            int min2 = getValue(frameCount - 1, index, true);
-            int min3 = getValue(frameCount - 1, index-1, true);
-            if (min1 <= min2) {
-                if (min3 + dMN <= min1)
-                    setValue(frameCount, index, ADVANCE_BOTH, min3,dMN);
-                else
-                    setValue(frameCount, index, ADVANCE_OTHER,min1,dMN);
+            
+            pathcost_t min2 = getPathCost(m_frameCount - 1, index);
+
+//            cerr << "NOTE: missing value at i = " << m_frameCount << ", j = "
+//                 << index << " (first = " << m_firstPM << ")" << endl;
+                
+            //	if ((m_firstPM && (first[m_frameCount - 1] == index)) ||
+            //			(!m_firstPM && (m_last[index-1] < m_frameCount)))
+            if (m_first[m_frameCount - 1] == index) {
+                
+                updateValue(m_frameCount, index, AdvanceThis,
+                            min2, distance);
+                
             } else {
-                if (min3 + dMN <= min2)
-                    setValue(frameCount, index, ADVANCE_BOTH, min3,dMN);
-                else
-                    setValue(frameCount, index, ADVANCE_THIS, min2,dMN);
+
+                pathcost_t min1 = getPathCost(m_frameCount - 1, index - 1);
+                if (min1 + diagIncrement <= min2 + straightIncrement) {
+                    updateValue(m_frameCount, index, AdvanceBoth,
+                                min1, distance);
+                } else {
+                    updateValue(m_frameCount, index, AdvanceThis,
+                                min2, distance);
+                }
+            }
+
+        } else {
+
+            pathcost_t min1 = getPathCost(m_frameCount, index - 1);
+            pathcost_t min2 = getPathCost(m_frameCount - 1, index);
+            pathcost_t min3 = getPathCost(m_frameCount - 1, index - 1);
+
+            pathcost_t cost1 = min1 + straightIncrement;
+            pathcost_t cost2 = min2 + straightIncrement;
+            pathcost_t cost3 = min3 + diagIncrement;
+
+            // Choosing is easy if there is a strict cheapest of the
+            // three. If two or more share the lowest cost, we choose
+            // in order of preference: cost3 (AdvanceBoth), cost2
+            // (AdvanceThis), cost1 (AdvanceOther) if we are the first
+            // matcher; and cost3 (AdvanceBoth), cost1 (AdvanceOther),
+            // cost2 (AdvanceThis) if we are the second matcher.  That
+            // is, we always prioritise the diagonal followed by the
+            // first matcher.
+
+            if (( m_firstPM && (cost1 <  cost2)) ||
+                (!m_firstPM && (cost1 <= cost2))) {
+                if (cost3 <= cost1) {
+                    updateValue(m_frameCount, index, AdvanceBoth,
+                                min3, distance);
+                } else {
+                    updateValue(m_frameCount, index, AdvanceOther,
+                                min1, distance);
+                }
+            } else {
+                if (cost3 <= cost2) {
+                    updateValue(m_frameCount, index, AdvanceBoth,
+                                min3, distance);
+                } else {
+                    updateValue(m_frameCount, index, AdvanceThis,
+                                min2, distance);
+                }
             }
         }
-        otherMatcher->last[index]++;
+        
+        m_otherMatcher->m_last[index]++;
     } // loop for row (resp. column)
 
-    frameCount++;
-    runCount++;
+    m_frameCount++;
+    m_runCount++;
 
-    otherMatcher->runCount = 0;
-
-    if (overflow && !silent)
-        cerr << "WARNING: overflow in distance metric: "
-             << "frame " << frameCount << ", val = " << mx << endl;
-    
-    if (!silent)
-        std::cerr << "Frame " << frameCount << ", d = " << (mx-mn) << std::endl;
+    m_otherMatcher->m_runCount = 0;
 }
 
-int
-Matcher::getValue(int i, int j, bool firstAttempt)
-{
-    if (firstPM)
-        return bestPathCost[i][j - first[i]];
-    else
-        return otherMatcher->bestPathCost[j][i - otherMatcher->first[j]];
-} // getValue()
-
 void
-Matcher::setValue(int i, int j, int dir, int value, int dMN)
+Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t distance)
 {
-    if (firstPM) {
-        distance[i][j - first[i]] = (unsigned char)((dMN & MASK) | dir);
-        bestPathCost[i][j - first[i]] =
-            (value + (dir==ADVANCE_BOTH? dMN*2: dMN));
+    pathcost_t increment = distance;
+    if (dir == AdvanceBoth) {
+        increment = pathcost_t(increment * m_params.diagonalWeight);
+    }
+
+    pathcost_t newValue = value + increment;
+    if (MaxPathCost - increment < value) {
+        cerr << "ERROR: Path cost overflow at i=" << i << ", j=" << j << ": "
+             << value << " + " << increment << " > " << MaxPathCost << endl;
+        newValue = MaxPathCost;
+    }
+    
+    if (m_firstPM) {
+
+        setDistance(i, j, distance);
+        setPathCost(i, j, dir, newValue);
+
     } else {
-        if (dir == ADVANCE_THIS)
-            dir = ADVANCE_OTHER;
-        else if (dir == ADVANCE_OTHER)
-            dir = ADVANCE_THIS;
-        int idx = i - otherMatcher->first[j];
-        if (idx == (int)otherMatcher->distYSizes[j]) {
+
+        if (dir == AdvanceThis) dir = AdvanceOther;
+        else if (dir == AdvanceOther) dir = AdvanceThis;
+
+        int idx = i - m_otherMatcher->m_first[j];
+        
+        if (idx < 0 || size_t(idx) == m_otherMatcher->m_distance[j].size()) {
             // This should never happen, but if we allow arbitrary
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
-            std::cerr << "Emergency resize: " << idx << " -> " << idx * 2 << std::endl;
-            otherMatcher->distYSizes[j] = idx * 2;
-            otherMatcher->bestPathCost[j] =
-                (int *)realloc(otherMatcher->bestPathCost[j],
-                               idx * 2 * sizeof(int));
-            otherMatcher->distance[j] = 
-                (unsigned char *)realloc(otherMatcher->distance[j],
-                                         idx * 2 * sizeof(unsigned char));
+            cerr << "Emergency resize: " << idx << " -> " << idx * 2 << endl;
+            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, InvalidPathCost);
+            m_otherMatcher->m_distance[j].resize(idx * 2, InvalidDistance);
+            m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
         }
-        otherMatcher->distance[j][idx] = (unsigned char)((dMN & MASK) | dir);
-        otherMatcher->bestPathCost[j][idx] =
-            (value + (dir==ADVANCE_BOTH? dMN*2: dMN));
-    }
-} // setValue()
 
+        m_otherMatcher->setDistance(j, i, distance);
+        m_otherMatcher->setPathCost(j, i, dir, newValue);
+    }
+}
+
+advance_t
+Matcher::getAdvance(int i, int j)
+{
+    if (m_firstPM) {
+        if (!isInRange(i, j)) {
+            cerr << "ERROR: Matcher::getAdvance(" << i << ", " << j << "): "
+                 << "Location is not in range" << endl;
+            throw "Advance not available";
+        }
+        return m_advance[i][j - m_first[i]];
+    } else {
+        return m_otherMatcher->getAdvance(j, i);
+    }
+}

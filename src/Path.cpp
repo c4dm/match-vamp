@@ -19,55 +19,55 @@
 int
 Path::smooth(std::vector<int> &x, std::vector<int> &y, int length)
 {
-    if (length == 0)
+    if (length <= 0)
         return 0;
-    while ((int)val.size() < length) {
-        val.push_back(0);
-        len.push_back(0);
+    while (m_val.size() < static_cast<std::vector<int>::size_type>(length)) {
+        m_val.push_back(0);
+        m_len.push_back(0);
     }
     int p = 0;
-    val[0] = len[0] = 0;
+    m_val[0] = m_len[0] = 0;
     for (int i = 1; i < length; i++) {	// H = 1; V = 2; D = 3
         int current = x[i] - x[i-1] + 2 * (y[i] - y[i-1]);
-        if (current == val[p]) {
-            len[p]++;
-        } else if ((current == 3) || (val[p] == 0)) {
-            val[++p] = current;
-            len[p] = 1;
-        } else if (val[p] + current == 3) {	// 1 + 2
-            if (--len[p] == 0)
+        if (current == m_val[p]) {
+            m_len[p]++;
+        } else if ((current == 3) || (m_val[p] == 0)) {
+            m_val[++p] = current;
+            m_len[p] = 1;
+        } else if (m_val[p] + current == 3) {	// 1 + 2
+            if (--m_len[p] == 0)
                 p--;
-            if (val[p] == 3)
-                len[p]++;
+            if (m_val[p] == 3)
+                m_len[p]++;
             else {
-                val[++p] = 3;
-                len[p] = 1;
+                m_val[++p] = 3;
+                m_len[p] = 1;
             }
-        } else {	// val[p] == 3 && current != 3
-            if ((val[p-1] == current) ||
-                (val[p-1] == 0) ||
-                (len[p] > MAX_RUN_LENGTH)) {
-                val[++p] = current;
-                len[p] = 1;
+        } else {	// m_val[p] == 3 && current != 3
+            if ((m_val[p-1] == current) ||
+                (m_val[p-1] == 0) ||
+                (m_len[p] > MAX_RUN_LENGTH)) {
+                m_val[++p] = current;
+                m_len[p] = 1;
             } else {
-                if (--len[p-1] == 0) {
-                    val[p-1] = val[p];
-                    len[p-1] = len[p];
+                if (--m_len[p-1] == 0) {
+                    m_val[p-1] = m_val[p];
+                    m_len[p-1] = m_len[p];
                     p--;
-                    if (val[p-1] == 3) {
-                        len[p-1] += len[p];
+                    if (m_val[p-1] == 3) {
+                        m_len[p-1] += m_len[p];
                         p--;
                     }
                 }
-                len[p]++;
+                m_len[p]++;
             }
         }
     }
     int i = 1;
     for (int pp = 1; pp <= p; pp++) {
-        int dx = val[pp] & 1;
-        int dy = val[pp] >> 1;
-        for (int j = len[pp]; j > 0; j--, i++) {
+        int dx = m_val[pp] & 1;
+        int dy = m_val[pp] >> 1;
+        for (int j = m_len[pp]; j > 0; j--, i++) {
             x[i] = x[i-1] + dx;
             y[i] = y[i-1] + dy;
         }

@@ -17,11 +17,28 @@
 #ifndef DISTANCE_METRIC_H
 #define DISTANCE_METRIC_H
 
-#include <vector>
+#include "MatchTypes.h"
 
 class DistanceMetric
 {
 public:
+    enum Metric {
+
+        /** Calculate the Manhattan distance between feature
+         *  vectors. If the vectors contain energy, as the default
+         *  MATCH feature does, this could be considered as a squared
+         *  Euclidean distance metric. */
+        Manhattan,
+
+        /** Calculate the Euclidean distance between feature vectors. */
+        Euclidean,
+
+        /** Calculate the cosine distance between feature vectors. The
+         *  normalisation setting will be ignored as the result is
+         *  already magnitude-independent. */
+        Cosine,
+    };
+
     enum DistanceNormalisation {
             
         /** Do not normalise distance metrics */
@@ -35,39 +52,61 @@ public:
          *  of the sum of the frames. */
         NormaliseDistanceToLogSum,
     };
-
-    DistanceMetric(DistanceNormalisation norm) : m_norm(norm) { }
     
-    /** Calculates the Manhattan distance between two vectors, with an
-     *  optional normalisation by the combined values in the
-     *  vectors. Since the vectors contain energy, this could be
-     *  considered as a squared Euclidean distance metric. Note that
-     *  normalisation assumes the values are all non-negative.
+    enum NoiseAddition {
+
+        /** Don't add noise. */
+        NoNoise,
+
+        /** Add a constant noise term. This can help avoid
+         *  mis-tracking when one file contains a lot of silence. */
+        AddNoise,
+    };
+    
+    struct Parameters {
+
+        Parameters() :
+            metric(Manhattan),
+            norm(NormaliseDistanceToLogSum),
+            noise(AddNoise),
+            scale(100.)
+        {}
+
+        Metric metric;
+        DistanceNormalisation norm;
+        NoiseAddition noise;
+        double scale;
+    };
+    
+    DistanceMetric(Parameters params);
+
+    ~DistanceMetric();
+    
+    /** Calculates the distance in some metric between two vectors,
+     *  with an optional normalisation by the combined values in the
+     *  vectors. Note that normalisation assumes the values are all
+     *  non-negative.
      *
      *  @param f1 one of the vectors involved in the distance calculation
      *  @param f2 one of the vectors involved in the distance calculation
      *  @return the distance
      */
-    double calcDistance(const std::vector<double> &f1,
-			const std::vector<double> &f2);
-    
-    /** Calculates the Manhattan distance between two vectors, with an
-     *  optional normalisation by the combined values in the
-     *  vectors. Since the vectors contain energy, this could be
-     *  considered as a squared Euclidean distance metric. Note that
-     *  normalisation assumes the values are all non-negative.
-     *
-     *  @param f1 one of the vectors involved in the distance calculation
-     *  @param f2 one of the vectors involved in the distance calculation
-     *  @param scale the scaling factor to place the result in integer range
-     *  @return the distance, scaled by scale and truncated to an integer
-     */
-    int calcDistanceScaled(const std::vector<double> &f1,
-			   const std::vector<double> &f2,
-			   double scale);
+    distance_t calcDistance(const feature_t &f1,
+                            const feature_t &f2);
 
+    /**
+     * Mostly for internal use and testing
+     */
+    distance_t scaleValueIntoDistanceRange(double value);
+    
 private:
-    DistanceNormalisation m_norm;
+    Parameters m_params;
+
+    distance_t scaleAndTally(double);
+    template <typename T> T scaleIntoRange(double);
+
+    distance_t m_max;
+    int m_overcount;
 };
 
 #endif

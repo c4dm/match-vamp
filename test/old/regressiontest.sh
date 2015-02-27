@@ -4,7 +4,7 @@ mydir=$(dirname "$0")
 
 sonic-annotator --minversion 1.1 || exit 1
 
-VAMP_PATH="${mydir}/.." \
+VAMP_PATH="${mydir}/../.." \
     sonic-annotator \
     -d vamp:match-vamp-plugin:match \
     --multiplex \

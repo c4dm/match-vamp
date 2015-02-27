@@ -33,22 +33,60 @@ public:
      * respectively (depending on their advance status). Matchers must
      * have been constructed using the external featureSize
      * constructor.
+     *
+     * f1 and f2 are normally expected to have the same number of
+     * values, and that number should be the featureSize passed to the
+     * constructors for both Matchers. The exception is when one input
+     * ends before the other one: subsequent calls should pass a
+     * feature vector as normal for the input that is still going on,
+     * and an empty vector for the one that has ended.
      */
-    void feed(std::vector<double> f1, std::vector<double> f2);
+    void feed(feature_t f1, feature_t f2);
 
-    Finder *getFinder() { return finder; }
+    /**
+     * Get the best estimate for the frame in the reference (f1)
+     * corresponding to the latest frame in the other input (f2).
+     */
+    int getEstimatedReferenceFrame();
+    
+    /**
+     * Indicate that both inputs have come to an end.
+     */
+    void finish();
+
+    /**
+     * Return the forward path, that is, the estimate of the
+     * lowest-cost path that was generated (possibly in real-time)
+     * while initially tracking the inputs. This is the path that is
+     * used to determine the shape of the search zone within which the
+     * eventual reverse path will be sought by the Finder.
+     */
+    void retrieveForwardPath(std::vector<int> &pathx, std::vector<int> &pathy) {
+        pathx = m_fpx;
+        pathy = m_fpy;
+    }
+
+    Finder *getFinder() { return &m_finder; }
 
 protected:
     void feedBlock();
     void feed1();
     void feed2();
 
-    Finder *finder;
-    Matcher *pm1;
-    Matcher *pm2;
+    Matcher *m_pm1;   // I do not own this
+    Matcher *m_pm2;   // I do not own this
 
-    std::queue<std::vector<double> > q1;
-    std::queue<std::vector<double> > q2;
+    Finder m_finder; // I own this, and it refers to m_pm1
+    
+    std::queue<feature_t> m_q1;
+    std::queue<feature_t> m_q2;
+
+    vector<int> m_fpx;
+    vector<int> m_fpy;
+
+    // not provided:
+    MatchFeatureFeeder(const MatchFeatureFeeder &other);
+    MatchFeatureFeeder &operator=(const MatchFeatureFeeder &other);
 };
 
 #endif

@@ -1,6 +1,10 @@
 
-CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror
-LDFLAGS		+= -shared -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic -Wl,-Bsymbolic -Wl,-z,defs -lpthread -Wl,--version-script=vamp-plugin.map
+CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror -Werror=old-style-cast -Wconversion -std=c++11 -DPERFORM_ERROR_CHECKS=1
+
+#CXXFLAGS	+= -fPIC -g -Wall -Werror -Werror=old-style-cast -Wconversion -DPERFORM_ERROR_CHECKS=1 -std=c++11
+
+LDFLAGS		+= -Wl,-Bstatic -lvamp-sdk -Wl,-Bdynamic
+PLUGIN_LDFLAGS	+= -shared -Wl,-Bsymbolic -Wl,-z,defs -lpthread -Wl,--version-script=vamp-plugin.map
 
 include Makefile.inc
 
