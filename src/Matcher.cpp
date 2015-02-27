@@ -42,6 +42,7 @@ Matcher::Matcher(Parameters parameters, DistanceMetric::Parameters dparams,
     m_frameCount = 0;
     m_runCount = 0;
     m_blockSize = 0;
+    m_distXSize = 0;
 
     m_blockSize = int(m_params.blockTime / m_params.hopTime + 0.5);
 #ifdef DEBUG_MATCHER
@@ -463,3 +464,45 @@ Matcher::getAdvance(int i, int j)
         return m_otherMatcher->getAdvance(j, i);
     }
 }
+
+static double k(size_t sz)
+{
+    return double(sz) / 1024.0;
+}
+
+void
+Matcher::printStats()
+{
+    if (m_firstPM) cerr << endl;
+    
+    cerr << "Matcher[" << this << "] (" << (m_firstPM ? "first" : "second") << "):" << endl;
+    cerr << "- block size " << m_blockSize << ", frame count " << m_frameCount << ", dist x size " << m_distXSize << ", initialised " << m_initialised << endl;
+
+    if (m_features.empty()) {
+        cerr << "- have no features yet" << endl;
+    } else {
+        cerr << "- have " << m_features.size() << " features of " << m_features[0].size() << " bins each (= "
+             << k(m_features.size() * m_features[0].size() * sizeof(featurebin_t)) << "K)" << endl;
+    }
+
+    size_t cells = 0;
+    for (const auto &d: m_distance) {
+        cells += d.size();
+    }
+    if (m_distance.empty()) {
+        cerr << "- have no cells in matrix" << endl;
+    } else {
+        cerr << "- have " << m_distance.size() << " cols in matrix with avg "
+             << double(cells) / m_distance.size() << " rows, total "
+             << cells << " cells" << endl;
+        cerr << "- path costs " << k(cells * sizeof(pathcost_t))
+             << "K, distances " << k(cells * sizeof(distance_t))
+             << "K, advances " << k(cells * sizeof(advance_t)) << "K" << endl;
+    }
+
+    if (m_firstPM && m_otherMatcher) {
+        m_otherMatcher->printStats();
+        cerr << endl;
+    }
+}
+

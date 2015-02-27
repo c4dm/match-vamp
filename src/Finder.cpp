@@ -519,4 +519,3 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
     }
 }
 
-

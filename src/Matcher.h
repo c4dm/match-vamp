@@ -248,6 +248,10 @@ public:
      *  minimum cost
      */
     advance_t getAdvance(int i, int j);
+
+    /** Print some stats about memory consumption etc to stderr.
+     */
+    void printStats();
     
 protected:
     /** Create internal structures and reset. */
