@@ -260,6 +260,17 @@ MatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
     desc.valueNames.clear();
 
+#ifdef USE_COMPACT_TYPES
+    desc.identifier = "scale";
+    desc.name = "Distance scale";
+    desc.description = "Scale factor to use when mapping distance metric into byte range for storage";
+    desc.minValue = 1;
+    desc.maxValue = 1000;
+    desc.defaultValue = float(m_defaultDParams.scale);
+    desc.isQuantized = false;
+    list.push_back(desc);
+#endif
+    
     desc.identifier = "silencethreshold";
     desc.name = "Silence threshold";
     desc.description = "Total frame energy threshold below which a feature will be regarded as silent";
@@ -361,6 +372,8 @@ MatchVampPlugin::getParameter(std::string name) const
         return float(m_dParams.metric);
     } else if (name == "noise") {
         return m_dParams.noise;
+    } else if (name == "scale") {
+        return float(m_dParams.scale);
     } else if (name == "freq1") {
         return float(m_feParams.referenceFrequency);
     } else if (name == "freq2") {
@@ -401,6 +414,8 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_dParams.metric = DistanceMetric::Metric(int(value + 0.1));
     } else if (name == "noise") {
         m_dParams.noise = DistanceMetric::NoiseAddition(int(value + 0.1));
+    } else if (name == "scale") {
+        m_dParams.scale = value;
     } else if (name == "freq1") {
         m_feParams.referenceFrequency = value;
     } else if (name == "freq2") {
