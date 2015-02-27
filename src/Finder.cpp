@@ -58,7 +58,7 @@ bool
 Finder::getBestRowCost(int row, int &bestCol, normpathcost_t &min)
 {
     if (!m_m->isRowAvailable(row)) return false;
-    pair<int, int> colRange = m_m->getColRange(row);
+    pair<int, int> colRange = m_m->getColRangeForRow(row);
     if (colRange.first >= colRange.second) return false;
     for (int index = colRange.first; index < colRange.second; index++) {
         normpathcost_t tmp = m_m->getNormalisedPathCost(row, index);
@@ -74,7 +74,7 @@ bool
 Finder::getBestColCost(int col, int &bestRow, normpathcost_t &min)
 {
     if (!m_m->isColAvailable(col)) return false;
-    pair<int, int> rowRange = m_m->getRowRange(col);
+    pair<int, int> rowRange = m_m->getRowRangeForCol(col);
     if (rowRange.first >= rowRange.second) return false;
     bestRow = rowRange.first;
     for (int index = rowRange.first; index < rowRange.second; index++) {
@@ -99,7 +99,7 @@ Finder::getBestEdgeCost(int row, int col,
     bestRow = row;
     bestCol = col;
 
-    pair<int, int> rowRange = m_m->getRowRange(col);
+    pair<int, int> rowRange = m_m->getRowRangeForCol(col);
     if (rowRange.second > row+1) {
         rowRange.second = row+1;	// don't cheat by looking at future :)
     }
@@ -111,7 +111,7 @@ Finder::getBestEdgeCost(int row, int col,
         }
     }
 
-    pair<int, int> colRange = m_m->getColRange(row);
+    pair<int, int> colRange = m_m->getColRangeForRow(row);
     if (colRange.second > col+1) {
         colRange.second = col+1;	// don't cheat by looking at future :)
     }
@@ -177,7 +177,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
 
     for (int r = r1; r <= r2; r++) {
 
-        pair<int, int> colRange = m_m->getColRange(r);
+        pair<int, int> colRange = m_m->getColRangeForRow(r);
 
         int rowStart = max(c1, colRange.first);
         int rowStop = min(c2 + 1, colRange.second);
@@ -246,7 +246,7 @@ Finder::checkPathCostMatrix()
 
     for (int r = r1; r <= r2; r++) {
 
-        pair<int, int> colRange = m_m->getColRange(r);
+        pair<int, int> colRange = m_m->getColRangeForRow(r);
 
         int rowStart = max(c1, colRange.first);
         int rowStop = min(c2 + 1, colRange.second);
@@ -518,5 +518,4 @@ Finder::retrievePath(bool smooth, vector<int> &pathx, vector<int> &pathy)
         return static_cast<int>(pathx.size());
     }
 }
-
 

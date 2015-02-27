@@ -157,6 +157,19 @@ public:
      *  @return true if the location is in range
      */
     bool isInRange(int i, int j);
+    
+    /** Tests whether a location is available in the minimum cost
+     *  matrix, that is, whether it is in range and contains a valid
+     *  cost value.  Note this and its associated isRowAvailable,
+     *  isColAvailable checks are more expensive than isInRange and
+     *  are really intended for error checking. (If a row is in range,
+     *  it should always be available.)
+     *
+     *  @param i the frame number of this Matcher
+     *  @param j the frame number of the other Matcher
+     *  @return true if the location is in range and contains a valid cost
+     */
+    bool isAvailable(int i, int j);
 
     /** Tests whether any locations in the given row are available.
      */
@@ -165,14 +178,6 @@ public:
     /** Tests whether any locations in the given column are available.
      */
     bool isColAvailable(int i);
-    
-    /** Tests whether a location is available in the minimum cost matrix.
-     *
-     *  @param i the frame number of this Matcher
-     *  @param j the frame number of the other Matcher
-     *  @return true if the location is in range and contains a valid cost
-     */
-    bool isAvailable(int i, int j);
 
     /** Returns the valid range of columns for the given row, that is,
      *  the range of frames in the other Matcher for the given frame
@@ -183,7 +188,7 @@ public:
      *  Matcher. Note that the last frame is exclusive (last valid
      *  frame + 1).
      */
-    std::pair<int, int> getColRange(int i);
+    std::pair<int, int> getColRangeForRow(int i);
 
     /** Returns the valid range of rows for the given column, that is,
      *  the range of frames in this Matcher for the given frame in the
@@ -194,7 +199,7 @@ public:
      *  Matcher. Note that the last frame is exclusive (last valid
      *  frame + 1).
      */
-    std::pair<int, int> getRowRange(int i);
+    std::pair<int, int> getRowRangeForCol(int i);
     
     /** Retrieves a value from the distance matrix.
      *
@@ -248,6 +253,10 @@ public:
      *  minimum cost
      */
     advance_t getAdvance(int i, int j);
+
+    /** Print some stats about memory consumption etc to stderr.
+     */
+    void printStats();
     
 protected:
     /** Create internal structures and reset. */

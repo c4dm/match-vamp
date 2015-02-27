@@ -42,6 +42,7 @@ Matcher::Matcher(Parameters parameters, DistanceMetric::Parameters dparams,
     m_frameCount = 0;
     m_runCount = 0;
     m_blockSize = 0;
+    m_distXSize = 0;
 
     m_blockSize = int(m_params.blockTime / m_params.hopTime + 0.5);
 #ifdef DEBUG_MATCHER
@@ -76,23 +77,50 @@ Matcher::init()
 }
 
 bool
-Matcher::isRowAvailable(int i)
+Matcher::isAvailable(int i, int j)
 {
-    if (i < 0 || i >= int(m_first.size())) return false;
-
-    for (int j = m_first[i]; j < int(m_first[i] + m_bestPathCost[i].size()); ++j) {
-        if (isAvailable(i, j)) {
-            return true;
+    if (m_firstPM) {
+        if (isInRange(i, j)) {
+            return (m_bestPathCost[i][j - m_first[i]] != InvalidPathCost);
+        } else {
+            return false;
         }
+    } else {
+        return m_otherMatcher->isAvailable(j, i);
     }
-
-    return false;
 }
 
 bool
-Matcher::isColAvailable(int i)
+Matcher::isRowAvailable(int i)
 {
-    return m_otherMatcher->isRowAvailable(i);
+    if (m_firstPM) {
+
+        if (i < 0 || i >= int(m_first.size())) return false;
+        for (auto c: m_bestPathCost[i]) {
+            if (c != InvalidPathCost) return true;
+        }
+        return false;
+
+    } else {
+        return m_otherMatcher->isColAvailable(i);
+    }
+}
+
+bool
+Matcher::isColAvailable(int j)
+{
+    if (m_firstPM) {
+        for (int i = 0; i < int(m_first.size()); ++i) {
+            if (j >= m_first[i] && j < m_last[i]) {
+                if (m_bestPathCost[i][j - m_first[i]] != InvalidPathCost) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } else {
+        return m_otherMatcher->isRowAvailable(j);
+    }
 }
 
 bool
@@ -108,48 +136,54 @@ Matcher::isInRange(int i, int j)
     }
 }
 
-bool
-Matcher::isAvailable(int i, int j)
+pair<int, int>
+Matcher::getColRangeForRow(int i)
 {
     if (m_firstPM) {
-        if (isInRange(i, j)) {
-            return (m_bestPathCost[i][j - m_first[i]] >= 0);
-        } else {
-            return false;
+#ifdef PERFORM_ERROR_CHECKS
+        if (i < 0 || i >= int(m_first.size())) {
+            cerr << "ERROR: Matcher::getColRangeForRow(" << i << "): Index out of range"
+                 << endl;
+            throw "Index out of range";
         }
-    } else {
-        return m_otherMatcher->isAvailable(j, i);
-    }
-}
-
-pair<int, int>
-Matcher::getColRange(int i)
-{
-    if (i < 0 || i >= int(m_first.size())) {
-        cerr << "ERROR: Matcher::getColRange(" << i << "): Index out of range"
-             << endl;
-        throw "Index out of range";
-    } else {
+#endif
         return pair<int, int>(m_first[i], m_last[i]);
+    } else {
+        return m_otherMatcher->getRowRangeForCol(i);
     }
 }
 
 pair<int, int>
-Matcher::getRowRange(int i)
+Matcher::getRowRangeForCol(int i)
 {
-    return m_otherMatcher->getColRange(i);
+    if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
+        if (i < 0 || i >= int(m_otherMatcher->m_first.size())) {
+            cerr << "ERROR: Matcher::getRowRangeForCol(" << i << "): Index out of range"
+                 << endl;
+            throw "Index out of range";
+        }
+#endif
+        return pair<int, int>(m_otherMatcher->m_first[i],
+                              m_otherMatcher->m_last[i]);
+    } else {
+        return m_otherMatcher->getColRangeForRow(i);
+    }
 }
 
 distance_t
 Matcher::getDistance(int i, int j)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is not in range" << endl;
             throw "Distance not available";
         }
+#endif
         distance_t dist = m_distance[i][j - m_first[i]];
+#ifdef PERFORM_ERROR_CHECKS
         if (dist == InvalidDistance) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is in range, but distance ("
@@ -157,6 +191,7 @@ Matcher::getDistance(int i, int j)
                  << ") is invalid or has not been set" << endl;
             throw "Distance not available";
         }
+#endif
         return dist;
     } else {
         return m_otherMatcher->getDistance(j, i);
@@ -167,12 +202,14 @@ void
 Matcher::setDistance(int i, int j, distance_t distance)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::setDistance(" << i << ", " << j << ", "
                  << distance_print_t(distance)
                  << "): Location is out of range" << endl;
             throw "Indices out of range";
         }
+#endif
         m_distance[i][j - m_first[i]] = distance;
     } else {
         m_otherMatcher->setDistance(j, i, distance);
@@ -190,6 +227,7 @@ pathcost_t
 Matcher::getPathCost(int i, int j)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isAvailable(i, j)) {
             if (!isInRange(i, j)) {
                 cerr << "ERROR: Matcher::getPathCost(" << i << ", " << j << "): "
@@ -202,6 +240,7 @@ Matcher::getPathCost(int i, int j)
             }
             throw "Path cost not available";
         }
+#endif
         return m_bestPathCost[i][j - m_first[i]];
     } else {
         return m_otherMatcher->getPathCost(j, i);
@@ -212,12 +251,14 @@ void
 Matcher::setPathCost(int i, int j, advance_t dir, pathcost_t pathCost)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::setPathCost(" << i << ", " << j << ", "
                  << dir << ", " << pathCost
                  << "): Location is out of range" << endl;
             throw "Indices out of range";
         }
+#endif
         m_advance[i][j - m_first[i]] = dir;
         m_bestPathCost[i][j - m_first[i]] = pathCost;
     } else {
@@ -233,12 +274,15 @@ Matcher::setPathCost(int i, int j, advance_t dir, pathcost_t pathCost)
 void
 Matcher::size()
 {
-    int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-    m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, InvalidPathCost));
-    m_distance.resize(m_distXSize, distancevec_t(distSize, InvalidDistance));
-    m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
     m_first.resize(m_distXSize, 0);
     m_last.resize(m_distXSize, 0);
+
+    if (m_firstPM) {
+        int distSize = (m_params.maxRunCount + 1) * m_blockSize;
+        m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, InvalidPathCost));
+        m_distance.resize(m_distXSize, distancevec_t(distSize, InvalidDistance));
+        m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
+    }
 }
 
 void
@@ -256,43 +300,20 @@ Matcher::calcAdvance()
     int frameIndex = m_frameCount % m_blockSize;
 
     if (m_frameCount >= m_distXSize) {
-        m_distXSize *= 2;
+        m_distXSize *= 1.2;
         size();
     }
-
+    
     if (m_firstPM && (m_frameCount >= m_blockSize)) {
-
-        int len = m_last[m_frameCount - m_blockSize] -
-                 m_first[m_frameCount - m_blockSize];
-
-        // We need to copy distance[m_frameCount-m_blockSize] to
-        // distance[m_frameCount], and then truncate
-        // distance[m_frameCount-m_blockSize] to its first len elements.
-        // Same for bestPathCost.
-
-        distancevec_t dOld(m_distance[m_frameCount - m_blockSize]);
-        distancevec_t dNew(len, InvalidDistance);
-
-        pathcostvec_t bpcOld(m_bestPathCost[m_frameCount - m_blockSize]);
-        pathcostvec_t bpcNew(len, InvalidPathCost);
-
-        advancevec_t adOld(m_advance[m_frameCount - m_blockSize]);
-        advancevec_t adNew(len, AdvanceNone);
-
-        for (int i = 0; i < len; ++i) {
-            dNew[i] = dOld[i];
-            bpcNew[i] = bpcOld[i];
-            adNew[i] = adOld[i];
-        }
-        
-        m_distance[m_frameCount] = dOld;
-        m_distance[m_frameCount - m_blockSize] = dNew;
-
-        m_bestPathCost[m_frameCount] = bpcOld;
-        m_bestPathCost[m_frameCount - m_blockSize] = bpcNew;
-
-        m_advance[m_frameCount] = adOld;
-        m_advance[m_frameCount - m_blockSize] = adNew;
+        // Memory reduction for old rows
+        int oldidx = m_frameCount - m_blockSize;
+        int len = m_last[oldidx] - m_first[oldidx];
+        m_distance[oldidx].resize(len);
+        m_distance[oldidx].shrink_to_fit();
+        m_bestPathCost[oldidx].resize(len);
+        m_bestPathCost[oldidx].shrink_to_fit();
+        m_advance[oldidx].resize(len);
+        m_advance[oldidx].shrink_to_fit();
     }
 
     int stop = m_otherMatcher->m_frameCount;
@@ -453,13 +474,57 @@ advance_t
 Matcher::getAdvance(int i, int j)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::getAdvance(" << i << ", " << j << "): "
                  << "Location is not in range" << endl;
             throw "Advance not available";
         }
+#endif
         return m_advance[i][j - m_first[i]];
     } else {
         return m_otherMatcher->getAdvance(j, i);
     }
 }
+
+static double k(size_t sz)
+{
+    return double(sz) / 1024.0;
+}
+
+void
+Matcher::printStats()
+{
+    if (m_firstPM) cerr << endl;
+    
+    cerr << "Matcher[" << this << "] (" << (m_firstPM ? "first" : "second") << "):" << endl;
+    cerr << "- block size " << m_blockSize << ", frame count " << m_frameCount << ", dist x size " << m_distXSize << ", initialised " << m_initialised << endl;
+
+    if (m_features.empty()) {
+        cerr << "- have no features yet" << endl;
+    } else {
+        cerr << "- have " << m_features.size() << " features of " << m_features[0].size() << " bins each (= "
+             << k(m_features.size() * m_features[0].size() * sizeof(featurebin_t)) << "K)" << endl;
+    }
+
+    size_t cells = 0;
+    for (const auto &d: m_distance) {
+        cells += d.size();
+    }
+    if (m_distance.empty()) {
+        cerr << "- have no cells in matrix" << endl;
+    } else {
+        cerr << "- have " << m_distance.size() << " cols in matrix with avg "
+             << double(cells) / double(m_distance.size()) << " rows, total "
+             << cells << " cells" << endl;
+        cerr << "- path costs " << k(cells * sizeof(pathcost_t))
+             << "K, distances " << k(cells * sizeof(distance_t))
+             << "K, advances " << k(cells * sizeof(advance_t)) << "K" << endl;
+    }
+
+    if (m_firstPM && m_otherMatcher) {
+        m_otherMatcher->printStats();
+        cerr << endl;
+    }
+}
+
