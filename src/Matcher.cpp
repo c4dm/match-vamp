@@ -111,8 +111,7 @@ Matcher::isColAvailable(int j)
 {
     if (m_firstPM) {
         for (int i = 0; i < int(m_first.size()); ++i) {
-            if (j >= m_first[i] &&
-                j < int(m_first[i] + m_bestPathCost[i].size())) {//!!! m_last[i]?
+            if (j >= m_first[i] && j < m_last[i]) {
                 if (m_bestPathCost[i][j - m_first[i]] != InvalidPathCost) {
                     return true;
                 }
@@ -141,13 +140,14 @@ pair<int, int>
 Matcher::getColRangeForRow(int i)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (i < 0 || i >= int(m_first.size())) {
             cerr << "ERROR: Matcher::getColRangeForRow(" << i << "): Index out of range"
                  << endl;
             throw "Index out of range";
-        } else {
-            return pair<int, int>(m_first[i], m_last[i]);
         }
+#endif
+        return pair<int, int>(m_first[i], m_last[i]);
     } else {
         return m_otherMatcher->getRowRangeForCol(i);
     }
@@ -157,16 +157,15 @@ pair<int, int>
 Matcher::getRowRangeForCol(int i)
 {
     if (m_firstPM) {
-
+#ifdef PERFORM_ERROR_CHECKS
         if (i < 0 || i >= int(m_otherMatcher->m_first.size())) {
             cerr << "ERROR: Matcher::getRowRangeForCol(" << i << "): Index out of range"
                  << endl;
             throw "Index out of range";
-        } else {
-            return pair<int, int>(m_otherMatcher->m_first[i],
-                                  m_otherMatcher->m_last[i]);
         }
-
+#endif
+        return pair<int, int>(m_otherMatcher->m_first[i],
+                              m_otherMatcher->m_last[i]);
     } else {
         return m_otherMatcher->getColRangeForRow(i);
     }
@@ -176,12 +175,15 @@ distance_t
 Matcher::getDistance(int i, int j)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is not in range" << endl;
             throw "Distance not available";
         }
+#endif
         distance_t dist = m_distance[i][j - m_first[i]];
+#ifdef PERFORM_ERROR_CHECKS
         if (dist == InvalidDistance) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is in range, but distance ("
@@ -189,6 +191,7 @@ Matcher::getDistance(int i, int j)
                  << ") is invalid or has not been set" << endl;
             throw "Distance not available";
         }
+#endif
         return dist;
     } else {
         return m_otherMatcher->getDistance(j, i);
@@ -199,12 +202,14 @@ void
 Matcher::setDistance(int i, int j, distance_t distance)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::setDistance(" << i << ", " << j << ", "
                  << distance_print_t(distance)
                  << "): Location is out of range" << endl;
             throw "Indices out of range";
         }
+#endif
         m_distance[i][j - m_first[i]] = distance;
     } else {
         m_otherMatcher->setDistance(j, i, distance);
@@ -246,12 +251,14 @@ void
 Matcher::setPathCost(int i, int j, advance_t dir, pathcost_t pathCost)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::setPathCost(" << i << ", " << j << ", "
                  << dir << ", " << pathCost
                  << "): Location is out of range" << endl;
             throw "Indices out of range";
         }
+#endif
         m_advance[i][j - m_first[i]] = dir;
         m_bestPathCost[i][j - m_first[i]] = pathCost;
     } else {
@@ -464,11 +471,13 @@ advance_t
 Matcher::getAdvance(int i, int j)
 {
     if (m_firstPM) {
+#ifdef PERFORM_ERROR_CHECKS
         if (!isInRange(i, j)) {
             cerr << "ERROR: Matcher::getAdvance(" << i << ", " << j << "): "
                  << "Location is not in range" << endl;
             throw "Advance not available";
         }
+#endif
         return m_advance[i][j - m_first[i]];
     } else {
         return m_otherMatcher->getAdvance(j, i);
