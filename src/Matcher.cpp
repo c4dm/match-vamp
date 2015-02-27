@@ -300,7 +300,7 @@ Matcher::calcAdvance()
     int frameIndex = m_frameCount % m_blockSize;
 
     if (m_frameCount >= m_distXSize) {
-        m_distXSize *= 2;
+        m_distXSize *= 1.2;
         size();
     }
     
@@ -309,8 +309,11 @@ Matcher::calcAdvance()
         int oldidx = m_frameCount - m_blockSize;
         int len = m_last[oldidx] - m_first[oldidx];
         m_distance[oldidx].resize(len);
+        m_distance[oldidx].shrink_to_fit();
         m_bestPathCost[oldidx].resize(len);
+        m_bestPathCost[oldidx].shrink_to_fit();
         m_advance[oldidx].resize(len);
+        m_advance[oldidx].shrink_to_fit();
     }
 
     int stop = m_otherMatcher->m_frameCount;
