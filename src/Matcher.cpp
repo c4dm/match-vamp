@@ -296,40 +296,14 @@ Matcher::calcAdvance()
         m_distXSize *= 2;
         size();
     }
-
+    
     if (m_firstPM && (m_frameCount >= m_blockSize)) {
-
-        int len = m_last[m_frameCount - m_blockSize] -
-                 m_first[m_frameCount - m_blockSize];
-
-        // We need to copy distance[m_frameCount-m_blockSize] to
-        // distance[m_frameCount], and then truncate
-        // distance[m_frameCount-m_blockSize] to its first len elements.
-        // Same for bestPathCost.
-
-        distancevec_t dOld(m_distance[m_frameCount - m_blockSize]);
-        distancevec_t dNew(len, InvalidDistance);
-
-        pathcostvec_t bpcOld(m_bestPathCost[m_frameCount - m_blockSize]);
-        pathcostvec_t bpcNew(len, InvalidPathCost);
-
-        advancevec_t adOld(m_advance[m_frameCount - m_blockSize]);
-        advancevec_t adNew(len, AdvanceNone);
-
-        for (int i = 0; i < len; ++i) {
-            dNew[i] = dOld[i];
-            bpcNew[i] = bpcOld[i];
-            adNew[i] = adOld[i];
-        }
-        
-        m_distance[m_frameCount] = dOld;
-        m_distance[m_frameCount - m_blockSize] = dNew;
-
-        m_bestPathCost[m_frameCount] = bpcOld;
-        m_bestPathCost[m_frameCount - m_blockSize] = bpcNew;
-
-        m_advance[m_frameCount] = adOld;
-        m_advance[m_frameCount - m_blockSize] = adNew;
+        // Memory reduction for old rows
+        int oldidx = m_frameCount - m_blockSize;
+        int len = m_last[oldidx] - m_first[oldidx];
+        m_distance[oldidx].resize(len);
+        m_bestPathCost[oldidx].resize(len);
+        m_advance[oldidx].resize(len);
     }
 
     int stop = m_otherMatcher->m_frameCount;
