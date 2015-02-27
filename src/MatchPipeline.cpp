@@ -63,7 +63,7 @@ MatchPipeline::feedFeatures(const feature_t &f1, const feature_t &f2)
 #ifdef DEBUG_MATCH_PIPELINE
     if (m_lastFrameIn1 == 1) {
         cerr << "features 1 -> ";
-        for (int i = 0; i < (int) m_f1.size(); ++i) {
+        for (int i = 0; i < int(m_f1.size()); ++i) {
             cerr << m_f1[i] << " ";
         }
         cerr << endl;
@@ -82,7 +82,7 @@ MatchPipeline::feedConditionedFeatures(const feature_t &c1, const feature_t &c2)
 #ifdef DEBUG_MATCH_PIPELINE
     if (m_lastFrameIn1 == 1) {
         cerr << "conditioned features 1 -> ";
-        for (int i = 0; i < (int) m_c1.size(); ++i) {
+        for (int i = 0; i < int(m_c1.size()); ++i) {
             cerr << m_c1[i] << " ";
         }
         cerr << endl;
@@ -140,7 +140,7 @@ void
 MatchPipeline::finish()
 {
     m_feeder.finish();
-    m_feeder.getFinder()->setDurations(m_lastFrameIn1, m_lastFrameIn2);
+    m_feeder.getFinder()->setDurations(m_lastFrameIn1 + 1, m_lastFrameIn2 + 1);
 }
 
 int

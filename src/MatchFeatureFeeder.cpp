@@ -72,6 +72,10 @@ MatchFeatureFeeder::finish()
     while (!m_q1.empty() || !m_q2.empty()) {
         feedBlock();
     }
+
+//    cerr << "MatchFeatureFeeder::finish: have " << m_pm1->getFrameCount()
+//         << " reference and " << m_pm2->getFrameCount() << " other frames"
+//         << endl;
 }
 
 void
