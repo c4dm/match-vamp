@@ -31,14 +31,14 @@ typedef uint8_t distance_t;
 /// What to cast a distance_t to when printing it (to avoid printing as char)
 typedef int distance_print_t;
 
-const distance_t MaxDistance = 0xfe;
-const distance_t InvalidDistance = 0xff;
+const distance_t DISTANCE_MAX = 0xfe;
+const distance_t INVALID_DISTANCE = 0xff;
 
 /// The integrated distance (path cost) from the origin to a given point
 typedef uint32_t pathcost_t;
 
-const pathcost_t MaxPathCost = 0xfffffffe;
-const pathcost_t InvalidPathCost = 0xffffffff;
+const pathcost_t PATHCOST_MAX = 0xfffffffe;
+const pathcost_t INVALID_PATHCOST = 0xffffffff;
 
 /// A direction advance instruction or state
 enum advance_t : uint8_t {
@@ -63,14 +63,14 @@ typedef float distance_t;
 /// What to cast a distance_t to when printing it
 typedef distance_t distance_print_t;
 
-const float MaxDistance = FLT_MAX;
-const float InvalidDistance = -1.f;
+const float DISTANCE_MAX = FLT_MAX;
+const float INVALID_DISTANCE = -1.f;
 
 /// The integrated distance (path cost) from the origin to a given point
 typedef double pathcost_t;
 
-const double MaxPathCost = DBL_MAX;
-const double InvalidPathCost = -1.;
+const double PATHCOST_MAX = DBL_MAX;
+const double INVALID_PATHCOST = -1.;
 
 /// A direction advance instruction or state
 enum advance_t {

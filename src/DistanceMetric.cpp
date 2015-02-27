@@ -31,8 +31,8 @@ DistanceMetric::scaleIntoRange(double distance)
     if (scaled < 0) {
         scaled = 0;
     }
-    if (scaled > MaxDistance) {
-        scaled = MaxDistance;
+    if (scaled > DISTANCE_MAX) {
+        scaled = DISTANCE_MAX;
         ++m_overcount;
     }
     return uint8_t(scaled);

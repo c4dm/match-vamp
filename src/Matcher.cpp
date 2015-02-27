@@ -81,7 +81,7 @@ Matcher::isAvailable(int i, int j)
 {
     if (m_firstPM) {
         if (isInRange(i, j)) {
-            return (m_bestPathCost[i][j - m_first[i]] != InvalidPathCost);
+            return (m_bestPathCost[i][j - m_first[i]] != INVALID_PATHCOST);
         } else {
             return false;
         }
@@ -97,7 +97,7 @@ Matcher::isRowAvailable(int i)
 
         if (i < 0 || i >= int(m_first.size())) return false;
         for (auto c: m_bestPathCost[i]) {
-            if (c != InvalidPathCost) return true;
+            if (c != INVALID_PATHCOST) return true;
         }
         return false;
 
@@ -112,7 +112,7 @@ Matcher::isColAvailable(int j)
     if (m_firstPM) {
         for (int i = 0; i < int(m_first.size()); ++i) {
             if (j >= m_first[i] && j < m_last[i]) {
-                if (m_bestPathCost[i][j - m_first[i]] != InvalidPathCost) {
+                if (m_bestPathCost[i][j - m_first[i]] != INVALID_PATHCOST) {
                     return true;
                 }
             }
@@ -184,7 +184,7 @@ Matcher::getDistance(int i, int j)
 #endif
         distance_t dist = m_distance[i][j - m_first[i]];
 #ifdef PERFORM_ERROR_CHECKS
-        if (dist == InvalidDistance) {
+        if (dist == INVALID_DISTANCE) {
             cerr << "ERROR: Matcher::getDistance(" << i << ", " << j << "): "
                  << "Location is in range, but distance ("
                  << distance_print_t(dist)
@@ -279,8 +279,8 @@ Matcher::size()
 
     if (m_firstPM) {
         int distSize = (m_params.maxRunCount + 1) * m_blockSize;
-        m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, InvalidPathCost));
-        m_distance.resize(m_distXSize, distancevec_t(distSize, InvalidDistance));
+        m_bestPathCost.resize(m_distXSize, pathcostvec_t(distSize, INVALID_PATHCOST));
+        m_distance.resize(m_distXSize, distancevec_t(distSize, INVALID_DISTANCE));
         m_advance.resize(m_distXSize, advancevec_t(distSize, AdvanceNone));
     }
 }
@@ -297,8 +297,8 @@ Matcher::consumeFeatureVector(const feature_t &feature)
 pathcost_t
 Matcher::addToCost(pathcost_t cost, pathcost_t increment)
 {
-    if (MaxPathCost - increment < cost) {
-        return MaxPathCost;
+    if (PATHCOST_MAX - increment < cost) {
+        return PATHCOST_MAX;
     } else {
         return cost + pathcost_t(increment);
     }
@@ -448,10 +448,10 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
     }
 
     pathcost_t newValue = addToCost(value, increment);
-    if (newValue == MaxPathCost) {
+    if (newValue == PATHCOST_MAX) {
         cerr << "ERROR: Path cost overflow at i=" << i << ", j=" << j << ": "
-             << value << " + " << increment << " >= " << MaxPathCost << endl;
-        newValue = MaxPathCost;
+             << value << " + " << increment << " >= " << PATHCOST_MAX << endl;
+        newValue = PATHCOST_MAX;
     }
     
     if (m_firstPM) {
@@ -471,8 +471,8 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
             cerr << "Emergency resize: " << idx << " -> " << idx * 2 << endl;
-            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, InvalidPathCost);
-            m_otherMatcher->m_distance[j].resize(idx * 2, InvalidDistance);
+            m_otherMatcher->m_bestPathCost[j].resize(idx * 2, INVALID_PATHCOST);
+            m_otherMatcher->m_distance[j].resize(idx * 2, INVALID_DISTANCE);
             m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
         }
 

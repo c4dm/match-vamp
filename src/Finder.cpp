@@ -254,7 +254,7 @@ Finder::checkPathCostMatrix()
         for (int c = rowStart; c < rowStop; c++) {
 
             advance_t dir = AdvanceNone;
-            pathcost_t updateTo = InvalidPathCost;
+            pathcost_t updateTo = INVALID_PATHCOST;
             distance_t distance = m_m->getDistance(r, c);
             pathcost_t straightIncrement = distance;
             pathcost_t diagIncrement = pathcost_t(distance * m_m->getDiagonalWeight());
