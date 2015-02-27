@@ -109,6 +109,11 @@ DistanceMetric::calcDistance(const feature_t &f1,
     assert(f2.size() == f1.size());
     int featureSize = static_cast<int>(f1.size());
 
+    double minNoise = 0.0;
+#ifdef USE_COMPACT_TYPES
+    minNoise = 1.0 / m_params.scale;
+#endif
+    
     if (m_params.metric == Cosine) {
 
         double num = 0, denom1 = 0, denom2 = 0;
@@ -122,7 +127,9 @@ DistanceMetric::calcDistance(const feature_t &f1,
         d = 1.0 - (num / (eps + sqrt(denom1 * denom2)));
 
         if (m_params.noise == AddNoise) {
-            d += 1e-2;
+            double noise = 1e-2;
+            if (noise < minNoise) noise = minNoise;
+            d += noise;
         }
         if (d > 1.0) d = 1.0;
         
@@ -143,8 +150,9 @@ DistanceMetric::calcDistance(const feature_t &f1,
         d = sqrt(d);
     }
 
-    double noise = 1e-3 * featureSize;
     if (m_params.noise == AddNoise) {
+        double noise = 1e-3 * featureSize;
+        if (noise < minNoise) noise = minNoise;
         d += noise;
         sum += noise;
     }

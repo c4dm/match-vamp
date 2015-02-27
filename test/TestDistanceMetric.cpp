@@ -68,6 +68,9 @@ BOOST_AUTO_TEST_CASE(nonorm)
         e0 = getTestFeature(0);
 
     double noise = 1e-3 * 4;
+#ifdef USE_COMPACT_TYPES
+    noise = 1.0 / params.scale;
+#endif
     
     BOOST_CHECK_EQUAL(dm.calcDistance(e0, e0), dm.scaleValueIntoDistanceRange(0.0 + noise));
     BOOST_CHECK_EQUAL(dm.calcDistance(e1, e0), dm.scaleValueIntoDistanceRange(6.0 + noise));
@@ -88,6 +91,9 @@ BOOST_AUTO_TEST_CASE(sum)
         e0 = getTestFeature(0);
 
     double noise = 1e-3 * 4;
+#ifdef USE_COMPACT_TYPES
+    noise = 1.0 / params.scale;
+#endif
     
     BOOST_CHECK_EQUAL(dm.calcDistance(e0, e0), dm.scaleValueIntoDistanceRange(1.0));
     BOOST_CHECK_EQUAL(dm.calcDistance(e1, e0), dm.scaleValueIntoDistanceRange(1.0));
