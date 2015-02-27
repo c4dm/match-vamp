@@ -294,13 +294,23 @@ Matcher::consumeFeatureVector(const feature_t &feature)
     calcAdvance();
 }
 
+pathcost_t
+Matcher::addToCost(pathcost_t cost, pathcost_t increment)
+{
+    if (MaxPathCost - increment < cost) {
+        return MaxPathCost;
+    } else {
+        return cost + pathcost_t(increment);
+    }
+}
+
 void
 Matcher::calcAdvance()
 {
     int frameIndex = m_frameCount % m_blockSize;
 
     if (m_frameCount >= m_distXSize) {
-        m_distXSize *= 1.2;
+        m_distXSize = int(m_distXSize * 1.2);
         size();
     }
     
@@ -371,7 +381,8 @@ Matcher::calcAdvance()
             } else {
 
                 pathcost_t min1 = getPathCost(m_frameCount - 1, index - 1);
-                if (min1 + diagIncrement <= min2 + straightIncrement) {
+                if (addToCost(min1, diagIncrement) <=
+                    addToCost(min2, straightIncrement)) {
                     updateValue(m_frameCount, index, AdvanceBoth,
                                 min1, distance);
                 } else {
@@ -386,9 +397,9 @@ Matcher::calcAdvance()
             pathcost_t min2 = getPathCost(m_frameCount - 1, index);
             pathcost_t min3 = getPathCost(m_frameCount - 1, index - 1);
 
-            pathcost_t cost1 = min1 + straightIncrement;
-            pathcost_t cost2 = min2 + straightIncrement;
-            pathcost_t cost3 = min3 + diagIncrement;
+            pathcost_t cost1 = addToCost(min1, straightIncrement);
+            pathcost_t cost2 = addToCost(min2, straightIncrement);
+            pathcost_t cost3 = addToCost(min3, diagIncrement);
 
             // Choosing is easy if there is a strict cheapest of the
             // three. If two or more share the lowest cost, we choose
@@ -436,10 +447,10 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
         increment = pathcost_t(increment * m_params.diagonalWeight);
     }
 
-    pathcost_t newValue = value + increment;
-    if (MaxPathCost - increment < value) {
+    pathcost_t newValue = addToCost(value, increment);
+    if (newValue == MaxPathCost) {
         cerr << "ERROR: Path cost overflow at i=" << i << ", j=" << j << ": "
-             << value << " + " << increment << " > " << MaxPathCost << endl;
+             << value << " + " << increment << " >= " << MaxPathCost << endl;
         newValue = MaxPathCost;
     }
     

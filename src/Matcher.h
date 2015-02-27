@@ -278,11 +278,14 @@ protected:
 
     void calcAdvance();
 
+    /**
+     * Add the given distance increment to the given path cost, and
+     * return the result clipped (if necessary) at MaxPathCost.
+     */
+    pathcost_t addToCost(pathcost_t cost, pathcost_t increment);
+    
     /** Points to the other performance with which this one is being
-     *  compared.  The data for the distance metric and the dynamic
-     *  time warping is shared between the two matchers. In the
-     *  original version, only one of the two performance matchers
-     *  contained the distance metric. (See <code>first</code>)
+     *  compared.  (See <code>m_firstPM</code>)
      */
     Matcher *m_otherMatcher;
 
