@@ -188,7 +188,7 @@ public:
      *  Matcher. Note that the last frame is exclusive (last valid
      *  frame + 1).
      */
-    std::pair<int, int> getColRange(int i);
+    std::pair<int, int> getColRangeForRow(int i);
 
     /** Returns the valid range of rows for the given column, that is,
      *  the range of frames in this Matcher for the given frame in the
@@ -199,7 +199,7 @@ public:
      *  Matcher. Note that the last frame is exclusive (last valid
      *  frame + 1).
      */
-    std::pair<int, int> getRowRange(int i);
+    std::pair<int, int> getRowRangeForCol(int i);
     
     /** Retrieves a value from the distance matrix.
      *

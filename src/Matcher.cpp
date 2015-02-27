@@ -138,7 +138,7 @@ Matcher::isInRange(int i, int j)
 }
 
 pair<int, int>
-Matcher::getColRange(int i)
+Matcher::getColRangeForRow(int i)
 {
     if (m_firstPM) {
         if (i < 0 || i >= int(m_first.size())) {
@@ -149,12 +149,12 @@ Matcher::getColRange(int i)
             return pair<int, int>(m_first[i], m_last[i]);
         }
     } else {
-        return m_otherMatcher->getRowRange(i);
+        return m_otherMatcher->getRowRangeForCol(i);
     }
 }
 
 pair<int, int>
-Matcher::getRowRange(int j)
+Matcher::getRowRangeForCol(int j)
 {
     if (m_firstPM) {
 
@@ -176,7 +176,7 @@ Matcher::getRowRange(int j)
         }
 
     } else {
-        return m_otherMatcher->getColRange(j);
+        return m_otherMatcher->getColRangeForRow(j);
     }
 }
 
