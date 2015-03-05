@@ -45,10 +45,10 @@ class FeatureExtractor
 public:
     struct Parameters {
 
-        Parameters(float rate_, int fftSize_) :
+        Parameters(float rate_) :
             sampleRate(rate_),
             useChromaFrequencyMap(false),
-            fftSize(fftSize_),
+            fftSize(2048),
             referenceFrequency(440.0),
             minFrequency(100.),
             maxFrequency(rate_/2.)

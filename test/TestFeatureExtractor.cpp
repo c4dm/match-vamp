@@ -64,7 +64,8 @@ BOOST_AUTO_TEST_CASE(chroma)
 	    int hs = sz / 2 + 1;
 	    int fsz = 13;
     
-	    FeatureExtractor::Parameters params(float(rate), sz);
+	    FeatureExtractor::Parameters params { float(rate) };
+	    params.fftSize = sz;
 	    params.useChromaFrequencyMap = true;
 	    params.minFrequency = 0;
 	    FeatureExtractor fe(params);
@@ -142,7 +143,8 @@ BOOST_AUTO_TEST_CASE(nonchroma)
     int hs = sz / 2 + 1;
     int fsz = 84;
     
-    FeatureExtractor::Parameters params(float(rate), sz);
+    FeatureExtractor::Parameters params { float(rate) };
+    params.fftSize = sz;
     params.minFrequency = 0;
     FeatureExtractor fe(params);
     BOOST_CHECK_EQUAL(fe.getFeatureSize(), fsz);

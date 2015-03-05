@@ -60,8 +60,8 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_frameNo(0),
     m_params(defaultStepTime),
     m_defaultParams(defaultStepTime),
-    m_feParams(inputSampleRate, m_blockSize),
-    m_defaultFeParams(inputSampleRate, m_blockSize),
+    m_feParams(inputSampleRate),
+    m_defaultFeParams(inputSampleRate),
     m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
     m_fcParams(),
     m_defaultFcParams(),
@@ -436,7 +436,7 @@ MatchVampPlugin::getPreferredStepSize() const
 size_t
 MatchVampPlugin::getPreferredBlockSize() const
 {
-    return 2048;
+    return m_defaultFeParams.fftSize;
 }
 
 void
