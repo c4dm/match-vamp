@@ -149,7 +149,7 @@ Finder::getExpandDirection(int row, int col)
 
     int bestRow = row;
     int bestCol = col;
-    normpathcost_t bestCost = -1;
+    normpathcost_t bestCost = INVALID_PATHCOST;
 
 //    cerr << "Finder " << this << "::getExpandDirection: ";
     
@@ -190,7 +190,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                                                   m_m->getDiagonalWeight());
 
             if (r > r1) {	// not first row
-                pathcost_t min = -1;
+                pathcost_t min = INVALID_PATHCOST;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
                     min = m_m->getPathCost(r-1, c-1) + diagIncrement;
@@ -199,7 +199,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                 if ((c >= prevRowStart) && (c < prevRowStop)) {
                     // vertical from (r-1,c)
                     pathcost_t cost = m_m->getPathCost(r-1, c) + straightIncrement;
-                    if ((min < 0) || (cost < min)) {
+                    if ((min == INVALID_PATHCOST) || (cost < min)) {
                         min = cost;
                         dir = AdvanceThis;
                     }
@@ -207,7 +207,7 @@ Finder::recalculatePathCostMatrix(int r1, int c1, int r2, int c2)
                 if (c > rowStart) {
                     // horizontal from (r,c-1)
                     pathcost_t cost = m_m->getPathCost(r, c-1) + straightIncrement;
-                    if ((min < 0) || (cost < min)) {
+                    if ((min == INVALID_PATHCOST) || (cost < min)) {
                         min = cost;
                         dir = AdvanceOther;
                     }
@@ -261,7 +261,7 @@ Finder::checkPathCostMatrix()
             err.distance = distance;
 
             if (r > r1) { // not first row
-                pathcost_t min = -1;
+                pathcost_t min = INVALID_PATHCOST;
                 if ((c > prevRowStart) && (c <= prevRowStop)) {
                     // diagonal from (r-1,c-1)
                     min = m_m->getPathCost(r-1, c-1) + diagIncrement;
@@ -271,7 +271,7 @@ Finder::checkPathCostMatrix()
                 if ((c >= prevRowStart) && (c < prevRowStop)) {
                     // vertical from (r-1,c)
                     pathcost_t cost = m_m->getPathCost(r-1, c) + straightIncrement;
-                    if ((min < 0) || (cost < min)) {
+                    if ((min == INVALID_PATHCOST) || (cost < min)) {
                         min = cost;
                         err.prevCost = m_m->getPathCost(r-1, c);
                         dir = AdvanceThis;
@@ -280,7 +280,7 @@ Finder::checkPathCostMatrix()
                 if (c > rowStart) {
                     // horizontal from (r,c-1)
                     pathcost_t cost = m_m->getPathCost(r, c-1) + straightIncrement;
-                    if ((min < 0) || (cost < min)) {
+                    if ((min == INVALID_PATHCOST) || (cost < min)) {
                         min = cost;
                         err.prevCost = m_m->getPathCost(r, c-1);
                         dir = AdvanceOther;
