@@ -81,7 +81,7 @@ Matcher::isAvailable(int i, int j)
 {
     if (m_firstPM) {
         if (isInRange(i, j)) {
-            return (m_bestPathCost[i][j - m_first[i]] != INVALID_PATHCOST);
+            return (m_distance[i][j - m_first[i]] != INVALID_DISTANCE);
         } else {
             return false;
         }
@@ -96,8 +96,8 @@ Matcher::isRowAvailable(int i)
     if (m_firstPM) {
 
         if (i < 0 || i >= int(m_first.size())) return false;
-        for (auto c: m_bestPathCost[i]) {
-            if (c != INVALID_PATHCOST) return true;
+        for (auto c: m_distance[i]) {
+            if (c != INVALID_DISTANCE) return true;
         }
         return false;
 
@@ -112,7 +112,7 @@ Matcher::isColAvailable(int j)
     if (m_firstPM) {
         for (int i = 0; i < int(m_first.size()); ++i) {
             if (j >= m_first[i] && j < m_last[i]) {
-                if (m_bestPathCost[i][j - m_first[i]] != INVALID_PATHCOST) {
+                if (m_distance[i][j - m_first[i]] != INVALID_DISTANCE) {
                     return true;
                 }
             }
@@ -130,7 +130,7 @@ Matcher::isInRange(int i, int j)
         return ((i >= 0) &&
                 (i < int(m_first.size())) &&
                 (j >= m_first[i]) &&
-                (j < int(m_first[i] + m_bestPathCost[i].size())));
+                (j < int(m_first[i] + m_distance[i].size())));
     } else {
         return m_otherMatcher->isInRange(j, i);
     }
