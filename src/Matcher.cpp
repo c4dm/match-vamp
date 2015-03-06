@@ -470,7 +470,7 @@ Matcher::updateValue(int i, int j, advance_t dir, pathcost_t value, distance_t d
             // This should never happen, but if we allow arbitrary
             // pauses in either direction, and arbitrary lengths at
             // end, it is better than a segmentation fault.
-            cerr << "Emergency resize: " << idx << " -> " << idx * 2 << endl;
+//            cerr << "Emergency resize: " << idx << " -> " << idx * 2 << endl;
             m_otherMatcher->m_bestPathCost[j].resize(idx * 2, INVALID_PATHCOST);
             m_otherMatcher->m_distance[j].resize(idx * 2, INVALID_DISTANCE);
             m_otherMatcher->m_advance[j].resize(idx * 2, AdvanceNone);
