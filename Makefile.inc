@@ -16,7 +16,11 @@ TEST_SOURCES	:= $(wildcard test/*.cpp)
 TEST_OBJECTS	:= $(TEST_SOURCES:.cpp=.o)
 TESTS		:= $(TEST_OBJECTS:.o=)
 
-all:		$(PLUGIN) $(TESTS)
+all:		plugin tests
+
+plugin:		$(PLUGIN)
+
+tests:		$(TESTS)
 		for t in $(TESTS); do echo "Running $$t"; ./"$$t" || exit 1; done
 
 $(PLUGIN):	$(OBJECTS)
