@@ -50,7 +50,7 @@ public:
             useChromaFrequencyMap(false),
             fftSize(2048),
             referenceFrequency(440.0),
-            minFrequency(100.),
+            minFrequency(150.),
             maxFrequency(rate_/2.)
         {}
 
