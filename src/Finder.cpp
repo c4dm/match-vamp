@@ -14,6 +14,9 @@
     COPYING included with this distribution for more information.
 */
 
+//#define DEBUG_FINDER 1
+//#define PERFORM_ERROR_CHECKS 1
+
 #include "Finder.h"
 
 #include "Path.h"
@@ -22,9 +25,6 @@
 #include <iomanip>
 
 using namespace std;
-
-//#define DEBUG_FINDER 1
-//#define PERFORM_ERROR_CHECKS 1
 
 Finder::Finder(Matcher *pm)
 {

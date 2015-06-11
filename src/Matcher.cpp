@@ -24,6 +24,7 @@
 using namespace std;
 
 //#define DEBUG_MATCHER 1
+//#define PERFORM_ERROR_CHECKS 1
 
 Matcher::Matcher(Parameters parameters, DistanceMetric::Parameters dparams,
                  Matcher *p) :
@@ -350,15 +351,23 @@ Matcher::calcAdvance()
 
         } else if (m_frameCount == 0) { // first row
 
-            updateValue(0, index, AdvanceOther,
-                        getPathCost(0, index-1),
-                        distance);
+            pathcost_t cost {};
+
+            if (isInRange(0, index - 1)) {
+                cost = getPathCost(0, index - 1);
+            }
+            
+            updateValue(0, index, AdvanceOther, cost, distance);
             
         } else if (index == 0) { // first column
 
-            updateValue(m_frameCount, index, AdvanceThis,
-                        getPathCost(m_frameCount - 1, 0),
-                        distance);
+            pathcost_t cost {};
+
+            if (isInRange(m_frameCount - 1, 0)) {
+                cost = getPathCost(m_frameCount - 1, 0);
+            }
+            
+            updateValue(m_frameCount, index, AdvanceThis, cost, distance);
             
         } else if (index == m_otherMatcher->m_frameCount - m_blockSize) {
             
