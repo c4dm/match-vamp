@@ -1,5 +1,5 @@
 
-CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Werror -Werror=old-style-cast -Wconversion -std=c++11
+CXXFLAGS	+= -fPIC -ffast-math -O3 -Wall -Wconversion -std=c++11
 
 #CXXFLAGS	+= -fPIC -g -Wall -Werror -Werror=old-style-cast -Wconversion -std=c++11
 
