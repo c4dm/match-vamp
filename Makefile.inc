@@ -16,7 +16,7 @@ TEST_SOURCES	:= $(wildcard test/*.cpp)
 TEST_OBJECTS	:= $(TEST_SOURCES:.cpp=.o)
 TESTS		:= $(TEST_OBJECTS:.o=)
 
-all:		plugin tests
+all:		plugin
 
 plugin:		$(PLUGIN)
 
