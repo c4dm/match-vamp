@@ -5,10 +5,13 @@ MATCH Vamp plugin
 This is a Vamp plugin implementation of the MATCH audio alignment
 algorithm:
 
-  http://www.elec.qmul.ac.uk/people/simond/match/index.html
+  http://www.eecs.qmul.ac.uk/~simond/match/index.html
 
-This plugin is Copyright (c) 2007-2008 Simon Dixon and Chris Cannam,
-distributed under the GNU General Public License.  See the file
-COPYING for details.
+See plugin homepage at
 
+  http://code.soundsoftware.ac.uk/projects/match-vamp/
+
+This plugin is Copyright (c) 2007-2015 Simon Dixon, Chris Cannam, and
+Queen Mary University of London. Distributed under the GNU General
+Public License. See the file COPYING for details.
 
