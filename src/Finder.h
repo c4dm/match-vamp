@@ -5,8 +5,9 @@
     algorithm.
 
     Centre for Digital Music, Queen Mary, University of London.
-    This file copyright 2007 Simon Dixon, Chris Cannam and QMUL.
-    
+    Copyright (c) 2007-2015 Simon Dixon, Chris Cannam, and Queen Mary
+    University of London, Copyright (c) 2014-2015 Tido GmbH.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the

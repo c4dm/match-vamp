@@ -1,0 +1,6 @@
+ @inproceedings{simon2005a,
+  author = {Simon Dixon and Gerhard Widmer},
+  title = {MATCH: A Music Alignment Tool Chest},
+  booktitle = {Proceedings of the 6th International Conference on Music Information Retrieval (ISMIR-05)},
+  year = {2005}
+}
