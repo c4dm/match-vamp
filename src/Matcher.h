@@ -255,6 +255,20 @@ public:
      */
     advance_t getAdvance(int i, int j);
 
+    struct MemoryStats {
+        double features_k;
+        double pathcosts_k;
+        double distances_k;
+        double advances_k;
+        double total_k() const {
+            return features_k + pathcosts_k + distances_k + advances_k;
+        }
+    };
+    
+    /** Obtain some stats about memory consumption.
+     */
+    MemoryStats getMemoryStats() const;
+    
     /** Print some stats about memory consumption etc to stderr.
      */
     void printStats();
@@ -338,5 +352,16 @@ protected:
 
     DistanceMetric m_metric;
 };
+
+inline Matcher::MemoryStats operator+(const Matcher::MemoryStats &a,
+                                      const Matcher::MemoryStats &b)
+{
+    Matcher::MemoryStats m = a;
+    m.features_k += b.features_k;
+    m.pathcosts_k += b.pathcosts_k;
+    m.distances_k += b.distances_k;
+    m.advances_k += b.advances_k;
+    return m;
+}
 
 #endif

@@ -513,6 +513,29 @@ static double k(size_t sz)
     return double(sz) / 1024.0;
 }
 
+Matcher::MemoryStats
+Matcher::getMemoryStats() const
+{
+    MemoryStats stats;
+    stats.features_k =
+        k(m_features.size() * m_features[0].size() * sizeof(featurebin_t));
+    
+    size_t cells = 0;
+    for (const auto &d: m_distance) {
+        cells += d.size();
+    }
+    
+    stats.pathcosts_k = k(cells * sizeof(pathcost_t));
+    stats.distances_k = k(cells * sizeof(distance_t));
+    stats.advances_k = k(cells * sizeof(advance_t));
+
+    if (m_firstPM && m_otherMatcher) {
+        stats = stats + m_otherMatcher->getMemoryStats();
+    }
+    
+    return stats;
+}
+
 void
 Matcher::printStats()
 {
@@ -524,8 +547,7 @@ Matcher::printStats()
     if (m_features.empty()) {
         cerr << "- have no features yet" << endl;
     } else {
-        cerr << "- have " << m_features.size() << " features of " << m_features[0].size() << " bins each (= "
-             << k(m_features.size() * m_features[0].size() * sizeof(featurebin_t)) << "K)" << endl;
+        cerr << "- have " << m_features.size() << " features of " << m_features[0].size() << " bins each" << endl;
     }
 
     size_t cells = 0;
@@ -538,13 +560,18 @@ Matcher::printStats()
         cerr << "- have " << m_distance.size() << " cols in matrix with avg "
              << double(cells) / double(m_distance.size()) << " rows, total "
              << cells << " cells" << endl;
-        cerr << "- path costs " << k(cells * sizeof(pathcost_t))
-             << "K, distances " << k(cells * sizeof(distance_t))
-             << "K, advances " << k(cells * sizeof(advance_t)) << "K" << endl;
     }
 
     if (m_firstPM && m_otherMatcher) {
         m_otherMatcher->printStats();
+        MemoryStats stats = getMemoryStats();
+        cerr << "Memory: "
+             << "features " << stats.features_k << "K, "
+             << "path costs " << stats.pathcosts_k << "K, "
+             << "distances " << stats.distances_k << "K,\n        "
+             << "advances " << stats.advances_k << "K, "
+             << "total " << stats.total_k() << "K"
+             << endl;
         cerr << endl;
     }
 }
