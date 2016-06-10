@@ -517,8 +517,11 @@ Matcher::MemoryStats
 Matcher::getMemoryStats() const
 {
     MemoryStats stats;
-    stats.features_k =
-        k(m_features.size() * m_features[0].size() * sizeof(featurebin_t));
+    stats.features_k = 0.0;
+    if (!m_features.empty()) {
+        stats.features_k =
+            k(m_features.size() * m_features[0].size() * sizeof(featurebin_t));
+    }
     
     size_t cells = 0;
     for (const auto &d: m_distance) {
