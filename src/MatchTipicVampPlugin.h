@@ -2,10 +2,10 @@
 
 /*
     Vamp feature extraction plugin using the MATCH audio alignment
-    algorithm.
+    algorithm with TIPIC features.
 
     Centre for Digital Music, Queen Mary, University of London.
-    Copyright (c) 2007-2015 Simon Dixon, Chris Cannam, and Queen Mary
+    Copyright (c) 2007-2019 Simon Dixon, Chris Cannam, and Queen Mary
     University of London, Copyright (c) 2014-2015 Tido GmbH.
 
     This program is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef _MATCH_VAMP_PLUGIN_H_
-#define _MATCH_VAMP_PLUGIN_H_
+#ifndef MATCH_TIPIC_VAMP_PLUGIN_H
+#define MATCH_TIPIC_VAMP_PLUGIN_H
 
 #include <vamp-sdk/Plugin.h>
 
@@ -28,16 +28,20 @@
 
 #include "MatchPipeline.h"
 
-class MatchVampPlugin : public Vamp::Plugin
+// TIPIC headers
+#include "PitchFilterbank.h"
+#include "CRP.h"
+
+class MatchTipicVampPlugin : public Vamp::Plugin
 {
 public:
-    MatchVampPlugin(float inputSampleRate);
-    virtual ~MatchVampPlugin();
+    MatchTipicVampPlugin(float inputSampleRate);
+    virtual ~MatchTipicVampPlugin();
 
     bool initialise(size_t channels, size_t stepSize, size_t blockSize);
     void reset();
 
-    InputDomain getInputDomain() const { return FrequencyDomain; }
+    InputDomain getInputDomain() const { return TimeDomain; }
 
     size_t getPreferredStepSize() const;
     size_t getPreferredBlockSize() const;
@@ -64,25 +68,19 @@ public:
     FeatureSet getRemainingFeatures();
 
 protected:
-    void createMatchers();
-
-    MatchPipeline *m_pipeline;
-
     Vamp::RealTime m_startTime;
     int m_stepSize;
-    float m_stepTime;
     int m_blockSize;
     bool m_serialise;
     bool m_begin;
     bool m_locked;
     bool m_smooth;
+    bool m_chroma;
+    float m_frequencyReference;
+    float m_frequencyOther;
 
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
-
-    FeatureExtractor::Parameters m_feParams;
-    FeatureExtractor::Parameters m_defaultFeParams;
-    double m_secondReferenceFrequency;
 
     FeatureConditioner::Parameters m_fcParams;
     FeatureConditioner::Parameters m_defaultFcParams;
@@ -90,6 +88,15 @@ protected:
     DistanceMetric::Parameters m_dParams;
     DistanceMetric::Parameters m_defaultDParams;
 
+    PitchFilterbank *m_filterbankReference;
+    PitchFilterbank *m_filterbankOther;
+
+    std::deque<RealColumn> m_pendingPitchFeaturesReference;
+    std::deque<RealColumn> m_pendingPitchFeaturesOther;
+
+    CRP *m_crp;
+    MatchPipeline *m_pipeline;
+    
     mutable int m_pathOutNo;
     mutable int m_abOutNo;
     mutable int m_baOutNo;

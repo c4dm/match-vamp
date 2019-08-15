@@ -41,7 +41,9 @@ public:
      * contains a single reference frequency, but it's possible the
      * two input streams may have different tuning frequencies. A
      * separate frequency for the second input can be provided here as
-     * an optional parameter if needed.
+     * an optional parameter if needed. The tuning frequency is only
+     * used in the feature-extraction stage, so it's not necessary if
+     * input is provided using feedFeatures().
      */
     MatchPipeline(FeatureExtractor::Parameters feParams,
 		  FeatureConditioner::Parameters fcParams,

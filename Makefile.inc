@@ -4,7 +4,9 @@ PLUGIN		?= match-vamp-plugin$(PLUGIN_EXT)
 CXX		?= g++
 CC		?= gcc
 
-CXXFLAGS	:= -Isrc -DUSE_COMPACT_TYPES $(CXXFLAGS)
+CXXFLAGS	:= -Isrc -I../tipic/src -I../tipic/qm-dsp -DUSE_COMPACT_TYPES $(CXXFLAGS)
+
+LDFLAGS         += -L../tipic -ltipic
 
 TEST_LDFLAGS	+= -lboost_unit_test_framework
 

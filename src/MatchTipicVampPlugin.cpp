@@ -2,10 +2,10 @@
 
 /*
     Vamp feature extraction plugin using the MATCH audio alignment
-    algorithm.
+    algorithm with TIPIC features.
 
     Centre for Digital Music, Queen Mary, University of London.
-    Copyright (c) 2007-2015 Simon Dixon, Chris Cannam, and Queen Mary
+    Copyright (c) 2007-2019 Simon Dixon, Chris Cannam, and Queen Mary
     University of London, Copyright (c) 2014-2015 Tido GmbH.
     
     This program is free software; you can redistribute it and/or
@@ -15,7 +15,7 @@
     COPYING included with this distribution for more information.
 */
 
-#include "MatchVampPlugin.h"
+#include "MatchTipicVampPlugin.h"
 
 #include <vamp/vamp.h>
 #include <vamp-sdk/RealTime.h>
@@ -23,52 +23,39 @@
 #include <vector>
 #include <algorithm>
 
-//static int extant = 0;
-
 #ifdef _WIN32
 HANDLE
-MatchVampPlugin::m_serialisingMutex;
+MatchTipicVampPlugin::m_serialisingMutex;
 #else
 pthread_mutex_t 
-MatchVampPlugin::m_serialisingMutex;
+MatchTipicVampPlugin::m_serialisingMutex;
 #endif
 
 bool
-MatchVampPlugin::m_serialisingMutexInitialised = false;
+MatchTipicVampPlugin::m_serialisingMutexInitialised = false;
 
-// We want to ensure our freq map / crossover bin in Matcher.cpp are
-// always valid with a fixed FFT length in seconds, so must reject low
-// sample rates
-static float sampleRateMin = 5000.f;
-
-static float defaultStepTime = 0.020f;
-
-MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
+MatchTipicVampPlugin::MatchTipicVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
-    m_stepSize(int(inputSampleRate * defaultStepTime + 0.001)),
-    m_stepTime(defaultStepTime),
-    m_blockSize(2048),
+    m_stepSize(0),
+    m_blockSize(0),
     m_serialise(false),
     m_begin(true),
     m_locked(false),
     m_smooth(false),
-    m_params(defaultStepTime),
-    m_defaultParams(defaultStepTime),
-    m_feParams(inputSampleRate),
-    m_defaultFeParams(44100), // parameter descriptors can't depend on samplerate
-    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
+    m_chroma(true),
+    m_frequencyReference(440.f),
+    m_frequencyOther(440.f),
+    m_params(1.0 / PitchFilterbank::getOutputSampleRate()),
+    m_defaultParams(1.0 / PitchFilterbank::getOutputSampleRate()),
     m_fcParams(),
     m_defaultFcParams(),
     m_dParams(),
-    m_defaultDParams()
+    m_defaultDParams(),
+    m_filterbankReference(nullptr),
+    m_filterbankOther(nullptr),
+    m_crp(nullptr),
+    m_pipeline(nullptr)
 {
-    if (inputSampleRate < sampleRateMin) {
-        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
-                  << inputSampleRate << " < min supported rate "
-                  << sampleRateMin << ", plugin will refuse to initialise"
-                  << std::endl;
-    }
-
     if (!m_serialisingMutexInitialised) {
         m_serialisingMutexInitialised = true;
 #ifdef _WIN32
@@ -78,15 +65,17 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
 #endif
     }
 
-    m_pipeline = 0;
-//    std::cerr << "MatchVampPlugin::MatchVampPlugin(" << this << "): extant = " << ++extant << std::endl;
+//    std::cerr << "MatchTipicVampPlugin::MatchTipicVampPlugin(" << this << "): extant = " << ++extant << std::endl;
 }
 
-MatchVampPlugin::~MatchVampPlugin()
+MatchTipicVampPlugin::~MatchTipicVampPlugin()
 {
-//    std::cerr << "MatchVampPlugin::~MatchVampPlugin(" << this << "): extant = " << --extant << std::endl;
+//    std::cerr << "MatchTipicVampPlugin::~MatchTipicVampPlugin(" << this << "): extant = " << --extant << std::endl;
 
     delete m_pipeline;
+    delete m_crp;
+    delete m_filterbankOther;
+    delete m_filterbankReference;
 
     if (m_locked) {
 #ifdef _WIN32
@@ -99,43 +88,43 @@ MatchVampPlugin::~MatchVampPlugin()
 }
 
 string
-MatchVampPlugin::getIdentifier() const
+MatchTipicVampPlugin::getIdentifier() const
 {
-    return "match";
+    return "match-tipic";
 }
 
 string
-MatchVampPlugin::getName() const
+MatchTipicVampPlugin::getName() const
 {
-    return "Match Performance Aligner";
+    return "Match Performance Aligner With TIPIC Features";
 }
 
 string
-MatchVampPlugin::getDescription() const
+MatchTipicVampPlugin::getDescription() const
 {
     return "Calculate alignment between two performances in separate channel inputs";
 }
 
 string
-MatchVampPlugin::getMaker() const
+MatchTipicVampPlugin::getMaker() const
 {
-    return "Simon Dixon (plugin by Chris Cannam)";
+    return "Queen Mary University of London";
 }
 
 int
-MatchVampPlugin::getPluginVersion() const
+MatchTipicVampPlugin::getPluginVersion() const
 {
-    return 3;
+    return 1;
 }
 
 string
-MatchVampPlugin::getCopyright() const
+MatchTipicVampPlugin::getCopyright() const
 {
     return "GPL";
 }
 
-MatchVampPlugin::ParameterList
-MatchVampPlugin::getParameterDescriptors() const
+MatchTipicVampPlugin::ParameterList
+MatchTipicVampPlugin::getParameterDescriptors() const
 {
     ParameterList list;
 
@@ -146,7 +135,7 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Tuning frequency (concert A) for the reference audio.";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
-    desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
+    desc.defaultValue = 440.0;
     desc.isQuantized = false;
     desc.unit = "Hz";
     list.push_back(desc);
@@ -156,43 +145,23 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.description = "Tuning frequency (concert A) for the other audio.";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
-    desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
+    desc.defaultValue = 440.0;
     desc.isQuantized = false;
     desc.unit = "Hz";
     list.push_back(desc);
 
-    desc.identifier = "minfreq";
-    desc.name = "Minimum frequency";
-    desc.description = "Minimum frequency to include in features.";
-    desc.minValue = 0.0;
-    desc.maxValue = float(m_inputSampleRate / 4.f);
-    desc.defaultValue = float(m_defaultFeParams.minFrequency);
-    desc.isQuantized = false;
-    desc.unit = "Hz";
-    list.push_back(desc);
-
-    desc.identifier = "maxfreq";
-    desc.name = "Maximum frequency";
-    desc.description = "Maximum frequency to include in features.";
-    desc.minValue = 1000.0;
-    desc.maxValue = float(m_inputSampleRate / 2.f);
-    desc.defaultValue = float(m_defaultFeParams.maxFrequency);
-    desc.isQuantized = false;
-    desc.unit = "Hz";
-    list.push_back(desc);
-    
     desc.unit = "";
     
     desc.identifier = "usechroma";
     desc.name = "Feature type";
-    desc.description = "Whether to use warped spectrogram or chroma frequency map";
+    desc.description = "Whether to use pitch features or chroma";
     desc.minValue = 0;
     desc.maxValue = 1;
-    desc.defaultValue = m_defaultFeParams.useChromaFrequencyMap ? 1 : 0;
+    desc.defaultValue = 1;
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     desc.valueNames.clear();
-    desc.valueNames.push_back("Spectral");
+    desc.valueNames.push_back("Pitch features");
     desc.valueNames.push_back("Chroma");
     list.push_back(desc);
 
@@ -200,7 +169,7 @@ MatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "usespecdiff";
     desc.name = "Use feature difference";
-    desc.description = "Whether to use half-wave rectified feature-to-feature difference instead of straight spectral or chroma feature";
+    desc.description = "Whether to use half-wave rectified feature-to-feature difference instead of straight feature";
     desc.minValue = 0;
     desc.maxValue = 1;
     desc.defaultValue = float(m_defaultFcParams.order);
@@ -340,7 +309,7 @@ MatchVampPlugin::getParameterDescriptors() const
 }
 
 float
-MatchVampPlugin::getParameter(std::string name) const
+MatchTipicVampPlugin::getParameter(std::string name) const
 {
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
@@ -348,10 +317,10 @@ MatchVampPlugin::getParameter(std::string name) const
         return float(m_fcParams.norm);
     } else if (name == "distnorm") {
         return float(m_dParams.norm);
+    } else if (name == "usechroma") {
+        return m_chroma ? 1.0 : 0.0;
     } else if (name == "usespecdiff") {
         return float(m_fcParams.order);
-    } else if (name == "usechroma") {
-        return m_feParams.useChromaFrequencyMap ? 1.0 : 0.0;
     } else if (name == "gradientlimit") {
         return float(m_params.maxRunCount);
     } else if (name == "diagonalweight") {
@@ -369,20 +338,16 @@ MatchVampPlugin::getParameter(std::string name) const
     } else if (name == "scale") {
         return float(m_dParams.scale);
     } else if (name == "freq1") {
-        return float(m_feParams.referenceFrequency);
+        return float(m_frequencyReference);
     } else if (name == "freq2") {
-        return float(m_secondReferenceFrequency);
-    } else if (name == "minfreq") {
-        return float(m_feParams.minFrequency);
-    } else if (name == "maxfreq") {
-        return float(m_feParams.maxFrequency);
+        return float(m_frequencyOther);
     }
     
     return 0.0;
 }
 
 void
-MatchVampPlugin::setParameter(std::string name, float value)
+MatchTipicVampPlugin::setParameter(std::string name, float value)
 {
     if (name == "serialise") {
         m_serialise = (value > 0.5);
@@ -390,10 +355,10 @@ MatchVampPlugin::setParameter(std::string name, float value)
         m_fcParams.norm = FeatureConditioner::Normalisation(int(value + 0.1));
     } else if (name == "distnorm") {
         m_dParams.norm = DistanceMetric::DistanceNormalisation(int(value + 0.1));
+    } else if (name == "usechroma") {
+        m_chroma = (value > 0.5);
     } else if (name == "usespecdiff") {
         m_fcParams.order = FeatureConditioner::OutputOrder(int(value + 0.1));
-    } else if (name == "usechroma") {
-        m_feParams.useChromaFrequencyMap = (value > 0.5);
     } else if (name == "gradientlimit") {
         m_params.maxRunCount = int(value + 0.1);
     } else if (name == "diagonalweight") {
@@ -411,79 +376,71 @@ MatchVampPlugin::setParameter(std::string name, float value)
     } else if (name == "scale") {
         m_dParams.scale = value;
     } else if (name == "freq1") {
-        m_feParams.referenceFrequency = value;
+        m_frequencyReference = value;
     } else if (name == "freq2") {
-        m_secondReferenceFrequency = value;
-    } else if (name == "minfreq") {
-        m_feParams.minFrequency = value;
-    } else if (name == "maxfreq") {
-        m_feParams.maxFrequency = value;
+        m_frequencyOther = value;
     }
 }
 
 size_t
-MatchVampPlugin::getPreferredStepSize() const
+MatchTipicVampPlugin::getPreferredStepSize() const
 {
-    return int(m_inputSampleRate * defaultStepTime + 0.001);
+    return 0;
 }
 
 size_t
-MatchVampPlugin::getPreferredBlockSize() const
+MatchTipicVampPlugin::getPreferredBlockSize() const
 {
-    return m_defaultFeParams.fftSize;
-}
-
-void
-MatchVampPlugin::createMatchers()
-{
-    m_params.hopTime = m_stepTime;
-    m_feParams.fftSize = m_blockSize;
-
-    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params,
-                                   m_secondReferenceFrequency);
+    return 0;
 }
 
 bool
-MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
+MatchTipicVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 {
-    if (m_inputSampleRate < sampleRateMin) {
-        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
-                  << m_inputSampleRate << " < min supported rate "
-                  << sampleRateMin << std::endl;
+    if (channels < getMinChannelCount() ||
+	channels > getMaxChannelCount()) {
         return false;
     }
-    if (channels < getMinChannelCount() ||
-	channels > getMaxChannelCount()) return false;
-    if (stepSize > blockSize/2 ||
-        blockSize != getPreferredBlockSize()) return false;
 
     m_stepSize = int(stepSize);
-    m_stepTime = float(stepSize) / m_inputSampleRate;
     m_blockSize = int(blockSize);
 
-    createMatchers();
-    m_begin = true;
-    m_locked = false;
+    reset();
 
     return true;
 }
 
 void
-MatchVampPlugin::reset()
+MatchTipicVampPlugin::reset()
 {
+    m_params.hopTime = 1.0 / PitchFilterbank::getOutputSampleRate();
+
+    delete m_filterbankReference;
+    m_filterbankReference = new PitchFilterbank
+        (int(round(m_inputSampleRate)), m_frequencyReference);
+    
+    delete m_filterbankOther;
+    m_filterbankOther = new PitchFilterbank
+        (int(round(m_inputSampleRate)), m_frequencyOther);
+
+    delete m_crp;
+    m_crp = new CRP({});
+    
     delete m_pipeline;
-    m_pipeline = 0;
-    createMatchers();
+    m_pipeline = new MatchPipeline
+        (FeatureExtractor::Parameters(m_inputSampleRate),
+         m_fcParams, m_dParams, m_params);
+
     m_begin = true;
     m_locked = false;
 }
 
-MatchVampPlugin::OutputList
-MatchVampPlugin::getOutputDescriptors() const
+MatchTipicVampPlugin::OutputList
+MatchTipicVampPlugin::getOutputDescriptors() const
 {
     OutputList list;
 
-    float outRate = 1.0f / m_stepTime;
+    float outRate = float(PitchFilterbank::getOutputSampleRate());
 
     OutputDescriptor desc;
     desc.identifier = "path";
@@ -552,11 +509,13 @@ MatchVampPlugin::getOutputDescriptors() const
     m_abRatioOutNo = int(list.size());
     list.push_back(desc);
 
-    int featureSize = FeatureExtractor(m_feParams).getFeatureSize();
+    //!!! not true of non-chroma feature, of course! so any
+    //!!! visualisation will be lacking most values
+    int featureSize = 12;
     
     desc.identifier = "a_features";
     desc.name = "Raw A Features";
-    desc.description = "Spectral features extracted from performance A";
+    desc.description = "Features extracted from performance A";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = featureSize;
@@ -569,7 +528,7 @@ MatchVampPlugin::getOutputDescriptors() const
 
     desc.identifier = "b_features";
     desc.name = "Raw B Features";
-    desc.description = "Spectral features extracted from performance B";
+    desc.description = "Features extracted from performance B";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = featureSize;
@@ -582,7 +541,7 @@ MatchVampPlugin::getOutputDescriptors() const
 
     desc.identifier = "a_cfeatures";
     desc.name = "Conditioned A Features";
-    desc.description = "Spectral features extracted from performance A, after normalisation and conditioning";
+    desc.description = "Features extracted from performance A, after normalisation and conditioning";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = featureSize;
@@ -595,7 +554,7 @@ MatchVampPlugin::getOutputDescriptors() const
 
     desc.identifier = "b_cfeatures";
     desc.name = "Conditioned B Features";
-    desc.description = "Spectral features extracted from performance B, after normalisation and conditioning";
+    desc.description = "Features extracted from performance B, after normalisation and conditioning";
     desc.unit = "";
     desc.hasFixedBinCount = true;
     desc.binCount = featureSize;
@@ -622,9 +581,9 @@ MatchVampPlugin::getOutputDescriptors() const
     return list;
 }
 
-MatchVampPlugin::FeatureSet
-MatchVampPlugin::process(const float *const *inputBuffers,
-                         Vamp::RealTime timestamp)
+MatchTipicVampPlugin::FeatureSet
+MatchTipicVampPlugin::process(const float *const *inputBuffers,
+                              Vamp::RealTime timestamp)
 {
     if (m_begin) {
         if (!m_locked && m_serialise) {
@@ -641,34 +600,87 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     
 //    std::cerr << timestamp.toString();
 
-    m_pipeline->feedFrequencyDomainAudio(inputBuffers[0], inputBuffers[1]);
+    RealSequence in;
+    in.resize(m_blockSize);
+
+    for (int i = 0; i < m_blockSize; ++i) {
+	in[i] = inputBuffers[0][i];
+    }
+    RealBlock pitchReference = m_filterbankReference->process(in);
+    for (const auto &c: pitchReference) {
+        m_pendingPitchFeaturesReference.push_back(c);
+    }
+    
+    for (int i = 0; i < m_blockSize; ++i) {
+	in[i] = inputBuffers[1][i];
+    }
+    RealBlock pitchOther = m_filterbankOther->process(in);
+    for (const auto &c: pitchOther) {
+        m_pendingPitchFeaturesOther.push_back(c);
+    }
 
     FeatureSet returnFeatures;
 
     feature_t f1, f2;
-    m_pipeline->extractFeatures(f1, f2);
+    int featureSize = 0;
+    
+    while (!m_pendingPitchFeaturesReference.empty() &&
+           !m_pendingPitchFeaturesOther.empty()) {
 
-    feature_t cf1, cf2;
-    m_pipeline->extractConditionedFeatures(cf1, cf2);
+        RealColumn reference, other;
+        
+        RealColumn col = m_pendingPitchFeaturesReference.front();
+        m_pendingPitchFeaturesReference.pop_front();
 
-    Feature f;
-    f.hasTimestamp = false;
+        if (m_chroma) {
+            reference = m_crp->process(col);
+        } else {
+            reference = col;
+        }
+        
+        col = m_pendingPitchFeaturesOther.front();
+        m_pendingPitchFeaturesOther.pop_front();
 
-    f.values.clear();
-    for (auto v: f1) f.values.push_back(float(v));
-    returnFeatures[m_aFeaturesOutNo].push_back(f);
+        if (m_chroma) {
+            other = m_crp->process(col);
+        } else {
+            other = col;
+        }
 
-    f.values.clear();
-    for (auto v: f2) f.values.push_back(float(v));
-    returnFeatures[m_bFeaturesOutNo].push_back(f);
+        if (featureSize == 0) {
+            featureSize = int(reference.size());
+            f1.resize(featureSize);
+            f2.resize(featureSize);
+        }
+        
+        for (int i = 0; i < featureSize; ++i) {
+            f1[i] = float(reference[i]);
+            f2[i] = float(other[i]);
+        }
+        m_pipeline->feedFeatures(f1, f2);
 
-    f.values.clear();
-    for (auto v: cf1) f.values.push_back(float(v));
-    returnFeatures[m_caFeaturesOutNo].push_back(f);
+        feature_t cf1, cf2;
+        m_pipeline->extractConditionedFeatures(cf1, cf2);
 
-    f.values.clear();
-    for (auto v: cf2) f.values.push_back(float(v));
-    returnFeatures[m_cbFeaturesOutNo].push_back(f);
+        Feature f;
+        f.hasTimestamp = false;
+
+        f.values.clear();
+        for (auto v: f1) f.values.push_back(float(v));
+        returnFeatures[m_aFeaturesOutNo].push_back(f);
+
+        f.values.clear();
+        for (auto v: f2) f.values.push_back(float(v));
+        returnFeatures[m_bFeaturesOutNo].push_back(f);
+
+        f.values.clear();
+        for (auto v: cf1) f.values.push_back(float(v));
+        returnFeatures[m_caFeaturesOutNo].push_back(f);
+
+        f.values.clear();
+        for (auto v: cf2) f.values.push_back(float(v));
+        returnFeatures[m_cbFeaturesOutNo].push_back(f);
+    }
 
 //    std::cerr << ".";
 //    std::cerr << std::endl;
@@ -676,8 +688,8 @@ MatchVampPlugin::process(const float *const *inputBuffers,
     return returnFeatures;
 }
 
-MatchVampPlugin::FeatureSet
-MatchVampPlugin::getRemainingFeatures()
+MatchTipicVampPlugin::FeatureSet
+MatchTipicVampPlugin::getRemainingFeatures()
 {
     m_pipeline->finish();
 
@@ -701,10 +713,10 @@ MatchVampPlugin::getRemainingFeatures()
         int x = pathx[i];
         int y = pathy[i];
 
-        Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
-            (x * m_stepSize, int(m_inputSampleRate + 0.5));
-        Vamp::RealTime yt = Vamp::RealTime::frame2RealTime
-            (y * m_stepSize, int(m_inputSampleRate + 0.5));
+        Vamp::RealTime xt = Vamp::RealTime::fromSeconds
+            (x / PitchFilterbank::getOutputSampleRate());
+        Vamp::RealTime yt = Vamp::RealTime::fromSeconds
+            (y / PitchFilterbank::getOutputSampleRate());
 
         Feature feature;
         feature.hasTimestamp = true;
@@ -799,3 +811,4 @@ MatchVampPlugin::getRemainingFeatures()
     }
 */
 }
+
