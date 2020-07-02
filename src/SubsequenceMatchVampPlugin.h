@@ -15,8 +15,8 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef MATCH_VAMP_PLUGIN_H
-#define MATCH_VAMP_PLUGIN_H
+#ifndef SUBSEQUENCE_MATCH_VAMP_PLUGIN_H
+#define SUBSEQUENCE_MATCH_VAMP_PLUGIN_H
 
 #include <vamp-sdk/Plugin.h>
 
@@ -26,13 +26,16 @@
 #include <pthread.h>
 #endif
 
-#include "MatchPipeline.h"
+#include "Matcher.h"
+#include "FeatureExtractor.h"
+#include "FeatureConditioner.h"
+#include "DistanceMetric.h"
 
-class MatchVampPlugin : public Vamp::Plugin
+class SubsequenceMatchVampPlugin : public Vamp::Plugin
 {
 public:
-    MatchVampPlugin(float inputSampleRate);
-    virtual ~MatchVampPlugin();
+    SubsequenceMatchVampPlugin(float inputSampleRate);
+    virtual ~SubsequenceMatchVampPlugin();
 
     bool initialise(size_t channels, size_t stepSize, size_t blockSize);
     void reset();
@@ -64,21 +67,12 @@ public:
     FeatureSet getRemainingFeatures();
 
 protected:
-    void createMatchers();
-    bool aboveThreshold(const float *);
-
-    MatchPipeline *m_pipeline;
-
-    Vamp::RealTime m_startTime;
     int m_stepSize;
     float m_stepTime;
     int m_blockSize;
+    int m_coarseDownsample;
     bool m_serialise;
-    bool m_begin;
-    bool m_locked;
     bool m_smooth;
-
-    int m_frameNo;
     
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
@@ -94,24 +88,7 @@ protected:
     DistanceMetric::Parameters m_defaultDParams;
 
     mutable int m_pathOutNo;
-    mutable int m_abOutNo;
     mutable int m_baOutNo;
-    mutable int m_abDivOutNo;
-    mutable int m_abRatioOutNo;
-    mutable int m_aFeaturesOutNo;
-    mutable int m_bFeaturesOutNo;
-    mutable int m_caFeaturesOutNo;
-    mutable int m_cbFeaturesOutNo;
-    mutable int m_overallCostOutNo;
-
-#ifdef _WIN32
-    static HANDLE m_serialisingMutex;
-#else 
-    static pthread_mutex_t m_serialisingMutex;
-#endif
-
-    static bool m_serialisingMutexInitialised;
 };
-
 
 #endif

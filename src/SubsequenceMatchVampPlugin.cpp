@@ -15,9 +15,7 @@
     COPYING included with this distribution for more information.
 */
 
-#include "MatchVampPlugin.h"
-
-#include "FeatureExtractor.h"
+#include "SubsequenceMatchVampPlugin.h"
 
 #include <vamp/vamp.h>
 #include <vamp-sdk/RealTime.h>
@@ -27,36 +25,20 @@
 
 using std::string;
 
-//static int extant = 0;
-
-#ifdef _WIN32
-HANDLE
-MatchVampPlugin::m_serialisingMutex;
-#else
-pthread_mutex_t 
-MatchVampPlugin::m_serialisingMutex;
-#endif
-
-bool
-MatchVampPlugin::m_serialisingMutexInitialised = false;
-
-// We want to ensure our freq map / crossover bin in Matcher.cpp are
-// always valid with a fixed FFT length in seconds, so must reject low
-// sample rates
+// We want to ensure our freq map / crossover bin are always valid
+// with a fixed FFT length in seconds, so must reject low sample rates
 static float sampleRateMin = 5000.f;
 
 static float defaultStepTime = 0.020f;
 
-MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
+SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
     m_stepSize(int(inputSampleRate * defaultStepTime + 0.001)),
     m_stepTime(defaultStepTime),
     m_blockSize(2048),
+    m_coarseDownsample(50),
     m_serialise(false),
-    m_begin(true),
-    m_locked(false),
     m_smooth(false),
-    m_frameNo(0),
     m_params(defaultStepTime),
     m_defaultParams(defaultStepTime),
     m_feParams(inputSampleRate),
@@ -68,79 +50,55 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_defaultDParams()
 {
     if (inputSampleRate < sampleRateMin) {
-        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
+        std::cerr << "SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin: input sample rate "
                   << inputSampleRate << " < min supported rate "
                   << sampleRateMin << ", plugin will refuse to initialise"
                   << std::endl;
     }
-
-    if (!m_serialisingMutexInitialised) {
-        m_serialisingMutexInitialised = true;
-#ifdef _WIN32
-        m_serialisingMutex = CreateMutex(NULL, FALSE, NULL);
-#else
-        pthread_mutex_init(&m_serialisingMutex, 0);
-#endif
-    }
-
-    m_pipeline = 0;
-//    std::cerr << "MatchVampPlugin::MatchVampPlugin(" << this << "): extant = " << ++extant << std::endl;
 }
 
-MatchVampPlugin::~MatchVampPlugin()
+SubsequenceMatchVampPlugin::~SubsequenceMatchVampPlugin()
 {
-//    std::cerr << "MatchVampPlugin::~MatchVampPlugin(" << this << "): extant = " << --extant << std::endl;
-
-    delete m_pipeline;
-
-    if (m_locked) {
-#ifdef _WIN32
-        ReleaseMutex(m_serialisingMutex);
-#else
-        pthread_mutex_unlock(&m_serialisingMutex);
-#endif
-        m_locked = false;
-    }
 }
 
 string
-MatchVampPlugin::getIdentifier() const
+SubsequenceMatchVampPlugin::getIdentifier() const
 {
-    return "match";
+    return "match_subsequence";
 }
 
 string
-MatchVampPlugin::getName() const
+SubsequenceMatchVampPlugin::getName() const
 {
-    return "Match Performance Aligner";
+    return "Match Subsequence Aligner";
 }
 
 string
-MatchVampPlugin::getDescription() const
+SubsequenceMatchVampPlugin::getDescription() const
 {
-    return "Calculate alignment between two performances in separate channel inputs";
+    return "Calculate alignment between a reference performance and a performance known to represent only part of the same material";
 }
 
 string
-MatchVampPlugin::getMaker() const
+SubsequenceMatchVampPlugin::getMaker() const
 {
     return "Simon Dixon (plugin by Chris Cannam)";
 }
 
 int
-MatchVampPlugin::getPluginVersion() const
+SubsequenceMatchVampPlugin::getPluginVersion() const
 {
     return 3;
 }
 
 string
-MatchVampPlugin::getCopyright() const
+SubsequenceMatchVampPlugin::getCopyright() const
 {
     return "GPL";
 }
 
-MatchVampPlugin::ParameterList
-MatchVampPlugin::getParameterDescriptors() const
+SubsequenceMatchVampPlugin::ParameterList
+SubsequenceMatchVampPlugin::getParameterDescriptors() const
 {
     ParameterList list;
 
@@ -341,11 +299,14 @@ MatchVampPlugin::getParameterDescriptors() const
     desc.quantizeStep = 1;
     list.push_back(desc);
 
+    //!!! + m_coarseDownsample, + reconsider params not useful in this plugin
+    
+    
     return list;
 }
 
 float
-MatchVampPlugin::getParameter(std::string name) const
+SubsequenceMatchVampPlugin::getParameter(std::string name) const
 {
     if (name == "serialise") {
         return m_serialise ? 1.0 : 0.0; 
@@ -387,7 +348,7 @@ MatchVampPlugin::getParameter(std::string name) const
 }
 
 void
-MatchVampPlugin::setParameter(std::string name, float value)
+SubsequenceMatchVampPlugin::setParameter(std::string name, float value)
 {
     if (name == "serialise") {
         m_serialise = (value > 0.5);
@@ -427,32 +388,22 @@ MatchVampPlugin::setParameter(std::string name, float value)
 }
 
 size_t
-MatchVampPlugin::getPreferredStepSize() const
+SubsequenceMatchVampPlugin::getPreferredStepSize() const
 {
     return int(m_inputSampleRate * defaultStepTime + 0.001);
 }
 
 size_t
-MatchVampPlugin::getPreferredBlockSize() const
+SubsequenceMatchVampPlugin::getPreferredBlockSize() const
 {
     return m_defaultFeParams.fftSize;
 }
 
-void
-MatchVampPlugin::createMatchers()
-{
-    m_params.hopTime = m_stepTime;
-    m_feParams.fftSize = m_blockSize;
-
-    m_pipeline = new MatchPipeline(m_feParams, m_fcParams, m_dParams, m_params,
-                                   m_secondReferenceFrequency);
-}
-
 bool
-MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
+SubsequenceMatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 {
     if (m_inputSampleRate < sampleRateMin) {
-        std::cerr << "MatchVampPlugin::MatchVampPlugin: input sample rate "
+        std::cerr << "SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin: input sample rate "
                   << m_inputSampleRate << " < min supported rate "
                   << sampleRateMin << std::endl;
         return false;
@@ -466,26 +417,20 @@ MatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
     m_stepTime = float(stepSize) / m_inputSampleRate;
     m_blockSize = int(blockSize);
 
-    createMatchers();
-    m_begin = true;
-    m_locked = false;
+    m_params.hopTime = m_stepTime;
+    m_feParams.fftSize = m_blockSize;
 
     return true;
 }
 
 void
-MatchVampPlugin::reset()
+SubsequenceMatchVampPlugin::reset()
 {
-    delete m_pipeline;
-    m_pipeline = 0;
-    m_frameNo = 0;
-    createMatchers();
-    m_begin = true;
-    m_locked = false;
+    //!!!
 }
 
-MatchVampPlugin::OutputList
-MatchVampPlugin::getOutputDescriptors() const
+SubsequenceMatchVampPlugin::OutputList
+SubsequenceMatchVampPlugin::getOutputDescriptors() const
 {
     OutputList list;
 
@@ -506,18 +451,6 @@ MatchVampPlugin::getOutputDescriptors() const
     m_pathOutNo = int(list.size());
     list.push_back(desc);
 
-    desc.identifier = "a_b";
-    desc.name = "A-B Timeline";
-    desc.description = "Timing in performance B corresponding to moments in performance A";
-    desc.unit = "sec";
-    desc.hasFixedBinCount = true;
-    desc.binCount = 1;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::VariableSampleRate;
-    desc.sampleRate = outRate;
-    m_abOutNo = int(list.size());
-    list.push_back(desc);
 
     desc.identifier = "b_a";
     desc.name = "B-A Timeline";
@@ -531,279 +464,45 @@ MatchVampPlugin::getOutputDescriptors() const
     desc.sampleRate = outRate;
     m_baOutNo = int(list.size());
     list.push_back(desc);
-
-    desc.identifier = "a_b_divergence";
-    desc.name = "A-B Divergence";
-    desc.description = "Difference between timings in performances A and B";
-    desc.unit = "sec";
-    desc.hasFixedBinCount = true;
-    desc.binCount = 1;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::VariableSampleRate;
-    desc.sampleRate = outRate;
-    m_abDivOutNo = int(list.size());
-    list.push_back(desc);
-
-    desc.identifier = "a_b_temporatio";
-    desc.name = "A-B Tempo Ratio";
-    desc.description = "Ratio of tempi between performances A and B";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = 1;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::VariableSampleRate;
-    desc.sampleRate = outRate;
-    m_abRatioOutNo = int(list.size());
-    list.push_back(desc);
-
-    int featureSize = FeatureExtractor(m_feParams).getFeatureSize();
-    
-    desc.identifier = "a_features";
-    desc.name = "Raw A Features";
-    desc.description = "Spectral features extracted from performance A";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = featureSize;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::FixedSampleRate;
-    desc.sampleRate = outRate;
-    m_aFeaturesOutNo = int(list.size());
-    list.push_back(desc);
-
-    desc.identifier = "b_features";
-    desc.name = "Raw B Features";
-    desc.description = "Spectral features extracted from performance B";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = featureSize;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::FixedSampleRate;
-    desc.sampleRate = outRate;
-    m_bFeaturesOutNo = int(list.size());
-    list.push_back(desc);
-
-    desc.identifier = "a_cfeatures";
-    desc.name = "Conditioned A Features";
-    desc.description = "Spectral features extracted from performance A, after normalisation and conditioning";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = featureSize;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::FixedSampleRate;
-    desc.sampleRate = outRate;
-    m_caFeaturesOutNo = int(list.size());
-    list.push_back(desc);
-
-    desc.identifier = "b_cfeatures";
-    desc.name = "Conditioned B Features";
-    desc.description = "Spectral features extracted from performance B, after norrmalisation and conditioning";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = featureSize;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::FixedSampleRate;
-    desc.sampleRate = outRate;
-    m_cbFeaturesOutNo = int(list.size());
-    list.push_back(desc);
-
-    desc.identifier = "overall_cost";
-    desc.name = "Overall Cost";
-    desc.description = "Normalised overall path cost for the cheapest path";
-    desc.unit = "";
-    desc.hasFixedBinCount = true;
-    desc.binCount = 1;
-    desc.hasKnownExtents = false;
-    desc.isQuantized = false;
-    desc.sampleType = OutputDescriptor::FixedSampleRate;
-    desc.sampleRate = 1;
-    m_overallCostOutNo = int(list.size());
-    list.push_back(desc);
     
     return list;
 }
 
-MatchVampPlugin::FeatureSet
-MatchVampPlugin::process(const float *const *inputBuffers,
-                         Vamp::RealTime timestamp)
+SubsequenceMatchVampPlugin::FeatureSet
+SubsequenceMatchVampPlugin::process(const float *const *inputBuffers,
+                                    Vamp::RealTime timestamp)
 {
-    if (m_begin) {
-        if (!m_locked && m_serialise) {
-            m_locked = true;
-#ifdef _WIN32
-            WaitForSingleObject(m_serialisingMutex, INFINITE);
-#else
-            pthread_mutex_lock(&m_serialisingMutex);
-#endif
-        }
-        m_startTime = timestamp;
-        m_begin = false;
-    }
-    
-//    std::cerr << timestamp.toString();
-
-    m_pipeline->feedFrequencyDomainAudio(inputBuffers[0], inputBuffers[1]);
-
     FeatureSet returnFeatures;
-
-    feature_t f1, f2;
-    m_pipeline->extractFeatures(f1, f2);
-
-    feature_t cf1, cf2;
-    m_pipeline->extractConditionedFeatures(cf1, cf2);
-
-    Feature f;
-    f.hasTimestamp = false;
-
-    f.values.clear();
-    for (auto v: f1) f.values.push_back(float(v));
-    returnFeatures[m_aFeaturesOutNo].push_back(f);
-
-    f.values.clear();
-    for (auto v: f2) f.values.push_back(float(v));
-    returnFeatures[m_bFeaturesOutNo].push_back(f);
-
-    f.values.clear();
-    for (auto v: cf1) f.values.push_back(float(v));
-    returnFeatures[m_caFeaturesOutNo].push_back(f);
-
-    f.values.clear();
-    for (auto v: cf2) f.values.push_back(float(v));
-    returnFeatures[m_cbFeaturesOutNo].push_back(f);
-
-//    std::cerr << ".";
-//    std::cerr << std::endl;
-
-    ++m_frameNo;
     
     return returnFeatures;
 }
 
-MatchVampPlugin::FeatureSet
-MatchVampPlugin::getRemainingFeatures()
+SubsequenceMatchVampPlugin::FeatureSet
+SubsequenceMatchVampPlugin::getRemainingFeatures()
 {
-    m_pipeline->finish();
+#ifdef _WIN32
+    HANDLE mutex;
+#else
+    pthread_mutex_t mutex;
+#endif
 
-    FeatureSet returnFeatures;
-    
-    std::vector<int> pathx;
-    std::vector<int> pathy;
-    int len = m_pipeline->retrievePath(m_smooth, pathx, pathy);
-
-    double cost = m_pipeline->getOverallCost();
-    Feature costFeature;
-    costFeature.hasTimestamp = false;
-    costFeature.values.push_back(float(cost));
-    returnFeatures[m_overallCostOutNo].push_back(costFeature);
-    
-    int prevx = 0;
-    int prevy = 0;
-
-    for (int i = 0; i < len; ++i) {
-
-        int x = pathx[i];
-        int y = pathy[i];
-
-        Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
-            (x * m_stepSize, int(m_inputSampleRate + 0.5));
-        Vamp::RealTime yt = Vamp::RealTime::frame2RealTime
-            (y * m_stepSize, int(m_inputSampleRate + 0.5));
-
-        Feature feature;
-        feature.hasTimestamp = true;
-        feature.timestamp = m_startTime + xt;
-        feature.values.clear();
-        feature.values.push_back(float(yt.sec + double(yt.nsec)/1.0e9));
-        returnFeatures[m_pathOutNo].push_back(feature);
-        
-        if (x != prevx) {
-
-            feature.hasTimestamp = true;
-            feature.timestamp = m_startTime + xt;
-            feature.values.clear();
-            feature.values.push_back(float(yt.sec + yt.msec()/1000.0));
-            returnFeatures[m_abOutNo].push_back(feature);
-
-            Vamp::RealTime diff = yt - xt;
-            feature.values.clear();
-            feature.values.push_back(float(diff.sec + diff.msec()/1000.0));
-            returnFeatures[m_abDivOutNo].push_back(feature);
-
-            if (i > 0) {
-                int lookback = 100; //!!! arbitrary
-                if (lookback > i) lookback = i;
-                int xdiff = x - pathx[i-lookback];
-                int ydiff = y - pathy[i-lookback];
-                if (xdiff != 0 && ydiff != 0) {
-                    float ratio = float(ydiff)/float(xdiff);
-                    if (ratio < 8 && ratio > (1.0/8)) { //!!! just for now, since we aren't dealing properly with silence yet
-                        feature.values.clear();
-                        feature.values.push_back(ratio);
-                        returnFeatures[m_abRatioOutNo].push_back(feature);
-                    }
-                }
-            }
-        }
-
-        if (y != prevy) {
-            feature.hasTimestamp = true;
-            feature.timestamp = m_startTime + yt;
-            feature.values.clear();
-            feature.values.push_back(float(xt.sec + xt.msec()/1000.0));
-            returnFeatures[m_baOutNo].push_back(feature);
-        }
-
-        prevx = x;
-        prevy = y;
+    if (m_serialise) {
+#ifdef _WIN32
+        WaitForSingleObject(mutex, INFINITE);
+#else
+        pthread_mutex_lock(&mutex);
+#endif
     }
 
-    delete m_pipeline;
-    m_pipeline = 0;
+    FeatureSet returnFeatures;
 
-    if (m_locked) {
+    if (m_serialise) {
 #ifdef _WIN32
-        ReleaseMutex(m_serialisingMutex);
+        ReleaseMutex(mutex);
 #else
-        pthread_mutex_unlock(&m_serialisingMutex);
+        pthread_mutex_unlock(&mutex);
 #endif
-        m_locked = false;
     }
 
     return returnFeatures;
-    
-
-/*
-    for (int i = 0; i < len; ++i) {
-        std::cerr << i << ": [" << pathx[i] << "," << pathy[i] << "]" << std::endl;
-    }
-
-    std::cerr << std::endl;
-    std::cerr << "File: A" << std::endl;
-    std::cerr << "Marks: -1" << std::endl;
-    std::cerr << "FixedPoints: true 0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "0" << std::endl;
-    std::cerr << "File: B" << std::endl;
-    std::cerr << "Marks: 0" << std::endl;
-    std::cerr << "FixedPoints: true 0" << std::endl;
-    std::cerr << "0.02" << std::endl;
-    std::cerr << "0.02" << std::endl;
-
-    std::cerr << len << std::endl;
-    for (int i = 0; i < len; ++i) {
-        std::cerr << pathx[i] << std::endl;
-    }
-
-    std::cerr << len << std::endl;
-    for (int i = 0; i < len; ++i) {
-        std::cerr << pathy[i] << std::endl;
-    }
-*/
 }
