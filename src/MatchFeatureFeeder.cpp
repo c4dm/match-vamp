@@ -18,6 +18,8 @@
 #include "MatchFeatureFeeder.h"
 
 using std::vector;
+using std::cerr;
+using std::endl;
 
 MatchFeatureFeeder::MatchFeatureFeeder(Matcher *m1, Matcher *m2) :
     m_pm1(m1),

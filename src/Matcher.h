@@ -26,11 +26,6 @@
 #include "DistanceMetric.h"
 #include "MatchTypes.h"
 
-using std::vector;
-using std::string;
-using std::cerr;
-using std::endl;
-
 /** Represents an audio feature stream that can be matched to another
  *  audio stream of the same piece of music.  The matching algorithm
  *  uses dynamic time warping.
@@ -38,7 +33,7 @@ using std::endl;
 class Matcher
 {
 public:
-    static string advanceToString(advance_t a) {
+    static std::string advanceToString(advance_t a) {
         switch (a) {
         case AdvanceNone: return "AdvanceNone";
         case AdvanceBoth: return "AdvanceBoth";
@@ -57,8 +52,8 @@ public:
             diagonalWeight(2.0)
         {}
 
-        /** Spacing of audio frames (determines the amount of overlap or
-         *  skip between frames). This value is expressed in
+        /** Spacing of audio frames (determines the amount of overlap
+         *  or skip between frames). This value is expressed in
          *  seconds.
          */
         double hopTime;
@@ -341,9 +336,9 @@ protected:
 
     /** The bounds of each row of data in the distance, path cost, and
      * advance direction matrices.*/
-    vector<int> m_first;
-    vector<int> m_last;
-
+    std::vector<int> m_first;
+    std::vector<int> m_last;
+    
     /** Width of distance, path cost, and advance direction matrices
      * and first and last vectors */
     int m_distXSize;

@@ -29,6 +29,8 @@
 #include <vector>
 #include <algorithm>
 
+using std::string;
+
 //static int extant = 0;
 
 #ifdef _WIN32

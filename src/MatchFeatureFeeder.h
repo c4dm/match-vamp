@@ -14,8 +14,8 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef _MATCH_FEATURE_FEEDER_H_
-#define _MATCH_FEATURE_FEEDER_H_
+#ifndef MATCH_FEATURE_FEEDER_H
+#define MATCH_FEATURE_FEEDER_H
 
 #include "Matcher.h"
 #include "Finder.h"
@@ -82,8 +82,8 @@ protected:
     std::queue<feature_t> m_q1;
     std::queue<feature_t> m_q2;
 
-    vector<int> m_fpx;
-    vector<int> m_fpy;
+    std::vector<int> m_fpx;
+    std::vector<int> m_fpy;
 
     // not provided:
     MatchFeatureFeeder(const MatchFeatureFeeder &other);

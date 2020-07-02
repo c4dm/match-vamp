@@ -41,14 +41,13 @@ depend:
 # DO NOT DELETE
 
 src/DistanceMetric.o: src/DistanceMetric.h src/MatchTypes.h
-src/Path.o: src/Path.h
 src/FeatureConditioner.o: src/FeatureConditioner.h src/MatchTypes.h
-src/MatchFeatureFeeder.o: src/MatchFeatureFeeder.h src/Matcher.h
-src/MatchFeatureFeeder.o: src/DistanceMetric.h src/MatchTypes.h src/Finder.h
 src/FeatureExtractor.o: src/FeatureExtractor.h src/MatchTypes.h
 src/Finder.o: src/Finder.h src/Matcher.h src/DistanceMetric.h
 src/Finder.o: src/MatchTypes.h src/Path.h
 src/Matcher.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
+src/MatchFeatureFeeder.o: src/MatchFeatureFeeder.h src/Matcher.h
+src/MatchFeatureFeeder.o: src/DistanceMetric.h src/MatchTypes.h src/Finder.h
 src/MatchPipeline.o: src/MatchPipeline.h src/Matcher.h src/DistanceMetric.h
 src/MatchPipeline.o: src/MatchTypes.h src/Finder.h src/FeatureExtractor.h
 src/MatchPipeline.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
@@ -57,19 +56,21 @@ src/MatchVampPlugin.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
 src/MatchVampPlugin.o: src/Finder.h src/FeatureExtractor.h
 src/MatchVampPlugin.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
 src/MatchVampPlugin.o: src/Path.h
-src/MatchFeatureFeeder.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
-src/MatchFeatureFeeder.o: src/Finder.h
+src/Path.o: src/Path.h
+src/DistanceMetric.o: src/MatchTypes.h
+src/FeatureConditioner.o: src/MatchTypes.h
 src/FeatureExtractor.o: src/MatchTypes.h
 src/Finder.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
+src/FullDTW.o: src/DistanceMetric.h src/MatchTypes.h
 src/Matcher.o: src/DistanceMetric.h src/MatchTypes.h
+src/MatchFeatureFeeder.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
+src/MatchFeatureFeeder.o: src/Finder.h
 src/MatchPipeline.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
 src/MatchPipeline.o: src/Finder.h src/FeatureExtractor.h
 src/MatchPipeline.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
 src/MatchVampPlugin.o: src/MatchPipeline.h src/Matcher.h src/DistanceMetric.h
 src/MatchVampPlugin.o: src/MatchTypes.h src/Finder.h src/FeatureExtractor.h
 src/MatchVampPlugin.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
-src/DistanceMetric.o: src/MatchTypes.h
-src/FeatureConditioner.o: src/MatchTypes.h
-test/TestFeatureConditioner.o: src/FeatureConditioner.h src/MatchTypes.h
 test/TestDistanceMetric.o: src/DistanceMetric.h src/MatchTypes.h
+test/TestFeatureConditioner.o: src/FeatureConditioner.h src/MatchTypes.h
 test/TestFeatureExtractor.o: src/FeatureExtractor.h src/MatchTypes.h
