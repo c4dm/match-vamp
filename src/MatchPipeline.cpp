@@ -92,8 +92,8 @@ MatchPipeline::feedConditionedFeatures(const feature_t &c1, const feature_t &c2)
     
     m_feeder.feed(c1, c2);
 
-    if (aboveThreshold(c1)) m_lastFrameIn1 = m_frameNo;
-    if (aboveThreshold(c2)) m_lastFrameIn2 = m_frameNo;
+    if (isAboveEndingThreshold(c1)) m_lastFrameIn1 = m_frameNo;
+    if (isAboveEndingThreshold(c2)) m_lastFrameIn2 = m_frameNo;
 
 #ifdef DEBUG_MATCH_PIPELINE
     cerr << "last frames are " << m_lastFrameIn1 << ", " << m_lastFrameIn2
@@ -118,20 +118,16 @@ MatchPipeline::extractConditionedFeatures(feature_t &c1, feature_t &c2)
 }
 
 bool
-MatchPipeline::aboveThreshold(const feature_t &f)
+MatchPipeline::isAboveEndingThreshold(const feature_t &f)
 {
-    // This threshold is used only to determine when either of the
-    // input streams has ended -- the last frame for a stream is
-    // considered to be the last one that was above the
-    // threshold. This is different from the silence threshold in
-    // FeatureConditioner.
     double threshold = 1e-4f;
     double sum = 0.f;
     for (int i = 0; i < int(f.size()); ++i) {
         sum += f[i] * f[i];
     }
 #ifdef DEBUG_MATCH_PIPELINE
-    cerr << "aboveThreshold: sum " << sum << ", threshold " << threshold
+    cerr << "isAboveEndingThreshold: sum " << sum
+         << ", threshold " << threshold
          << ", returning " << (sum >= threshold) << endl;
 #endif
     return (sum >= threshold);

@@ -120,6 +120,20 @@ public:
      */
     double getOverallCost();
 
+    /**
+     * Return true if the feature's level is above a low threshold,
+     * intended to determine when either of the input streams has
+     * ended (the last frame for a stream is considered to be the last
+     * one that was above the threshold). This is different from the
+     * silence threshold in FeatureConditioner.
+     *
+     * Users of this class do not normally need to call this function
+     * explicitly: it's used internally when processing the
+     * streams. It is exposed here in case other code wants to perform
+     * a similar test in a consistent way.
+     */
+    static bool isAboveEndingThreshold(const feature_t &f);
+    
 private:
     FeatureExtractor m_fe1;
     FeatureExtractor m_fe2;

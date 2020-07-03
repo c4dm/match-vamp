@@ -73,13 +73,16 @@ protected:
     int m_coarseDownsample;
     bool m_serialise;
     bool m_smooth;
+    double m_secondReferenceFrequency;
+
+    size_t m_channelCount;
+    Vamp::RealTime m_startTime;
     
     Matcher::Parameters m_params;
     Matcher::Parameters m_defaultParams;
 
     FeatureExtractor::Parameters m_feParams;
     FeatureExtractor::Parameters m_defaultFeParams;
-    double m_secondReferenceFrequency;
 
     FeatureConditioner::Parameters m_fcParams;
     FeatureConditioner::Parameters m_defaultFcParams;
@@ -87,8 +90,14 @@ protected:
     DistanceMetric::Parameters m_dParams;
     DistanceMetric::Parameters m_defaultDParams;
 
+    std::vector<FeatureExtractor> m_featureExtractors;
+    std::vector<featureseq_t> m_features; // unconditioned features
+
+    featureseq_t downsample(const featureseq_t &);
+    
     mutable int m_pathOutNo;
     mutable int m_baOutNo;
+    mutable int m_spanOutNo;
 };
 
 #endif

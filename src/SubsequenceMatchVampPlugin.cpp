@@ -16,6 +16,8 @@
 */
 
 #include "SubsequenceMatchVampPlugin.h"
+#include "FullDTW.h"
+#include "MatchPipeline.h"
 
 #include <vamp/vamp.h>
 #include <vamp-sdk/RealTime.h>
@@ -24,6 +26,10 @@
 #include <algorithm>
 
 using std::string;
+using std::vector;
+using std::cerr;
+using std::cout;
+using std::endl;
 
 // We want to ensure our freq map / crossover bin are always valid
 // with a fixed FFT length in seconds, so must reject low sample rates
@@ -39,21 +45,21 @@ SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin(float inputSampleRate) :
     m_coarseDownsample(50),
     m_serialise(false),
     m_smooth(false),
+    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
+    m_channelCount(0),
     m_params(defaultStepTime),
     m_defaultParams(defaultStepTime),
     m_feParams(inputSampleRate),
     m_defaultFeParams(44100), // parameter descriptors can't depend on samplerate
-    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
     m_fcParams(),
     m_defaultFcParams(),
     m_dParams(),
     m_defaultDParams()
 {
     if (inputSampleRate < sampleRateMin) {
-        std::cerr << "SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin: input sample rate "
-                  << inputSampleRate << " < min supported rate "
-                  << sampleRateMin << ", plugin will refuse to initialise"
-                  << std::endl;
+        cerr << "SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin: input sample rate "
+             << inputSampleRate << " < min supported rate "
+             << sampleRateMin << ", plugin will refuse to initialise" << endl;
     }
 }
 
@@ -64,7 +70,7 @@ SubsequenceMatchVampPlugin::~SubsequenceMatchVampPlugin()
 string
 SubsequenceMatchVampPlugin::getIdentifier() const
 {
-    return "match_subsequence";
+    return "match-subsequence";
 }
 
 string
@@ -403,15 +409,19 @@ bool
 SubsequenceMatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockSize)
 {
     if (m_inputSampleRate < sampleRateMin) {
-        std::cerr << "SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin: input sample rate "
-                  << m_inputSampleRate << " < min supported rate "
-                  << sampleRateMin << std::endl;
+        cerr << "SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin: input sample rate "
+             << m_inputSampleRate << " < min supported rate "
+             << sampleRateMin << endl;
         return false;
     }
     if (channels < getMinChannelCount() ||
-	channels > getMaxChannelCount()) return false;
+	channels > getMaxChannelCount()) {
+        return false;
+    }
     if (stepSize > blockSize/2 ||
-        blockSize != getPreferredBlockSize()) return false;
+        blockSize != getPreferredBlockSize()) {
+        return false;
+    }
 
     m_stepSize = int(stepSize);
     m_stepTime = float(stepSize) / m_inputSampleRate;
@@ -420,13 +430,29 @@ SubsequenceMatchVampPlugin::initialise(size_t channels, size_t stepSize, size_t 
     m_params.hopTime = m_stepTime;
     m_feParams.fftSize = m_blockSize;
 
+    m_channelCount = channels;
+
+    reset();
+        
     return true;
 }
 
 void
 SubsequenceMatchVampPlugin::reset()
 {
-    //!!!
+    m_featureExtractors.clear();
+    m_features.clear();
+    m_startTime = Vamp::RealTime::zeroTime;
+
+    FeatureExtractor::Parameters feParams(m_feParams);
+    
+    for (size_t c = 0; c < m_channelCount; ++c) {
+        if (c > 0) {
+            feParams.referenceFrequency = m_secondReferenceFrequency;
+        }
+        m_featureExtractors.push_back(FeatureExtractor(feParams));
+        m_features.push_back(featureseq_t());
+    }
 }
 
 SubsequenceMatchVampPlugin::OutputList
@@ -451,7 +477,6 @@ SubsequenceMatchVampPlugin::getOutputDescriptors() const
     m_pathOutNo = int(list.size());
     list.push_back(desc);
 
-
     desc.identifier = "b_a";
     desc.name = "B-A Timeline";
     desc.description = "Timing in performance A corresponding to moments in performance B";
@@ -464,6 +489,20 @@ SubsequenceMatchVampPlugin::getOutputDescriptors() const
     desc.sampleRate = outRate;
     m_baOutNo = int(list.size());
     list.push_back(desc);
+
+    desc.identifier = "span";
+    desc.name = "Subsequence Span";
+    desc.description = "Region in performance A corresponding to the whole of performance B";
+    desc.unit = "";
+    desc.hasFixedBinCount = true;
+    desc.binCount = 0;
+    desc.hasKnownExtents = false;
+    desc.isQuantized = false;
+    desc.sampleType = OutputDescriptor::VariableSampleRate;
+    desc.sampleRate = outRate;
+    desc.hasDuration = true;
+    m_spanOutNo = int(list.size());
+    list.push_back(desc);
     
     return list;
 }
@@ -472,21 +511,95 @@ SubsequenceMatchVampPlugin::FeatureSet
 SubsequenceMatchVampPlugin::process(const float *const *inputBuffers,
                                     Vamp::RealTime timestamp)
 {
-    FeatureSet returnFeatures;
+    if (m_featureExtractors.empty()) {
+        cerr << "SubsequenceMatchVampPlugin::process: Plugin has not been (properly?) initialised" << endl;
+        return {};
+    }
+
+    if (m_features[0].empty()) {
+        m_startTime = timestamp;
+    }
     
-    return returnFeatures;
+    for (size_t c = 0; c < m_featureExtractors.size(); ++c) {
+        m_features[c].push_back(m_featureExtractors[c].process
+                                (inputBuffers[c]));
+    }        
+
+    return {};
+}
+
+featureseq_t
+SubsequenceMatchVampPlugin::downsample(const featureseq_t &ff)
+{
+    if (ff.empty()) {
+        return ff;
+    }
+
+    size_t lastNonEmpty = 0;
+    for (size_t i = ff.size(); i > 0; ) {
+        --i;
+        if (MatchPipeline::isAboveEndingThreshold(ff[i])) {
+            lastNonEmpty = i;
+            break;
+        }
+    }
+
+    FeatureConditioner::Parameters fcParams(m_fcParams);
+    fcParams.order = FeatureConditioner::OutputFeatures; // not the difference
+    FeatureConditioner fc(fcParams);
+    
+    int featureSize = m_featureExtractors[0].getFeatureSize();
+    
+    featureseq_t d;
+
+    size_t i = 0;
+    while (i < lastNonEmpty) {
+        feature_t acc(featureSize, 0);
+        int j = 0;
+        while (j < m_coarseDownsample) {
+            if (i >= ff.size()) break;
+            feature_t feature = fc.process(ff[i]);
+            for (int k = 0; k < featureSize; ++k) {
+                acc[k] += feature[k];
+            }
+            ++i;
+            ++j;
+        }
+        if (j > 0) {
+            for (int k = 0; k < featureSize; ++k) {
+                acc[k] /= float(j);
+            }
+        }
+        d.push_back(acc);
+    }
+
+    return d;
 }
 
 SubsequenceMatchVampPlugin::FeatureSet
 SubsequenceMatchVampPlugin::getRemainingFeatures()
 {
+    if (m_featureExtractors.empty()) {
+        cerr << "SubsequenceMatchVampPlugin::getRemainingFeatures: Plugin has not been (properly?) initialised" << endl;
+        return {};
+    }
+    
 #ifdef _WIN32
-    HANDLE mutex;
+    static HANDLE mutex;
 #else
-    pthread_mutex_t mutex;
+    static pthread_mutex_t mutex;
 #endif
+    static bool mutexInitialised = false;
 
     if (m_serialise) {
+        if (!mutexInitialised) {
+#ifdef _WIN32
+            mutex = CreateMutex(NULL, FALSE, NULL);
+#else
+            pthread_mutex_init(&mutex, 0);
+#endif
+            mutexInitialised = true;
+        }
 #ifdef _WIN32
         WaitForSingleObject(mutex, INFINITE);
 #else
@@ -494,8 +607,117 @@ SubsequenceMatchVampPlugin::getRemainingFeatures()
 #endif
     }
 
-    FeatureSet returnFeatures;
+    featureseq_t downsampledRef = downsample(m_features[0]);
 
+    cerr << "SubsequenceMatchVampPlugin: reference downsampled sequence length = " << downsampledRef.size() << endl;
+    
+    FullDTW::Parameters dtwParams(m_stepTime);
+    dtwParams.diagonalWeight = m_params.diagonalWeight;
+    dtwParams.subsequence = true;
+    FullDTW dtw(dtwParams, m_dParams);
+    
+    FeatureSet returnFeatures;
+    int featureSize = m_featureExtractors[0].getFeatureSize();
+
+    int rate = int(m_inputSampleRate + 0.5);
+    
+    for (size_t c = 1; c < m_channelCount; ++c) {
+
+        featureseq_t downsampledOther = downsample(m_features[c]);
+
+        cerr << "SubsequenceMatchVampPlugin: other downsampled sequence length = " << downsampledOther.size() << endl;
+
+        vector<size_t> subsequenceAlignment = dtw.align(downsampledRef,
+                                                        downsampledOther);
+
+        if (subsequenceAlignment.empty()) {
+            cerr << "No subsequenceAlignment??" << endl;
+            continue;
+        }
+        
+        int64_t first = subsequenceAlignment[0];
+        int64_t last = subsequenceAlignment[subsequenceAlignment.size()-1];
+        cerr << "Subsequence alignment span: " << first << " -> " << last << endl;
+
+
+        if (last <= first) {
+            cerr << "Invalid span" << endl;
+            continue;
+        }
+        if (first < 0 || last >= long(downsampledRef.size())) {
+            cerr << "Span end points out of range" << endl;
+            continue;
+        }
+            
+        Feature span;
+        span.hasTimestamp = true;
+        span.timestamp = Vamp::RealTime::frame2RealTime
+            (first * m_coarseDownsample * m_stepSize, rate);
+        span.hasDuration = true;
+        span.duration = Vamp::RealTime::frame2RealTime
+            ((last - first) * m_coarseDownsample * m_stepSize, rate);
+        returnFeatures[m_spanOutNo].push_back(span);
+
+        featureseq_t referenceSubsequence
+            (m_features[0].begin() + first * m_coarseDownsample,
+             m_features[0].begin() + last * m_coarseDownsample);
+
+        MatchPipeline pipeline(m_feParams,
+                               m_fcParams,
+                               m_dParams,
+                               m_params,
+                               m_secondReferenceFrequency);
+
+        for (size_t i = 0; i < referenceSubsequence.size() &&
+                 i < m_features[c].size(); ++i) {
+            feature_t f1(featureSize, 0);
+            feature_t f2(featureSize, 0);
+            if (i < referenceSubsequence.size()) {
+                f1 = referenceSubsequence[i];
+            }
+            if (i < m_features[c].size()) {
+                f2 = m_features[c][i];
+            }
+            pipeline.feedFeatures(f1, f2);
+        }
+
+        pipeline.finish();
+            
+        vector<int> pathx;
+        vector<int> pathy;
+        int len = pipeline.retrievePath(m_smooth, pathx, pathy);
+
+        int prevy = 0;
+    
+        for (int i = 0; i < len; ++i) {
+
+            int x = pathx[i];
+            int y = pathy[i] + int(first * m_coarseDownsample);
+
+            Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
+                (x * m_stepSize, rate) + m_startTime;
+            Vamp::RealTime yt = Vamp::RealTime::frame2RealTime
+                (y * m_stepSize, rate) + m_startTime;
+
+            Feature feature;
+            feature.hasTimestamp = true;
+            feature.timestamp = xt;
+            feature.values.clear();
+            feature.values.push_back(float(yt.sec + double(yt.nsec)/1.0e9));
+            returnFeatures[m_pathOutNo].push_back(feature);
+        
+            if (y != prevy) {
+                feature.hasTimestamp = true;
+                feature.timestamp = yt;
+                feature.values.clear();
+                feature.values.push_back(float(xt.sec + xt.msec()/1000.0));
+                returnFeatures[m_baOutNo].push_back(feature);
+            }
+
+            prevy = y;
+        }
+    }
+    
     if (m_serialise) {
 #ifdef _WIN32
         ReleaseMutex(mutex);
