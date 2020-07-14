@@ -18,6 +18,7 @@
 #include "FullDTW.h"
 
 #include <stdexcept>
+#include <algorithm>
 
 FullDTW::FullDTW(Parameters params, DistanceMetric::Parameters dparams) :
     m_params(params),
