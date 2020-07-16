@@ -447,7 +447,7 @@ SubsequenceMatchVampPlugin::reset()
     FeatureExtractor::Parameters feParams(m_feParams);
     
     for (size_t c = 0; c < m_channelCount; ++c) {
-        if (c > 0) {
+        if (c > 0 && m_secondReferenceFrequency != 0.0) {
             feParams.referenceFrequency = m_secondReferenceFrequency;
         }
         m_featureExtractors.push_back(FeatureExtractor(feParams));
