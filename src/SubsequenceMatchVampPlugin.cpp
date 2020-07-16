@@ -607,6 +607,22 @@ SubsequenceMatchVampPlugin::getRemainingFeatures()
 #endif
     }
 
+    FeatureSet returnFeatures = performAlignment();
+    
+    if (m_serialise) {
+#ifdef _WIN32
+        ReleaseMutex(mutex);
+#else
+        pthread_mutex_unlock(&mutex);
+#endif
+    }
+
+    return returnFeatures;
+}
+    
+SubsequenceMatchVampPlugin::FeatureSet
+SubsequenceMatchVampPlugin::performAlignment()
+{
     featureseq_t downsampledRef = downsample(m_features[0]);
 
     cerr << "SubsequenceMatchVampPlugin: reference downsampled sequence length = " << downsampledRef.size() << endl;
@@ -716,14 +732,6 @@ SubsequenceMatchVampPlugin::getRemainingFeatures()
 
             prevy = y;
         }
-    }
-    
-    if (m_serialise) {
-#ifdef _WIN32
-        ReleaseMutex(mutex);
-#else
-        pthread_mutex_unlock(&mutex);
-#endif
     }
 
     return returnFeatures;

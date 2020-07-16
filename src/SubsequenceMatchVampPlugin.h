@@ -93,6 +93,7 @@ protected:
     std::vector<FeatureExtractor> m_featureExtractors;
     std::vector<featureseq_t> m_features; // unconditioned features
 
+    FeatureSet performAlignment();
     featureseq_t downsample(const featureseq_t &);
     
     mutable int m_pathOutNo;
