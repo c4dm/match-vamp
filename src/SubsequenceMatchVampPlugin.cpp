@@ -37,12 +37,14 @@ static float sampleRateMin = 5000.f;
 
 static float defaultStepTime = 0.020f;
 
+static int defaultCoarseDownsample = 50;
+
 SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
     m_stepSize(int(inputSampleRate * defaultStepTime + 0.001)),
     m_stepTime(defaultStepTime),
     m_blockSize(2048),
-    m_coarseDownsample(50),
+    m_coarseDownsample(defaultCoarseDownsample),
     m_serialise(false),
     m_smooth(false),
     m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
@@ -112,7 +114,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "freq1";
     desc.name = "Tuning frequency of first input";
-    desc.description = "Tuning frequency (concert A) for the reference audio.";
+    desc.description = "Tuning frequency (concert A) for the reference audio";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
     desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
@@ -122,7 +124,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "freq2";
     desc.name = "Tuning frequency of second input";
-    desc.description = "Tuning frequency (concert A) for the other audio.";
+    desc.description = "Tuning frequency (concert A) for the other audio";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
     desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
@@ -132,7 +134,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "minfreq";
     desc.name = "Minimum frequency";
-    desc.description = "Minimum frequency to include in features.";
+    desc.description = "Minimum frequency to include in features";
     desc.minValue = 0.0;
     desc.maxValue = float(m_inputSampleRate / 4.f);
     desc.defaultValue = float(m_defaultFeParams.minFrequency);
@@ -142,7 +144,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "maxfreq";
     desc.name = "Maximum frequency";
-    desc.description = "Maximum frequency to include in features.";
+    desc.description = "Maximum frequency to include in features";
     desc.minValue = 1000.0;
     desc.maxValue = float(m_inputSampleRate / 2.f);
     desc.defaultValue = float(m_defaultFeParams.maxFrequency);
@@ -151,6 +153,16 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
     
     desc.unit = "";
+
+    desc.identifier = "coarsedownsample";
+    desc.name = "Coarse alignment downsample factor";
+    desc.description = "Downsample factor for features used in first coarse subsequence-alignment step";
+    desc.minValue = 1;
+    desc.maxValue = 200;
+    desc.defaultValue = float(defaultCoarseDownsample);
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    list.push_back(desc);
     
     desc.identifier = "usechroma";
     desc.name = "Feature type";
@@ -195,7 +207,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "metric";
     desc.name = "Distance metric";
-    desc.description = "Metric for distance calculations.";
+    desc.description = "Metric for distance calculations";
     desc.minValue = 0;
     desc.maxValue = 2;
     desc.defaultValue = float(m_defaultDParams.metric);
@@ -245,7 +257,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "noise";
     desc.name = "Add noise";
-    desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio.";
+    desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio";
     desc.minValue = 0;
     desc.maxValue = 1;
     desc.defaultValue = float(m_defaultDParams.noise);
@@ -304,9 +316,6 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
     desc.isQuantized = true;
     desc.quantizeStep = 1;
     list.push_back(desc);
-
-    //!!! + m_coarseDownsample, + reconsider params not useful in this plugin
-    
     
     return list;
 }
@@ -348,6 +357,8 @@ SubsequenceMatchVampPlugin::getParameter(std::string name) const
         return float(m_feParams.minFrequency);
     } else if (name == "maxfreq") {
         return float(m_feParams.maxFrequency);
+    } else if (name == "coarsedownsample") {
+        return float(m_coarseDownsample);
     }
     
     return 0.0;
@@ -390,6 +401,8 @@ SubsequenceMatchVampPlugin::setParameter(std::string name, float value)
         m_feParams.minFrequency = value;
     } else if (name == "maxfreq") {
         m_feParams.maxFrequency = value;
+    } else if (name == "coarsedownsample") {
+        m_coarseDownsample = int(value + 0.1);
     }
 }
 
@@ -653,16 +666,22 @@ SubsequenceMatchVampPlugin::performAlignment()
         
         int64_t first = subsequenceAlignment[0];
         int64_t last = subsequenceAlignment[subsequenceAlignment.size()-1];
-        cerr << "Subsequence alignment span: " << first << " -> " << last << endl;
+        cerr << "Subsequence alignment span: " << first << " to " << last << endl;
 
 
         if (last <= first) {
-            cerr << "Invalid span" << endl;
-            continue;
-        }
-        if (first < 0 || last >= long(downsampledRef.size())) {
-            cerr << "Span end points out of range" << endl;
-            continue;
+            cerr << "NOTE: Invalid span (" << first << " to " << last
+                 << "), reverting to aligning against whole of reference"
+                 << endl;
+            first = 0;
+            last = downsampledRef.size() - 1;
+        } else if (first < 0 || last >= long(downsampledRef.size())) {
+            cerr << "NOTE: Span end points (" << first << " to "
+                 << last << ") out of range (0 to " << downsampledRef.size()-1
+                 << "), reverting to aligning against whole of reference"
+                 << endl;
+            first = 0;
+            last = downsampledRef.size() - 1;
         }
             
         Feature span;
@@ -674,9 +693,16 @@ SubsequenceMatchVampPlugin::performAlignment()
             ((last - first) * m_coarseDownsample * m_stepSize, rate);
         returnFeatures[m_spanOutNo].push_back(span);
 
+        size_t firstAtOriginalRate = first * m_coarseDownsample;
+        size_t lastAtOriginalRate = (last + 1) * m_coarseDownsample;
+
+        if (lastAtOriginalRate >= m_features[0].size()) {
+            lastAtOriginalRate = m_features[0].size() - 1;
+        }
+        
         featureseq_t referenceSubsequence
-            (m_features[0].begin() + first * m_coarseDownsample,
-             m_features[0].begin() + last * m_coarseDownsample);
+            (m_features[0].begin() + firstAtOriginalRate,
+             m_features[0].begin() + lastAtOriginalRate);
 
         MatchPipeline pipeline(m_feParams,
                                m_fcParams,

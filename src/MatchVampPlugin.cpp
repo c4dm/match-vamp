@@ -148,7 +148,7 @@ MatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "freq1";
     desc.name = "Tuning frequency of first input";
-    desc.description = "Tuning frequency (concert A) for the reference audio.";
+    desc.description = "Tuning frequency (concert A) for the reference audio";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
     desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
@@ -158,7 +158,7 @@ MatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "freq2";
     desc.name = "Tuning frequency of second input";
-    desc.description = "Tuning frequency (concert A) for the other audio.";
+    desc.description = "Tuning frequency (concert A) for the other audio";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
     desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
@@ -168,7 +168,7 @@ MatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "minfreq";
     desc.name = "Minimum frequency";
-    desc.description = "Minimum frequency to include in features.";
+    desc.description = "Minimum frequency to include in features";
     desc.minValue = 0.0;
     desc.maxValue = float(m_inputSampleRate / 4.f);
     desc.defaultValue = float(m_defaultFeParams.minFrequency);
@@ -178,7 +178,7 @@ MatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "maxfreq";
     desc.name = "Maximum frequency";
-    desc.description = "Maximum frequency to include in features.";
+    desc.description = "Maximum frequency to include in features";
     desc.minValue = 1000.0;
     desc.maxValue = float(m_inputSampleRate / 2.f);
     desc.defaultValue = float(m_defaultFeParams.maxFrequency);
@@ -231,7 +231,7 @@ MatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "metric";
     desc.name = "Distance metric";
-    desc.description = "Metric for distance calculations.";
+    desc.description = "Metric for distance calculations";
     desc.minValue = 0;
     desc.maxValue = 2;
     desc.defaultValue = float(m_defaultDParams.metric);
@@ -281,7 +281,7 @@ MatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "noise";
     desc.name = "Add noise";
-    desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio.";
+    desc.description = "Whether to mix in a small constant white noise term when calculating feature distance. This can improve alignment against sources containing cleanly synthesised audio";
     desc.minValue = 0;
     desc.maxValue = 1;
     desc.defaultValue = float(m_defaultDParams.noise);
