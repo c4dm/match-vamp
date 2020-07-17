@@ -45,6 +45,12 @@ src/FeatureConditioner.o: src/FeatureConditioner.h src/MatchTypes.h
 src/FeatureExtractor.o: src/FeatureExtractor.h src/MatchTypes.h
 src/Finder.o: src/Finder.h src/Matcher.h src/DistanceMetric.h
 src/Finder.o: src/MatchTypes.h src/Path.h
+src/FullDTW.o: src/FullDTW.h src/DistanceMetric.h src/MatchTypes.h
+src/libmain.o: src/MatchVampPlugin.h src/MatchPipeline.h src/Matcher.h
+src/libmain.o: src/DistanceMetric.h src/MatchTypes.h src/Finder.h
+src/libmain.o: src/FeatureExtractor.h src/FeatureConditioner.h
+src/libmain.o: src/MatchFeatureFeeder.h src/SubsequenceMatchVampPlugin.h
+src/libmain.o: src/FullDTW.h
 src/Matcher.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
 src/MatchFeatureFeeder.o: src/MatchFeatureFeeder.h src/Matcher.h
 src/MatchFeatureFeeder.o: src/DistanceMetric.h src/MatchTypes.h src/Finder.h
@@ -55,8 +61,13 @@ src/MatchVampPlugin.o: src/MatchVampPlugin.h src/MatchPipeline.h
 src/MatchVampPlugin.o: src/Matcher.h src/DistanceMetric.h src/MatchTypes.h
 src/MatchVampPlugin.o: src/Finder.h src/FeatureExtractor.h
 src/MatchVampPlugin.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
-src/MatchVampPlugin.o: src/Path.h
 src/Path.o: src/Path.h
+src/SubsequenceMatchVampPlugin.o: src/SubsequenceMatchVampPlugin.h
+src/SubsequenceMatchVampPlugin.o: src/Matcher.h src/DistanceMetric.h
+src/SubsequenceMatchVampPlugin.o: src/MatchTypes.h src/FeatureExtractor.h
+src/SubsequenceMatchVampPlugin.o: src/FeatureConditioner.h src/FullDTW.h
+src/SubsequenceMatchVampPlugin.o: src/MatchPipeline.h src/Finder.h
+src/SubsequenceMatchVampPlugin.o: src/MatchFeatureFeeder.h
 src/DistanceMetric.o: src/MatchTypes.h
 src/FeatureConditioner.o: src/MatchTypes.h
 src/FeatureExtractor.o: src/MatchTypes.h
@@ -71,6 +82,9 @@ src/MatchPipeline.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
 src/MatchVampPlugin.o: src/MatchPipeline.h src/Matcher.h src/DistanceMetric.h
 src/MatchVampPlugin.o: src/MatchTypes.h src/Finder.h src/FeatureExtractor.h
 src/MatchVampPlugin.o: src/FeatureConditioner.h src/MatchFeatureFeeder.h
+src/SubsequenceMatchVampPlugin.o: src/Matcher.h src/DistanceMetric.h
+src/SubsequenceMatchVampPlugin.o: src/MatchTypes.h src/FeatureExtractor.h
+src/SubsequenceMatchVampPlugin.o: src/FeatureConditioner.h src/FullDTW.h
 test/TestDistanceMetric.o: src/DistanceMetric.h src/MatchTypes.h
 test/TestFeatureConditioner.o: src/FeatureConditioner.h src/MatchTypes.h
 test/TestFeatureExtractor.o: src/FeatureExtractor.h src/MatchTypes.h
