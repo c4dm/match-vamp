@@ -59,7 +59,7 @@ FullDTW::costSequences(const featureseq_t &s1, const featureseq_t &s2) {
         for (size_t i = 0; i < s2.size(); ++i) {
             distance_t dist = m_metric.calcDistance(s1[j], s2[i]);
 #ifdef DEBUG_DTW
-            std::cerr << pathcost_t(dist) << " "; // dist may be char, want a number!
+            std::cerr << distance_print_t(dist) << " ";
 #endif
             
             if (i == 0 && m_params.subsequence) {
