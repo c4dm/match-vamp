@@ -30,6 +30,7 @@
 #include "FeatureExtractor.h"
 #include "FeatureConditioner.h"
 #include "DistanceMetric.h"
+#include "FullDTW.h"
 
 class SubsequenceMatchVampPlugin : public Vamp::Plugin
 {
@@ -73,7 +74,6 @@ protected:
     int m_coarseDownsample;
     bool m_serialise;
     bool m_smooth;
-    double m_secondReferenceFrequency;
 
     size_t m_channelCount;
     Vamp::RealTime m_startTime;
@@ -83,6 +83,7 @@ protected:
 
     FeatureExtractor::Parameters m_feParams;
     FeatureExtractor::Parameters m_defaultFeParams;
+    double m_secondReferenceFrequency;
 
     FeatureConditioner::Parameters m_fcParams;
     FeatureConditioner::Parameters m_defaultFcParams;
@@ -90,6 +91,9 @@ protected:
     DistanceMetric::Parameters m_dParams;
     DistanceMetric::Parameters m_defaultDParams;
 
+    FullDTW::Parameters m_fdParams;
+    FullDTW::Parameters m_defaultFdParams;
+    
     std::vector<FeatureExtractor> m_featureExtractors;
     std::vector<featureseq_t> m_features; // unconditioned features
 

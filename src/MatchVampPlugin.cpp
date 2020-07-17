@@ -61,7 +61,7 @@ MatchVampPlugin::MatchVampPlugin(float inputSampleRate) :
     m_defaultParams(defaultStepTime),
     m_feParams(inputSampleRate),
     m_defaultFeParams(44100), // parameter descriptors can't depend on samplerate
-    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
+    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency), // must be declared/initialised after m_defaultFeParams
     m_fcParams(),
     m_defaultFcParams(),
     m_dParams(),

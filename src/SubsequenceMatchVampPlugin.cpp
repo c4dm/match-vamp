@@ -36,8 +36,9 @@ using std::endl;
 static float sampleRateMin = 5000.f;
 
 static float defaultStepTime = 0.020f;
-
 static int defaultCoarseDownsample = 50;
+static double defaultAnchoredDiagonalWeight = 2.0;
+static double defaultSubsequenceDiagonalWeight = 0.75;
 
 SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin(float inputSampleRate) :
     Plugin(inputSampleRate),
@@ -47,17 +48,30 @@ SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin(float inputSampleRate) :
     m_coarseDownsample(defaultCoarseDownsample),
     m_serialise(false),
     m_smooth(false),
-    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency),
     m_channelCount(0),
     m_params(defaultStepTime),
     m_defaultParams(defaultStepTime),
     m_feParams(inputSampleRate),
     m_defaultFeParams(44100), // parameter descriptors can't depend on samplerate
+    m_secondReferenceFrequency(m_defaultFeParams.referenceFrequency), // must be declared/initialised after m_defaultFeParams
     m_fcParams(),
     m_defaultFcParams(),
     m_dParams(),
-    m_defaultDParams()
+    m_defaultDParams(),
+    m_fdParams(defaultStepTime),
+    m_defaultFdParams(defaultStepTime)
 {
+    // for the coarse subsequence span aligner:
+    m_fdParams.diagonalWeight = m_defaultFdParams.diagonalWeight =
+        defaultSubsequenceDiagonalWeight;
+
+    // for the MATCH phase following subsequence span identification:
+    m_params.diagonalWeight = m_defaultParams.diagonalWeight =
+        defaultAnchoredDiagonalWeight;
+
+    // and of course
+    m_fdParams.subsequence = m_defaultFdParams.subsequence = true;
+
     if (inputSampleRate < sampleRateMin) {
         cerr << "SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin: input sample rate "
              << inputSampleRate << " < min supported rate "
@@ -287,11 +301,21 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
     list.push_back(desc);
 
     desc.identifier = "diagonalweight";
-    desc.name = "Diagonal weight";
-    desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step. The default of 2.0 is good for gross tracking of quite different performances; closer to 1.0 produces a smoother path for performances more similar in tempo";
-    desc.minValue = 1.0;
+    desc.name = "Diagonal weight, anchored";
+    desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step, during the anchored (non-subsequence) alignment step";
+    desc.minValue = 0.5;
     desc.maxValue = 2.0;
     desc.defaultValue = float(m_defaultParams.diagonalWeight);
+    desc.isQuantized = false;
+    desc.unit = "";
+    list.push_back(desc);
+
+    desc.identifier = "diagonalweightsubsequence";
+    desc.name = "Diagonal weight, subsequence";
+    desc.description = "Weight applied to cost of diagonal step relative to horizontal or vertical step, during the coarse subsequence alignment step";
+    desc.minValue = 0.5;
+    desc.maxValue = 2.0;
+    desc.defaultValue = float(m_defaultFdParams.diagonalWeight);
     desc.isQuantized = false;
     desc.unit = "";
     list.push_back(desc);
@@ -337,6 +361,8 @@ SubsequenceMatchVampPlugin::getParameter(std::string name) const
         return float(m_params.maxRunCount);
     } else if (name == "diagonalweight") {
         return float(m_params.diagonalWeight);
+    } else if (name == "diagonalweightsubsequence") {
+        return float(m_fdParams.diagonalWeight);
     } else if (name == "zonewidth") {
         return float(m_params.blockTime);
     } else if (name == "smooth") {
@@ -381,6 +407,8 @@ SubsequenceMatchVampPlugin::setParameter(std::string name, float value)
         m_params.maxRunCount = int(value + 0.1);
     } else if (name == "diagonalweight") {
         m_params.diagonalWeight = value;
+    } else if (name == "diagonalweightsubsequence") {
+        m_fdParams.diagonalWeight = value;
     } else if (name == "zonewidth") {
         m_params.blockTime = value;
     } else if (name == "smooth") {
@@ -640,10 +668,7 @@ SubsequenceMatchVampPlugin::performAlignment()
 
     cerr << "SubsequenceMatchVampPlugin: reference downsampled sequence length = " << downsampledRef.size() << endl;
     
-    FullDTW::Parameters dtwParams(m_stepTime);
-    dtwParams.diagonalWeight = m_params.diagonalWeight;
-    dtwParams.subsequence = true;
-    FullDTW dtw(dtwParams, m_dParams);
+    FullDTW dtw(m_fdParams, m_dParams);
     
     FeatureSet returnFeatures;
     int featureSize = m_featureExtractors[0].getFeatureSize();
