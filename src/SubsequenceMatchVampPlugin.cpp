@@ -31,6 +31,8 @@ using std::cerr;
 using std::cout;
 using std::endl;
 
+//#define DEBUG_SUBSEQUENCE_MATCH 1
+
 // We want to ensure our freq map / crossover bin are always valid
 // with a fixed FFT length in seconds, so must reject low sample rates
 static float sampleRateMin = 5000.f;
@@ -46,6 +48,7 @@ SubsequenceMatchVampPlugin::SubsequenceMatchVampPlugin(float inputSampleRate) :
     m_stepTime(defaultStepTime),
     m_blockSize(2048),
     m_coarseDownsample(defaultCoarseDownsample),
+    m_downsamplePeaks(false),
     m_serialise(false),
     m_smooth(false),
     m_channelCount(0),
@@ -138,7 +141,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "freq2";
     desc.name = "Tuning frequency of second input";
-    desc.description = "Tuning frequency (concert A) for the other audio";
+    desc.description = "Tuning frequency (concert A) for the other audio.";
     desc.minValue = 220.0;
     desc.maxValue = 880.0;
     desc.defaultValue = float(m_defaultFeParams.referenceFrequency);
@@ -178,6 +181,19 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
     desc.quantizeStep = 1;
     list.push_back(desc);
     
+    desc.identifier = "downsamplemethod";
+    desc.name = "Coarse alignment downsample method";
+    desc.description = "Downsample method for features used in first coarse subsequence-alignment step";
+    desc.minValue = 0;
+    desc.maxValue = 1;
+    desc.defaultValue = 0;
+    desc.isQuantized = true;
+    desc.quantizeStep = 1;
+    desc.valueNames.clear();
+    desc.valueNames.push_back("Average");
+    desc.valueNames.push_back("Peak");
+    list.push_back(desc);
+    
     desc.identifier = "usechroma";
     desc.name = "Feature type";
     desc.description = "Whether to use warped spectrogram or chroma frequency map";
@@ -195,7 +211,7 @@ SubsequenceMatchVampPlugin::getParameterDescriptors() const
 
     desc.identifier = "usespecdiff";
     desc.name = "Use feature difference";
-    desc.description = "Whether to use half-wave rectified feature-to-feature difference instead of straight spectral or chroma feature";
+    desc.description = "Whether to use half-wave rectified feature-to-feature difference instead of straight spectral or chroma feature (does not apply to downsampled features)";
     desc.minValue = 0;
     desc.maxValue = 1;
     desc.defaultValue = float(m_defaultFcParams.order);
@@ -385,6 +401,8 @@ SubsequenceMatchVampPlugin::getParameter(std::string name) const
         return float(m_feParams.maxFrequency);
     } else if (name == "coarsedownsample") {
         return float(m_coarseDownsample);
+    } else if (name == "downsamplemethod") {
+        return m_downsamplePeaks ? 1.0 : 0.0;
     }
     
     return 0.0;
@@ -431,7 +449,15 @@ SubsequenceMatchVampPlugin::setParameter(std::string name, float value)
         m_feParams.maxFrequency = value;
     } else if (name == "coarsedownsample") {
         m_coarseDownsample = int(value + 0.1);
+    } else if (name == "downsamplemethod") {
+        m_downsamplePeaks = (value > 0.5);
     }
+}
+
+SubsequenceMatchVampPlugin::InputDomain
+SubsequenceMatchVampPlugin::getInputDomain() const
+{
+    return FrequencyDomain;
 }
 
 size_t
@@ -444,6 +470,18 @@ size_t
 SubsequenceMatchVampPlugin::getPreferredBlockSize() const
 {
     return m_defaultFeParams.fftSize;
+}
+
+size_t
+SubsequenceMatchVampPlugin::getMinChannelCount() const
+{
+    return 2;
+}
+
+size_t
+SubsequenceMatchVampPlugin::getMaxChannelCount() const
+{
+    return 2;
 }
 
 bool
@@ -569,20 +607,32 @@ SubsequenceMatchVampPlugin::process(const float *const *inputBuffers,
     return {};
 }
 
-featureseq_t
-SubsequenceMatchVampPlugin::downsample(const featureseq_t &ff)
+size_t
+SubsequenceMatchVampPlugin::findNonEmptyLength(const featureseq_t &ff)
 {
-    if (ff.empty()) {
-        return ff;
-    }
-
+    bool haveNonEmpty = false;
     size_t lastNonEmpty = 0;
     for (size_t i = ff.size(); i > 0; ) {
         --i;
         if (MatchPipeline::isAboveEndingThreshold(ff[i])) {
+            haveNonEmpty = true;
             lastNonEmpty = i;
             break;
         }
+    }
+    if (haveNonEmpty) {
+        return lastNonEmpty + 1;
+    } else {
+        return 0;
+    }
+}
+
+featureseq_t
+SubsequenceMatchVampPlugin::downsample(const featureseq_t &ff,
+                                       size_t inLength)
+{
+    if (ff.empty()) {
+        return ff;
     }
 
     FeatureConditioner::Parameters fcParams(m_fcParams);
@@ -594,19 +644,27 @@ SubsequenceMatchVampPlugin::downsample(const featureseq_t &ff)
     featureseq_t d;
 
     size_t i = 0;
-    while (i < lastNonEmpty) {
+    while (i < inLength) {
         feature_t acc(featureSize, 0);
         int j = 0;
         while (j < m_coarseDownsample) {
             if (i >= ff.size()) break;
             feature_t feature = fc.process(ff[i]);
-            for (int k = 0; k < featureSize; ++k) {
-                acc[k] += feature[k];
+            if (m_downsamplePeaks) {
+                for (int k = 0; k < featureSize; ++k) {
+                    if (feature[k] > acc[k]) {
+                        acc[k] = feature[k];
+                    }
+                }
+            } else {
+                for (int k = 0; k < featureSize; ++k) {
+                    acc[k] += feature[k];
+                }
             }
             ++i;
             ++j;
         }
-        if (j > 0) {
+        if (!m_downsamplePeaks && j > 0) {
             for (int k = 0; k < featureSize; ++k) {
                 acc[k] /= float(j);
             }
@@ -664,9 +722,12 @@ SubsequenceMatchVampPlugin::getRemainingFeatures()
 SubsequenceMatchVampPlugin::FeatureSet
 SubsequenceMatchVampPlugin::performAlignment()
 {
-    featureseq_t downsampledRef = downsample(m_features[0]);
+    size_t refLength = findNonEmptyLength(m_features[0]);
+    featureseq_t downsampledRef = downsample(m_features[0], refLength);
 
-    cerr << "SubsequenceMatchVampPlugin: reference downsampled sequence length = " << downsampledRef.size() << endl;
+#ifdef DEBUG_SUBSEQUENCE_MATCH
+    cerr << "SubsequenceMatchVampPlugin: reference downsampled sequence length = " << downsampledRef.size() << " (from " << refLength << " non-empty of " << m_features[0].size() << " total)" << endl;
+#endif
     
     FullDTW dtw(m_fdParams, m_dParams);
     
@@ -677,9 +738,12 @@ SubsequenceMatchVampPlugin::performAlignment()
     
     for (size_t c = 1; c < m_channelCount; ++c) {
 
-        featureseq_t downsampledOther = downsample(m_features[c]);
+        size_t otherLength = findNonEmptyLength(m_features[c]);
+        featureseq_t downsampledOther = downsample(m_features[c], otherLength);
 
-        cerr << "SubsequenceMatchVampPlugin: other downsampled sequence length = " << downsampledOther.size() << endl;
+#ifdef DEBUG_SUBSEQUENCE_MATCH
+        cerr << "SubsequenceMatchVampPlugin: other downsampled sequence length = " << downsampledOther.size() << " (from " << otherLength << " non-empty of " << m_features[c].size() << " total)" << endl;
+#endif
 
         vector<size_t> subsequenceAlignment = dtw.align(downsampledRef,
                                                         downsampledOther);
@@ -691,8 +755,10 @@ SubsequenceMatchVampPlugin::performAlignment()
         
         int64_t first = subsequenceAlignment[0];
         int64_t last = subsequenceAlignment[subsequenceAlignment.size()-1];
-        cerr << "Subsequence alignment span: " << first << " to " << last << endl;
 
+#ifdef DEBUG_SUBSEQUENCE_MATCH
+        cerr << "Subsequence alignment maps 0 -> " << subsequenceAlignment.size()-1 << " to " << first << " -> " << last << endl;
+#endif
 
         if (last <= first) {
             cerr << "NOTE: Invalid span (" << first << " to " << last
@@ -729,20 +795,32 @@ SubsequenceMatchVampPlugin::performAlignment()
             (m_features[0].begin() + firstAtOriginalRate,
              m_features[0].begin() + lastAtOriginalRate);
 
+#ifdef DEBUG_SUBSEQUENCE_MATCH
+        cerr << "Reference subsequence length = " << referenceSubsequence.size()
+             << endl;
+        cerr << "Other sequence length = " << otherLength << endl;
+#endif
+
         MatchPipeline pipeline(m_feParams,
                                m_fcParams,
                                m_dParams,
                                m_params,
                                m_secondReferenceFrequency);
 
-        for (size_t i = 0; i < referenceSubsequence.size() &&
-                 i < m_features[c].size(); ++i) {
+        size_t sequenceLength = std::max(referenceSubsequence.size(),
+                                         otherLength);
+        
+#ifdef DEBUG_SUBSEQUENCE_MATCH
+        cerr << "MATCH input sequences have length " << sequenceLength << endl;
+#endif
+    
+        for (size_t i = 0; i < sequenceLength; ++i) {
             feature_t f1(featureSize, 0);
             feature_t f2(featureSize, 0);
             if (i < referenceSubsequence.size()) {
                 f1 = referenceSubsequence[i];
             }
-            if (i < m_features[c].size()) {
+            if (i < otherLength) {
                 f2 = m_features[c][i];
             }
             pipeline.feedFeatures(f1, f2);
@@ -755,12 +833,28 @@ SubsequenceMatchVampPlugin::performAlignment()
         int len = pipeline.retrievePath(m_smooth, pathx, pathy);
 
         int prevy = 0;
+
+#ifdef DEBUG_SUBSEQUENCE_MATCH
+        cerr << "MATCH path has length " << len;
+        if (len > 0) {
+            cerr << " and goes from ("
+                 << pathx[0] << ", " << pathy[0] << ") to ("
+                 << pathx[len-1] << ", " << pathy[len-1] << ")";
+            if (len > 2) {
+                cerr << " with penultimate point at ("
+                     << pathx[len-2] << ", " << pathy[len-2] << ")";
+            }
+            cerr << endl;
+        } else {
+            cerr << endl;
+        }
+#endif
     
         for (int i = 0; i < len; ++i) {
 
             int x = pathx[i];
             int y = pathy[i] + int(first * m_coarseDownsample);
-
+            
             Vamp::RealTime xt = Vamp::RealTime::frame2RealTime
                 (x * m_stepSize, rate) + m_startTime;
             Vamp::RealTime yt = Vamp::RealTime::frame2RealTime
@@ -785,5 +879,9 @@ SubsequenceMatchVampPlugin::performAlignment()
         }
     }
 
+#ifdef DEBUG_SUBSEQUENCE_MATCH
+    cerr << endl;
+#endif
+    
     return returnFeatures;
 }

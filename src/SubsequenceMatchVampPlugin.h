@@ -41,13 +41,13 @@ public:
     bool initialise(size_t channels, size_t stepSize, size_t blockSize);
     void reset();
 
-    InputDomain getInputDomain() const { return FrequencyDomain; }
+    InputDomain getInputDomain() const;
 
     size_t getPreferredStepSize() const;
     size_t getPreferredBlockSize() const;
 
-    size_t getMinChannelCount() const { return 2; }
-    size_t getMaxChannelCount() const { return 2; }
+    size_t getMinChannelCount() const;
+    size_t getMaxChannelCount() const;
 
     std::string getIdentifier() const;
     std::string getName() const;
@@ -72,6 +72,7 @@ protected:
     float m_stepTime;
     int m_blockSize;
     int m_coarseDownsample;
+    bool m_downsamplePeaks; // use peaks as opposed to averaging for downsample
     bool m_serialise;
     bool m_smooth;
 
@@ -98,7 +99,8 @@ protected:
     std::vector<featureseq_t> m_features; // unconditioned features
 
     FeatureSet performAlignment();
-    featureseq_t downsample(const featureseq_t &);
+    size_t findNonEmptyLength(const featureseq_t &);
+    featureseq_t downsample(const featureseq_t &, size_t inLength);
     
     mutable int m_pathOutNo;
     mutable int m_baOutNo;

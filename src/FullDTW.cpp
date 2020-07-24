@@ -176,7 +176,7 @@ FullDTW::align(const featureseq_t &s1, const featureseq_t &s2) {
     }
 
 #ifdef DEBUG_DTW
-    std::cerr << "Alignment:" << std::endl;
+    std::cerr << "Costed path:" << std::endl;
     pathcost_t prevcost = 0;
     int indent = 0;
     size_t prevj = 0;
@@ -201,6 +201,11 @@ FullDTW::align(const featureseq_t &s1, const featureseq_t &s2) {
         if (prevcost == 0) prevcost = 1;
     }
     std::cerr << "\n";
+
+    std::cerr << "Alignment:" << std::endl;
+    for (size_t i = 0; i < alignment.size(); ++i) {
+        std::cerr << i << " -> " << alignment[i] << "\n";
+    }
 #endif
     
     return alignment;
